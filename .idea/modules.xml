@@ -2,7 +2,7 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
-      <module fileurl="file://$PROJECT_DIR$/.idea/minecraft_turtle.iml" filepath="$PROJECT_DIR$/.idea/minecraft_turtle.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/MinecraftTurtle.iml" filepath="$PROJECT_DIR$/.idea/MinecraftTurtle.iml" />
     </modules>
   </component>
 </project>
