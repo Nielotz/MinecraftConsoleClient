@@ -1,12 +1,13 @@
 import logging
-import data_types
 logging.basicConfig(level=logging.DEBUG)
 
 from server import Server
 
+
 def run():
-    server = Server(domain_name="nssv.pl", port=25565)
+    server = Server(address="nssv.pl", port=25565)
+    server.connect()
+    server.status()
 
-
-#if __name__ == "__main__":
-    #run()
+if __name__ == "__main__":
+    run()

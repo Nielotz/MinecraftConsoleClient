@@ -12,7 +12,8 @@ class VarInt:
         pass
 
     """Sample usage:
-    int_to_VarInt(2147483647) -> b'\xff\xff\xff\x7f' <class 'bytes'>"""
+    int_to_VarInt(2147483647) -> b'\xff\xff\xff\x7f' <class 'bytes'>
+    """
 
     @staticmethod
     def convert_int_to_VarInt(value: int, byteorder="big"):
