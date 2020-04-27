@@ -73,14 +73,14 @@ class VarLong:
         pass
 
     @staticmethod
-    def convert_long_to_VarLong(value: int, byteorder="big"):
+    def convert_int_to_VarLong(value: int, byteorder="big"):
         logging.debug(f"Converting int: '{value}' to VarLong.")
 
         value_bytes = convert_int_to_int_bytes(value)
 
         logging.debug(f"Bytes: {value_bytes}")
 
-        VarLong_value = VarLong.convert_long_bytes_to_VarLong(value_bytes)
+        VarLong_value = VarLong.convert_int_bytes_to_VarLong(value_bytes)
 
         if VarLong_value is None:
             logging.warning("Didn't found end of int")
@@ -110,7 +110,7 @@ class VarLong:
                 return decimal_bytes
 
     @staticmethod
-    def convert_long_bytes_to_VarLong(int_bytes: bytes):
+    def convert_int_bytes_to_VarLong(int_bytes: bytes):
         result = 0
         num_read = 0
         for byte in int_bytes:
