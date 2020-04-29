@@ -1,22 +1,47 @@
 import socket
 import struct
 
+import logging
+logging.basicConfig(level=logging.INFO)
 
-class Packet:
+
+class Connection:
+    """
+    Handle reading(sending) data from(to) server.
+    Auto clean-up when instance being deleted.
+    """
+    # TODO: improve __del__ to make sure socket closed correctly e.g.
+    #   exception catch only "Can't close not open socket"
+
     connection: socket.socket = None
 
     def __init__(self):
         self.connection = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
     def __del__(self):
-        self.connection.shutdown(socket.SHUT_RDWR)
-        self.connection.close()
+        try:
+            self.connection.shutdown(socket.SHUT_RDWR)
+            logging.info("Shutdown connection")
+        except:
+            pass
+        try:
+            self.connection.close()
+            logging.info("Closed socket")
+        except:
+            pass
 
+    """ Start connection using socket_data(ip/hostname, port).
+    On error raise default socket exceptions
+    """
     def connect(self, socket_data: (str, int), timeout=5):
         self.connection.settimeout(timeout)
         self.connection.connect(socket_data)
 
     #  extra_varint == is_nested_another_length ?
+    """ Reads packet and returns whole packet (to verify) """
+    #  TODO: Verify what is extra_varint,
+    #   add exception handling,
+    #   add auto uncompress
     def read(self, extra_varint=False):
         return self._read_fully(extra_varint)
 
