@@ -5,57 +5,90 @@ import struct
 import logging
 logging.basicConfig(level=logging.INFO)
 
-from packet import Packet
+from connection import Connection
+from hash_tables import ProtocolVersion
 
 
 class Server:
     socket_data = None
-    packet: Packet = None
+    connection: Connection = None
 
-    # TODO change params to class IP with ip parser, etc.
-    def __init__(self, address, port):
-        logging.info(f"Server address: '{address}:{port}'")
+    def __init__(self, host, port):
+        # TODO change params to class IP with ip parser, etc.
 
-        self.socket_data = (address, port)
-        self.packet = Packet()
+        logging.info(f"Server address: '{host}:{port}'")
+
+        self.socket_data = (host, port)
+        self.connection = Connection()
 
     def connect(self, timeout=5):
-        self.packet.connect(self.socket_data, timeout)
+        logging.info(f"Connecting to: "
+                     f"'{self.socket_data[0]}:{self.socket_data[1]}'")
+        try:
+            self.connection.connect(self.socket_data, timeout)  # Status request.
+        except OSError as e:
+            logging.error(f"Can't connect to: "
+                          f"'{self.socket_data[0]}:{self.socket_data[1]}'"
+                          f", reason: {e}")
+            return False
 
-        #  TODO: verify connection
         logging.info("Connected")
-        self._handshake()
+        return True
 
     def __del__(self):
-        logging.info("Disconnecting")
+        pass
 
-    def status(self):
-        self.packet.send(b'\x00')  # Status request.
+    @staticmethod
+    def status(address, port):
+        """
+        Create socket, connect to server, request for information.
+        On success return json, on error False
+        Should not raise exception
+
+        :returns: False or server information
+        :rtype: json
+        """
+        # Todo: add to json / log version in str sample: 1.12.2
+
+        logging.info(f"Gathering data from: '{address}:{port}'")
+        connection = Connection()
+
+        logging.info(f"Connecting to: '{address}:{port}'")
+        try:
+            connection.connect((address, port), 5)  # Status request.
+        except OSError as e:
+            logging.error(f"Can't connect to: '{address}:{port}', reason: {e}")
+            return False
+        else:
+            logging.info(f"Connected'")
+
+        connection.send(b'\x00\x00',  # Protocol Version
+                        address,  # Server Address
+                        port,  # Server Port
+                        b'\x01'  # Next State (status)
+                        )
+        connection.send(b'\x00')
+
         # Read response, offset for string length
-        data = self.packet.read(extra_varint=True)
+        data = connection.read(extra_varint=True)
 
         # Send and read unix time
-        self.packet.send(b'\x01', time.time() * 1000)
-        unix = self.packet.read()
+        connection.send(b'\x01', time.time() * 1000)
+        unix = connection.read()
+
+        # TODO: Fix JSONDecodeError("Expecting value", s, err.value) from None
+        #   raised when server is starting
 
         # Load json and return
         response = json.loads(data.decode('utf8'))
         response['ping'] = int(time.time() * 1000) - struct.unpack('Q', unix)[0]
 
         try:
-            logging.info(f"Server info: version: {response['version']}")
-            logging.info(f"    players: {response['players']}")
-            logging.info(f"    ping:  {response['ping']}ms")
-        except:
+            logging.info(f"Server info: version: {response['version']} \n"
+                         f"    ping:  {response['ping']}ms")  # \n for long name
+
+        except:  # Issue with logging, e.g. some of response fields not exist
             pass
 
         return response
-
-
-    def _handshake(self):
-        self.packet.send(b'\x00\x00',  # Protocol Version
-                         self.socket_data[0],  # Server Address
-                         self.socket_data[1],  # Server Port
-                         b'\x01'  # Next State (status)
-                         )
 
