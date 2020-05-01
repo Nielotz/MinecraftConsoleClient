@@ -13,10 +13,7 @@ def run():
     # client = Client(host=server)
     # player = Player("Bob")
     # if client.login(player):
-    #     pass
-
-
-    # get_status(address="77.55.209.200", port=25565)
+    #    pass
 
 
 if __name__ == "__main__":

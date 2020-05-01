@@ -4,6 +4,7 @@ import struct
 import logging
 
 from hash_tables import PacketIDToBytes
+from consts import MAX_INT
 import utils
 
 
@@ -54,18 +55,40 @@ class Connection:
     #  TODO: Verify what is extra_varint,
     #   add exception handling,
     #   add auto uncompress
-    def read(self):
-        return self._read_packet()
-
     def send(self, packet_id: PacketIDToBytes, data):
         return self._send_data(packet_id, data)
 
-    def _read_and_unpack_varint(self):
-        """Unpack the varint.
+    def receive(self) -> (int, memoryview):
+        """ Read data from connection
+        and return length and memoryview of that data.
+        https://stackoverflow.com/a/17668009
+
+        :returns: length of packet, memoryview of read bytes
+        :rtype": int, memoryview
+        """
+        packet_length = self._read_packet_length()
+
+        fragments = []
+        read_bytes = 0
+        while read_bytes < packet_length:
+            packet = self.connection.recv(packet_length - read_bytes)
+            if not packet:
+                return None
+            fragments.append(packet)
+            read_bytes += len(packet)
+
+        return packet_length, b''.join(fragments)
+
+    def _read_packet_length(self) -> int:
+        """Read and unpack unknown length (up to 5 bytes) varint.
+        If not found end of VarInt raise ValueError.
         Stolen from
         https://gist.github.com/MarshalX/40861e1d02cbbc6f23acd3eced9db1a0
+
+        :returns: varint
+        :rtype: int
         """
-        data = 0
+        length = 0
         for i in range(5):
             ordinal = self.connection.recv(1)
 
@@ -73,37 +96,16 @@ class Connection:
                 break
 
             byte = ord(ordinal)
-            data |= (byte & 0x7F) << 7 * i
+            length |= (byte & 0x7F) << 7 * i
 
             if not byte & 0x80:
                 break
-
-        return data
-
-    def _read_packet(self) -> (int, memoryview):
-        """ Read the connection and return memoryview of bytes.
-        :returns: length of packet, memoryview of read bytes
-        :rtype": int, memoryview
-        """
-        packet_length = self._read_and_unpack_varint()
-        data = self.connection.recv(packet_length)
-
-        return packet_length, memoryview(data)
-
-    def _pack_data(self, data):
-        """ Page the data.
-        Stolen from
-        https://gist.github.com/MarshalX/40861e1d02cbbc6f23acd3eced9db1a0
-        """
-        if type(data) is str:
-            data = data.encode('utf8')
-            return utils.convert_to_varint(len(data)) + data
-        elif type(data) is int:
-            return struct.pack('H', data)
-        elif type(data) is float:
-            return struct.pack('Q', int(data))
         else:
-            return data
+            raise ValueError("VarInt is too big!")
+        if length > MAX_INT:
+            raise ValueError("VarInt is too big!")
+
+        return length
 
     def _send_data(self, packet_id: PacketIDToBytes, arr_with_payload):
         """ Send the data on the connection.
@@ -114,7 +116,7 @@ class Connection:
         logging.debug(f"[SEND] {packet_id.name} {arr_with_payload}")
         data_log = [data, ]
         for arg in arr_with_payload:
-            data += self._pack_data(arg)
-            data_log.append(self._pack_data(arg))
+            data += utils.pack_data(arg)
+            data_log.append(utils.pack_data(arg))
 
         self.connection.send(utils.convert_to_varint(len(data)) + data)

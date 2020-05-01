@@ -5,7 +5,7 @@ import json
 import struct
 
 from connection import Connection
-from hash_tables import PacketIDToBytes
+from hash_tables import PacketIDToBytes, State
 import utils
 
 
@@ -16,8 +16,7 @@ class Server:
         self.socket_data = (address, port)
 
     def get_status(self, timeout=5):
-        """
-        Create socket, connect to server, request for information.
+        """Create socket, connect to server, request for information.
         If server is online returns gathered information as JSON, otherwise None.
 
         :return: status or None
@@ -37,26 +36,28 @@ class Server:
         logging.info(f"Connected")
 
         data = [
-            b"\x00",  # Protocol Version
+            utils.convert_to_varint(340),  # Protocol Version
             self.socket_data[0],  # Server Address
             self.socket_data[1],  # Server Port
-            b"\x01"  # Next State (status)
+            State.REQUEST.value
         ]
-        connection.send(PacketIDToBytes.STATUS, data)
-        connection.send(PacketIDToBytes.STATUS, [])
 
-        _, data = connection.read()
+        connection.send(PacketIDToBytes.REQUEST, data)
+        connection.send(PacketIDToBytes.REQUEST, [])
+
+        # len_of_data, data = connection.read()
+        len_of_data, data = connection.receive()
 
         # Send and read unix time
         connection.send(PacketIDToBytes.PING, [time.time() * 1000])
-        _, unix = connection.read()
+        len_of_data, unix = connection.receive()
+
         unix = unix[1::]  # Skip first byte, for some reason
 
         # Load json and return
         string, _ = utils.extract_string_from_data(data[1::])
 
         response = json.loads(bytes(string).decode('utf8'))
-        # TODO: fix json.decoder.JSONDecodeError: Unterminated string b'5'
 
         response['ping'] = int(time.time() * 1000) - struct.unpack('q', unix)[0]
 

@@ -3,15 +3,16 @@ from enum import Enum, IntEnum
 
 class PacketIDToBytes(Enum):
     """Packet name => packet id: <binary hex byte value in two's complement>"""
+    REQUEST = b'\x00'
     HANDSHAKE = b'\x00'
     LOGIN_START = b'\x00'
     TELEPORT_CONFIRM = b'\x00'
     DISCONNECT_LOGIN = b'\x00'
     PING = b'\x01'
-    CHAT_MESSAGE_SERVERBOUND = b'\x02'
     LOGIN_SUCCESS = b'\x02'
-    SET_COMPRESSION = b'\x03'
+    CHAT_MESSAGE_SERVERBOUND = b'\x02'
     CLIENT_STATUS = b'\x03'
+    SET_COMPRESSION = b'\x03'
     CLIENT_SETTINGS = b'\x04'
     PLUGIN_MESSAGE_SERVERBOUND = b'\x09'
     KEEP_ALIVE_SERVERBOUND = b'\x0b'
@@ -98,3 +99,9 @@ class ProtocolVersion(IntEnum):
     V1_7_4 = 4
     # V1_7_3 NOT EXIST
     V1_7_2 = 4
+
+
+class State(Enum):
+    REQUEST = b'\x01'
+    PING = b'\x01'
+    LOGIN = b'\x02'
