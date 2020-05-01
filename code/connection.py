@@ -2,7 +2,9 @@ import socket
 import struct
 
 import logging
-logging.basicConfig(level=logging.INFO)
+
+from hash_tables import PacketIDToBytes
+import utils
 
 
 class Connection:
@@ -14,6 +16,8 @@ class Connection:
     #   exception catch only "Can't close not open socket"
 
     connection: socket.socket = None
+    """ None when disabled, or number of bytes"""
+    compression_threshold = -1
 
     def __init__(self):
         self.connection = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -30,6 +34,14 @@ class Connection:
         except:
             pass
 
+    def set_compression(self, threshold: int):
+        self.compression_threshold = threshold
+
+        if threshold < 0:
+            logging.info(f"Compression is disabled")
+        else:
+            logging.info(f"Compression is enabled, threshold: {threshold}")
+
     """ Start connection using socket_data(ip/hostname, port).
     On error raise default socket exceptions
     """
@@ -42,13 +54,13 @@ class Connection:
     #  TODO: Verify what is extra_varint,
     #   add exception handling,
     #   add auto uncompress
-    def read(self, extra_varint=False):
-        return self._read_fully(extra_varint)
+    def read(self):
+        return self._read_packet()
 
-    def send(self, *args):
-        return self._send_data(*args)
+    def send(self, packet_id: PacketIDToBytes, data):
+        return self._send_data(packet_id, data)
 
-    def _unpack_varint(self):
+    def _read_and_unpack_varint(self):
         """Unpack the varint.
         Stolen from
         https://gist.github.com/MarshalX/40861e1d02cbbc6f23acd3eced9db1a0
@@ -68,30 +80,15 @@ class Connection:
 
         return data
 
-    #  extra_varint == is_nested_another_length ?
-    def _read_fully(self, extra_varint=False):
-        """ Read the connection and return the bytes.
-        Stolen from
-        https://gist.github.com/MarshalX/40861e1d02cbbc6f23acd3eced9db1a0
+    def _read_packet(self) -> (int, memoryview):
+        """ Read the connection and return memoryview of bytes.
+        :returns: length of packet, memoryview of read bytes
+        :rtype": int, memoryview
         """
-        packet_length = self._unpack_varint()
-        packet_id = self._unpack_varint()
-        byte = b''
+        packet_length = self._read_and_unpack_varint()
+        data = self.connection.recv(packet_length)
 
-        if extra_varint:
-            # Packet contained netty header offset for this
-            if packet_id > packet_length:
-                self._unpack_varint()
-
-            extra_length = self._unpack_varint()
-
-            while len(byte) < extra_length:
-                byte += self.connection.recv(extra_length)
-
-        else:
-            byte = self.connection.recv(packet_length)
-
-        return byte
+        return packet_length, memoryview(data)
 
     def _pack_data(self, data):
         """ Page the data.
@@ -100,7 +97,7 @@ class Connection:
         """
         if type(data) is str:
             data = data.encode('utf8')
-            return self._pack_varint(len(data)) + data
+            return utils.convert_to_varint(len(data)) + data
         elif type(data) is int:
             return struct.pack('H', data)
         elif type(data) is float:
@@ -108,33 +105,16 @@ class Connection:
         else:
             return data
 
-    def _pack_varint(self, data):
-        """ Pack the var int.
-        Stolen from
-        https://gist.github.com/MarshalX/40861e1d02cbbc6f23acd3eced9db1a0
-        """
-        ordinal = b''
-
-        while True:
-            byte = data & 0x7F
-            data >>= 7
-            ordinal += struct.pack('B', byte | (0x80 if data > 0 else 0))
-
-            if data == 0:
-                break
-
-        return ordinal
-
-    def _send_data(self, *args):
+    def _send_data(self, packet_id: PacketIDToBytes, arr_with_payload):
         """ Send the data on the connection.
         Stolen from
         https://gist.github.com/MarshalX/40861e1d02cbbc6f23acd3eced9db1a0
         """
-        data = b''
-
-        for arg in args:
+        data = packet_id.value
+        logging.debug(f"[SEND] {packet_id.name} {arr_with_payload}")
+        data_log = [data, ]
+        for arg in arr_with_payload:
             data += self._pack_data(arg)
+            data_log.append(self._pack_data(arg))
 
-        self.connection.send(self._pack_varint(len(data)) + data)
-
-
+        self.connection.send(utils.convert_to_varint(len(data)) + data)
