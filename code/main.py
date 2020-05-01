@@ -1,18 +1,22 @@
 import logging
 logging.basicConfig(level=logging.DEBUG)
 
-from client import Server, get_status
+from client import Client
+from server import Server
 from player import Player
 
 
 def run():
-    server = Server(host="77.55.209.200", port=25565)
-    player = Player(u"Bob")
-    server.login(player)
+    server = Server(address="nssv.pl", port=25565)
+    server.get_status()
+
+    # client = Client(host=server)
+    # player = Player("Bob")
+    # if client.login(player):
+    #     pass
+
 
     # get_status(address="77.55.209.200", port=25565)
-
-    # minecraft_version.check()
 
 
 if __name__ == "__main__":
