@@ -1,2 +1,0 @@
-Successfully connect to basic mc server
-Refactor code
