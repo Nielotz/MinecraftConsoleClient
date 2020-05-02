@@ -2,40 +2,66 @@ import logging
 
 from connection import Connection
 from player import Player
-from hash_tables import PacketIDToBytes, PacketIDToInt, State
 from server import Server
+
+from version import Version, VERSION, VersionNamedTuple
+from packet import PacketID, PacketIDNamedTuple
+from state import State
+
 import utils
 
 
-class Client:
-    """Main connection manager between mc server and this client."""
-    _server = None
-    _connection: Connection = None
-    _player: Player = None
+def create_client(host: Server):
+    # TODO:
+    """
+    Create object Client and load its settings from filename
 
-    def __init__(self, host: Server):
-        """host: Server obj to connect to."""
+    :return: Client
+    """
+
+    return Client(host, VERSION["1.12.2"])
+
+
+class Client:
+    """
+    Main client action manager.
+    Provides methods to control:
+        client,
+        client.player: Player.
+    """
+
+    player: Player = None
+    _server: Server = None
+    _connection: Connection = None
+    _version: VersionNamedTuple = None
+
+    def __init__(self, host: Server, version: VersionNamedTuple):
+        """
+        :param host: Server object to which client connects to
+        :param version: VersionNamedTuple object from VERSION,
+                        tells which version of protocol to use
+        """
 
         logging.info(f"Server address: '{host.socket_data[0]}:"
                      f"{host.socket_data[1]}'")
 
         self._server = host
+        self._version = version
         self._connection = Connection()
 
     def login(self, player: Player):
-        """Login to offline(non-premium) server e.g. without encryption,
-        using player data.
-        :raises
+        """
+        Login to offline (non-premium) server e.g. without encryption, as player.
 
         :param player: Player
-        :return: True when logged in otherwise False
-        :rtype: bool
+        :return True when logged in otherwise False
+        :rtype bool
         """
         logging.info("Trying to log in in offline mode")
 
-        if not self._connect():
+        if not self.__connect():
             return False
-        self._player = player
+        self.player = player
 
         logging.info("Established connection with: "
                      f"'{self._server.socket_data[0]}:"
@@ -46,13 +72,16 @@ class Client:
         is_logged = self.__handle_login_packets()
         return is_logged
 
-    def _connect(self, timeout=5):
-        """Connect to server.
+    def __connect(self, timeout=5):
+        """
+        Connects to server.
         Not raise exceptions.
 
-        :returns: True when connected, otherwise False.
-        :type: bool
+        :param timeout: connection timeout
+        :returns True when connected, otherwise False
+        :rtype bool
         """
+
         try:
             self._connection.connect(self._server.socket_data, timeout)
         except OSError as e:
@@ -63,29 +92,49 @@ class Client:
             return False
         return True
 
-    def __handle_login_packets(self):
-        """Handle packets send by server during login process e.g.
+    def __handshake(self):
+        """ Send handshake packet """
+        data = [
+            Version.V1_12_2.value.version_number_bytes,  # Protocol Version
+            self._server.socket_data[0],  # Server Address
+            self._server.socket_data[1],  # Server Port
+            State.LOGIN.value  # Next State (login)
+            ]
+        self._connection.send(PacketID.HANDSHAKE, data)
+
+    def __send_login_start(self):
+        """ Send "login start" packet """
+        data = [self.player.data["username"]]
+        self._connection.send(PacketID.LOGIN_START, data)
+
+    # TODO: Packets...
+    def __handle_login_packets(self) -> bool:
+        """
+        Handle packets send by server during login process e.g.
         "Set Compression (optional)" and "Login Success"
 
-        :returns: True when successfully logged in, otherwise False.
-        :type: bool
+        :returns True when successfully logged in, otherwise False
+        :rtype bool
         """
+
         packet_length, data = self._connection.receive()
+
         # Protection from crash when server is starting
         if len(data) == 0:
             return False
+
         packet_id, data = utils.unpack_varint(data)
 
         logging.debug(f"[RECEIVED] ID: {packet_id}, payload: {bytes(data)}")
 
-        if packet_id == PacketIDToInt.SET_COMPRESSION.value:
+        if packet_id == PacketID.SET_COMPRESSION.value.int:
             threshold, _ = utils.unpack_varint(data)
             self._connection.set_compression(threshold)
 
             # Next packet have to be login success
             packet_length, data = self._connection.receive()
             packet_id, data = utils.extract_data(data,
-                    compression=not (self._connection.compression_threshold < 0)
+                    compression=not (self._connection._compression_threshold < 0)
                                                  )
 
         logging.debug(f"[RECEIVED] ID: {packet_id}, payload: {bytes(data)}")
@@ -93,27 +142,11 @@ class Client:
         if packet_id == 2:  # PacketID.LOGIN_SUCCESS.value:
             uuid, data = utils.extract_string_from_data(data)
             uuid = bytes(uuid).decode('utf-8')
-            self._player.data["uuid"] = uuid
+            self.player.data["uuid"] = uuid
             logging.info(f"Player UUID: {uuid}")
             return True
 
         return False
-
-    def __handshake(self):
-        """Send handshake packet"""
-        data = [
-            utils.convert_to_varint(340),  # Protocol Version
-            self._server.socket_data[0],  # Server Address
-            self._server.socket_data[1],  # Server Port
-            State.LOGIN.value  # Next State (login)
-            ]
-        self._connection.send(PacketIDToBytes.HANDSHAKE, data)
-
-    def __send_login_start(self):
-        """Send "login start" packet"""
-        data = [self._player.data["username"]]
-        self._connection.send(PacketIDToBytes.LOGIN_START, data)
-
 
 
 

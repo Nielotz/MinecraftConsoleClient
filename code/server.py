@@ -1,22 +1,28 @@
 import logging
-import unicodedata
 import time
 import json
 import struct
 
 from connection import Connection
-from hash_tables import PacketIDToBytes, State
+from state import State
+from packet import PacketID
+
 import utils
 
 
 class Server:
+    """
+    Main server related action manager.
+
+    """
     socket_data = None
 
     def __init__(self, address: str, port: int):
         self.socket_data = (address, port)
 
     def get_status(self, timeout=5):
-        """Create socket, connect to server, request for information.
+        """
+        Create socket, connect to server, request for information.
         If server is online returns gathered information as JSON, otherwise None.
 
         :return: status or None
@@ -42,14 +48,14 @@ class Server:
             State.REQUEST.value
         ]
 
-        connection.send(PacketIDToBytes.REQUEST, data)
-        connection.send(PacketIDToBytes.REQUEST, [])
+        connection.send(PacketID.REQUEST, data)
+        connection.send(PacketID.REQUEST, [])
 
         # len_of_data, data = connection.read()
         len_of_data, data = connection.receive()
 
         # Send and read unix time
-        connection.send(PacketIDToBytes.PING, [time.time() * 1000])
+        connection.send(PacketID.PING, [time.time() * 1000])
         len_of_data, unix = connection.receive()
 
         unix = unix[1::]  # Skip first byte, for some reason

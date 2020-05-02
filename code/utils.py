@@ -3,35 +3,37 @@ import zlib
 
 
 def convert_to_varint(value: int) -> bytes:
-    """Convert the var int.
+    """
+    Convert int to VarInt.
 
     Stolen from
     https://gist.github.com/MarshalX/40861e1d02cbbc6f23acd3eced9db1a0
 
-    :returns: varint
-    :rtype: bytes
+    :returns VarInt
+    :rtype bytes
     """
     varint = b''
-    while True:
+    while value != 0:
         byte = value & 0x7F
         value >>= 7
         varint += struct.pack('B', byte | (0x80 if value > 0 else 0))
-        if value == 0:
-            break
     return varint
 
 
-def unpack_varint(data: memoryview, ) -> (int, memoryview):
-    """Unpack varint from data and return unpacked int with leftover
-    VarInt can be made up to 5 bytes,
-    If not found end of VarInt raise ValueError
+def unpack_varint(data: memoryview) -> (int, memoryview):
+    """
+    Unpack varint from uncompressed data and return unpacked int and leftover.
+    VarInt can be made up to 5 bytes.
+    If not found end of VarInt raise ValueError.
 
     Algorithm stolen from
     https://gist.github.com/MarshalX/40861e1d02cbbc6f23acd3eced9db1a0
 
-    :returns: value, leftover of data
-    :rtype: int, memoryview
+    :param data: memoryview of data containing VarInt
+    :returns value, leftover of data
+    :rtype int, memoryview
     """
+
     number = 0
 
     for i in range(5):
@@ -48,16 +50,18 @@ def unpack_varint(data: memoryview, ) -> (int, memoryview):
     return number, None
 
 
-def decompress(data: memoryview):
+def decompress(data: memoryview) -> bytes:
     return zlib.decompress(data)
 
 
-def extract_data(data: memoryview, compression=False):
-    """Extract Packet ID and payload from packet data
-
-    :returns: packet_id, payload
-    :rtype: int, memoryview(payload)
+def extract_data(data: memoryview, compression=False) -> (int, memoryview):
     """
+    Extract Packet ID and payload from packet data
+
+    :returns packet_id, payload
+    :rtype int, memoryview(payload)
+    """
+
     if compression:
         data_length, data = unpack_varint(data)
         if data_length:
@@ -71,12 +75,14 @@ def extract_data(data: memoryview, compression=False):
 
 
 def extract_string_from_data(data: memoryview) -> (memoryview, memoryview):
-    """Extract string from given data passed as memoryview.
+    """
+    Extract string from given data passed as memoryview.
 
     :param data: memoryview of decompressed array of bytes
-    :return: memoryview of string(unicode(pure bytes)), memoryview of leftover
-    :rtype: memoryview, memoryview
+    :return memoryview of string(unicode(pure bytes)), memoryview of leftover
+    :rtype memoryview, memoryview
     """
+
     string_len, data = unpack_varint(data)
 
     string = data[:string_len:]
@@ -85,7 +91,8 @@ def extract_string_from_data(data: memoryview) -> (memoryview, memoryview):
 
 
 def pack_data(data):
-    """Page the data.
+    """
+    Page the data.
     Stolen from
     https://gist.github.com/MarshalX/40861e1d02cbbc6f23acd3eced9db1a0
     """
