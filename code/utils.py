@@ -32,9 +32,9 @@ def convert_to_varint(value: int) -> bytes:
     value_in_bytes = value.to_bytes(4, byteorder="little", signed=True)
 
     varint[0] |= value_in_bytes[0]
-    varint[1] |= (value_in_bytes[1] << 1) & 0xFF | value_in_bytes[0] >> 6
-    varint[2] |= (value_in_bytes[2] << 2) & 0xFF | value_in_bytes[1] >> 5
-    varint[3] |= (value_in_bytes[3] << 3) & 0xFF | value_in_bytes[2] >> 4
+    varint[1] |= (value_in_bytes[1] << 1) & 0xFF | value_in_bytes[0] >> 7
+    varint[2] |= (value_in_bytes[2] << 2) & 0xFF | value_in_bytes[1] >> 6
+    varint[3] |= (value_in_bytes[3] << 3) & 0xFF | value_in_bytes[2] >> 5
     varint[4] |= value_in_bytes[3] >> 4
 
     return varint
