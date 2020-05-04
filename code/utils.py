@@ -1,22 +1,42 @@
 import struct
 import zlib
+from consts import MAX_INT, MAX_UINT
 
 
 def convert_to_varint(value: int) -> bytes:
     """
     Convert int to VarInt.
 
-    Stolen from
-    https://gist.github.com/MarshalX/40861e1d02cbbc6f23acd3eced9db1a0
-
-    :returns VarInt
+    :returns VarInt in hex bytes
     :rtype bytes
     """
-    varint = b''
-    while value != 0:
-        byte = value & 0x7F
-        value >>= 7
-        varint += struct.pack('B', byte | (0x80 if value > 0 else 0))
+
+    if value == 0:
+        return b'\x00'
+    if value > 0:
+        """
+        Stolen from
+        https://gist.github.com/MarshalX/40861e1d02cbbc6f23acd3eced9db1a0
+        """
+        varint = bytearray()
+
+        while value != 0:
+            byte = value & 0x7F
+            value >>= 7
+            varint.extend(struct.pack('B', byte | (0x80 if value != 0 else 0)))
+        return varint
+
+    # When value is negative
+    # Negative varint always has 5 bytes
+    varint = bytearray(b'\x80\x80\x80\x80\x00')
+    value_in_bytes = value.to_bytes(4, byteorder="little", signed=True)
+
+    varint[0] |= value_in_bytes[0]
+    varint[1] |= (value_in_bytes[1] << 1) & 0xFF | value_in_bytes[0] >> 6
+    varint[2] |= (value_in_bytes[2] << 2) & 0xFF | value_in_bytes[1] >> 5
+    varint[3] |= (value_in_bytes[3] << 3) & 0xFF | value_in_bytes[2] >> 4
+    varint[4] |= value_in_bytes[3] >> 4
+
     return varint
 
 
@@ -35,19 +55,26 @@ def unpack_varint(data: memoryview) -> (int, memoryview):
     """
 
     number = 0
+    try:
+        for i in range(5):
+            byte = data[i]
 
-    for i in range(5):
-        byte = data[i]
+            number |= (byte & 0x7F) << 7 * i
 
-        number |= (byte & 0x7F) << 7 * i
+            if not byte & 0x80:
+                break
+        else:
+            raise ValueError("VarInt is too big!")
 
-        if not byte & 0x80:
-            break
-    else:
+        if number > MAX_INT:
+            number -= MAX_UINT
+
+        if len(data) > i + 2:
+            return number, data[i + 1::]
+        return number, None
+
+    except IndexError:
         raise ValueError("VarInt is too big!")
-    if len(data) > i + 2:
-        return number, data[i + 1::]
-    return number, None
 
 
 def decompress(data: memoryview) -> bytes:
@@ -96,6 +123,7 @@ def pack_data(data):
     Stolen from
     https://gist.github.com/MarshalX/40861e1d02cbbc6f23acd3eced9db1a0
     """
+
     if type(data) is str:
         data = data.encode('utf8')
         return convert_to_varint(len(data)) + data
