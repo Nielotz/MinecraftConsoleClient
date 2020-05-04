@@ -4,7 +4,7 @@ from connection import Connection
 from player import Player
 from server import Server
 
-from version import Version, VERSION, VersionNamedTuple
+from version import Version, VersionNamedTuple
 from packet import PacketID, PacketIDNamedTuple
 from state import State
 
@@ -19,7 +19,7 @@ def create_client(host: Server):
     :return: Client
     """
 
-    return Client(host, VERSION["1.12.2"])
+    return Client(host, Version.V1_12_2)
 
 
 class Client:
@@ -35,7 +35,7 @@ class Client:
     _connection: Connection = None
     _version: VersionNamedTuple = None
 
-    def __init__(self, host: Server, version: VersionNamedTuple):
+    def __init__(self, host: Server, version: Version):
         """
         :param host: Server object to which client connects to
         :param version: VersionNamedTuple object from VERSION,
@@ -46,7 +46,7 @@ class Client:
                      f"{host.socket_data[1]}'")
 
         self._server = host
-        self._version = version
+        self._version = version.value
         self._connection = Connection()
 
     def login(self, player: Player):
