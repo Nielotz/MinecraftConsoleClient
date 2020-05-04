@@ -3,7 +3,7 @@ import zlib
 from consts import MAX_INT, MIN_INT,  MAX_UINT
 
 
-def convert_to_vartype(value: int, vartype_length: int):
+def __convert_to_vartype(value: int, vartype_length: int):
     """
         Converts value into variable length variable.
         Target varint bytes length specifies vartype_length.
@@ -25,6 +25,7 @@ def convert_to_vartype(value: int, vartype_length: int):
         :returns VarInt in hex bytes
         :rtype bytes
     """
+    raise RuntimeError("Function not ready yet!")
     if value == 0:
         return b'\x00'
     # TODO: check speed (struct.pack vs varint[0]), then make this func
@@ -46,7 +47,7 @@ def convert_to_varint(value: int) -> bytes:
         raise ValueError(f"value: '{value}' is too small for VarInt")
 
     if value == 0:
-        return b'\x00'
+        return bytes(b'\x00')
     if value > 0:
         """
         Stolen from
@@ -71,10 +72,10 @@ def convert_to_varint(value: int) -> bytes:
     varint[3] |= (value_in_bytes[3] << 3) & 0xFF | value_in_bytes[2] >> 5
     varint[4] |= value_in_bytes[3] >> 4
 
-    return varint
+    return bytes(varint)
 
 
-def unpack_varint(data: memoryview) -> (int, memoryview):
+def unpack_varint(data: bytes) -> (int, bytes):
     """
     Unpack varint from uncompressed data and return unpacked int and leftover.
     VarInt can be made up to 5 bytes.
@@ -84,32 +85,32 @@ def unpack_varint(data: memoryview) -> (int, memoryview):
     https://gist.github.com/MarshalX/40861e1d02cbbc6f23acd3eced9db1a0
 
     :raise ValueError: when VarInt not fit into int32
-    :param data: memoryview of data containing VarInt
+    :param data: bytes of data containing VarInt
     :returns value, leftover of data
-    :rtype int, memoryview
+    :rtype int, bytes
     """
 
     number = 0
-    try:
-        for i in range(5):
+
+    for i in range(5):
+        try:
             byte = data[i]
-
-            number |= (byte & 0x7F) << 7 * i
-
-            if not byte & 0x80:
-                break
-        else:
+        except IndexError:
             raise ValueError("VarInt is too big!")
 
-        if number > MAX_INT:
-            number -= MAX_UINT
+        number |= (byte & 0x7F) << 7 * i
 
-        if len(data) > i + 2:
-            return number, data[i + 1::]
-        return number, None
-
-    except IndexError:
+        if not byte & 0x80:
+            break
+    else:
         raise ValueError("VarInt is too big!")
+
+    if number > MAX_INT:
+        number -= MAX_UINT
+
+    if len(data) > i + 2:
+        return number, data[i + 1::]
+    return number, None
 
 
 def decompress(data: memoryview) -> bytes:
@@ -168,3 +169,5 @@ def pack_data(data):
         return struct.pack('q', int(data))
     else:
         return data
+
+
