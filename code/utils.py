@@ -1,15 +1,49 @@
 import struct
 import zlib
-from consts import MAX_INT, MAX_UINT
+from consts import MAX_INT, MIN_INT,  MAX_UINT
+
+
+def convert_to_vartype(value: int, vartype_length: int):
+    """
+        Converts value into variable length variable.
+        Target varint bytes length specifies vartype_length.
+        vartype_length has to be at least byte_size(value) + 1
+
+        This is minecraft protocol's implementation of VarInt, VarLong.
+        For positive number, VarType behave normally:
+          Two's complement (U2), little-endian, with deleted unnecessary bytes!
+
+        ! For negative number VarType always fit into specified length, e.g:    !
+        !   VarInt = 5 bytes, VarLong = 10 bytes, VarType = vartype_length bytes!
+        ! Sample:
+        !   0 => b'\x00'    128 => b'\x80\x01'   255 => b'\xff\x01'
+        !   VarInt(-1) == VarType(-1, 5) => b'\xff\xff\xff\xff\x0f'
+        !   VarLong(-1) == VarType(-1, 10) => TODO:
+        !   VarType(-1, 3) => b'\xff\xff\x03'
+        !   VarType(-2, 3) => b'\xfe\xff\x03'
+
+        :returns VarInt in hex bytes
+        :rtype bytes
+    """
+    if value == 0:
+        return b'\x00'
+    # TODO: check speed (struct.pack vs varint[0]), then make this func
 
 
 def convert_to_varint(value: int) -> bytes:
     """
-    Convert int to VarInt.
+    Converts int to VarInt.
+    If value not fit into int32 - raises ValueError
 
+    :raises ValueError when value not fit in int32
     :returns VarInt in hex bytes
     :rtype bytes
     """
+
+    if value > MAX_INT:
+        raise ValueError(f"value: '{value}' is too big for VarInt")
+    if value < MIN_INT:
+        raise ValueError(f"value: '{value}' is too small for VarInt")
 
     if value == 0:
         return b'\x00'
@@ -49,6 +83,7 @@ def unpack_varint(data: memoryview) -> (int, memoryview):
     Algorithm stolen from
     https://gist.github.com/MarshalX/40861e1d02cbbc6f23acd3eced9db1a0
 
+    :raise ValueError: when VarInt not fit into int32
     :param data: memoryview of data containing VarInt
     :returns value, leftover of data
     :rtype int, memoryview
