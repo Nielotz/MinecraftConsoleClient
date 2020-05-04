@@ -5,7 +5,7 @@ from player import Player
 from server import Server
 
 from version import Version, VersionNamedTuple
-from packet import PacketManager, PacketID, Login
+from packet import PacketID, Login
 from state import State
 
 
@@ -15,7 +15,7 @@ import utils
 def create_client(host: Server):
     # TODO:
     """
-    Create object Client and load its settings from filename
+    Creates object Client.
 
     :return: Client
     """
@@ -35,7 +35,6 @@ class Client:
     _server: Server = None
     _connection: Connection = None
     _version: VersionNamedTuple = None
-    _packet_manager: PacketManager = None
 
     def __init__(self, host: Server, version: Version):
         """
@@ -53,6 +52,7 @@ class Client:
 
     def login(self, player: Player):
         """
+        # TODO: Make this comment readable
         Login to offline (non-premium) server e.g. without encryption, as player.
 
         :param player: Player
@@ -81,7 +81,7 @@ class Client:
     def __connect(self, timeout=5):
         """
         Connects to server.
-        Not raise exceptions.
+        Not raises exceptions.
 
         :param timeout: connection timeout
         :returns True when connected, otherwise False
@@ -101,8 +101,8 @@ class Client:
     # TODO: Packets...
     def __handle_login_packets(self) -> bool:
         """
-        Handle packets send by server during login process e.g.
-        "Set Compression (optional)" and "Login Success"
+        Handles packets send by server during login process e.g.:
+        "Set Compression (optional)" and "Login Success".
 
         :returns True when successfully logged in, otherwise False
         :rtype bool

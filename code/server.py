@@ -13,8 +13,7 @@ import utils
 
 class Server:
     """
-    Main server related action manager.
-
+    Performs related with communication to the server stuff.
     """
 
     socket_data = None
@@ -24,7 +23,7 @@ class Server:
 
     def get_status(self, timeout=5):
         """
-        Create socket, connect to server, request for information.
+        Creates socket, connects to server, requests for information.
         If server is online returns gathered information as JSON, otherwise None.
 
         :return: status or None

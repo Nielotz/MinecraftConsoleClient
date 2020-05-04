@@ -77,9 +77,10 @@ def convert_to_varint(value: int) -> bytes:
 
 def unpack_varint(data: bytes) -> (int, bytes):
     """
-    Unpack varint from uncompressed data and return unpacked int and leftover.
-    VarInt can be made up to 5 bytes.
+    Unpacks varint from uncompressed data and returns unpacked int and leftover.
     If not found end of VarInt raise ValueError.
+
+    VarInt can be made up to 5 bytes.
 
     Algorithm stolen from
     https://gist.github.com/MarshalX/40861e1d02cbbc6f23acd3eced9db1a0
@@ -113,16 +114,16 @@ def unpack_varint(data: bytes) -> (int, bytes):
     return number, None
 
 
-def decompress(data: memoryview) -> bytes:
+def decompress(data: bytes) -> bytes:
     return zlib.decompress(data)
 
 
-def extract_data(data: memoryview, compression=False) -> (int, memoryview):
+def extract_data(data: bytes, compression=False) -> (int, bytes):
     """
-    Extract Packet ID and payload from packet data
+    Extracts Packet ID and payload from packet data.
 
     :returns packet_id, payload
-    :rtype int, memoryview(payload)
+    :rtype int, bytes
     """
 
     if compression:
@@ -137,13 +138,13 @@ def extract_data(data: memoryview, compression=False) -> (int, memoryview):
         return packet_id, data
 
 
-def extract_string_from_data(data: memoryview) -> (memoryview, memoryview):
+def extract_string_from_data(data: bytes) -> (bytes, bytes):
     """
-    Extract string from given data passed as memoryview.
+    Extracts string from given bytes.
 
-    :param data: memoryview of decompressed array of bytes
-    :return memoryview of string(unicode(pure bytes)), memoryview of leftover
-    :rtype memoryview, memoryview
+    :param data: decompressed array of bytes
+    :return bytes of string(unicode(pure bytes)), bytes of leftover
+    :rtype bytes, bytes
     """
 
     string_len, data = unpack_varint(data)
@@ -155,7 +156,7 @@ def extract_string_from_data(data: memoryview) -> (memoryview, memoryview):
 
 def pack_data(data):
     """
-    Page the data.
+    Pages the data.
     Stolen from
     https://gist.github.com/MarshalX/40861e1d02cbbc6f23acd3eced9db1a0
     """

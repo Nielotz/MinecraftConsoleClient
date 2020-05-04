@@ -76,7 +76,7 @@ class Login:
 
     @staticmethod
     def create_login_start(username):
-        """ Returns "login start" packet ready to send """
+        """ Returns "login start" packet """
         packed_packet = _pack_packet(PacketID.LOGIN_START, [username])
         return packed_packet
 
@@ -98,7 +98,7 @@ class Status:
     @staticmethod
     def create_handshake(server_data: (str, int),
                          protocol_version: VersionNamedTuple) -> bytearray:
-        """ Returns handshake packet ready to send """
+        """ Returns handshake packet """
         data = [
             protocol_version.value.version_number_bytes,  # Protocol Version
             server_data[0],  # Server Address
@@ -110,12 +110,7 @@ class Status:
         return packed_packet
 
 
-
-
-
-
-
-class PacketManager:
+class __OLD__PacketManager:
     """
     Main class for packets, that:
         handles incoming packets(Packet().handle_incoming_packets())

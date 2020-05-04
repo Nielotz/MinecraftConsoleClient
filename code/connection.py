@@ -8,18 +8,18 @@ import utils
 
 class Connection:
     """
-    Main class that create and handle tcp connection between server and
+    Main class that creates and handles tcp connection between server and
     client(localhost).
     Handle reading(sending) data from(to) server.
 
-    Auto-close connection when instance being deleted.
+    Auto-closes connection when instance being deleted.
     """
     # TODO: improve __del__ to make sure socket closed correctly e.g.
     #   exception catch only "Can't close not open socket"
 
     """
      Positive threshold means number of bytes before start compressing
-     otherwise compression is disabled
+     otherwise compression is disabled.
     """
     _compression_threshold = -1
     __connection: socket.socket = None
@@ -49,8 +49,8 @@ class Connection:
 
     def connect(self, socket_data: (str, int), timeout: int = 5):
         """"
-        Start connection using socket_data(ip or hostname, port).
-        On error raises standard socket exceptions
+        Starts connection using socket_data(ip or hostname, port).
+        On error raises standard socket exceptions.
 
         :param timeout: connection timeout
         :param socket_data: tuple(host, port)
@@ -61,11 +61,11 @@ class Connection:
 
     def receive(self) -> (int, bytes):
         """
-        Read whole packet from connection.
+        Reads whole packet from connection.
         https://stackoverflow.com/a/17668009
 
-        :returns length of packet, memoryview of read bytes
-        :rtype int, memoryview
+        :returns length of packet, read bytes
+        :rtype int, bytes
         """
         packet_length = self.__read_packet_length()
 
@@ -82,8 +82,8 @@ class Connection:
 
     def __read_packet_length(self) -> int:
         """
-        Read and unpack unknown length (up to 5 bytes) VarInt.
-        If not found end of VarInt raise ValueError.
+        Reads and unpacks unknown length (up to 5 bytes) VarInt.
+        If not found end of VarInt raises ValueError.
         Stolen from
         https://gist.github.com/MarshalX/40861e1d02cbbc6f23acd3eced9db1a0
 
