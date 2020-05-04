@@ -1,11 +1,21 @@
 from collections import namedtuple
 from enum import Enum
+from socket import socket
+import logging
+
+from version import VersionNamedTuple, Version
+from state import State
+from connection import Connection
+import utils
 
 PacketIDNamedTuple = namedtuple("PacketIDNamedTuple", "int bytes")
 
 
 class PacketID(Enum):
-    """Packet name => packet id: <binary hex byte value in two's complement>"""
+    """
+    Packet name => PacketIDNamedTuple(int, hex byte value in two's complement)
+    """
+
     REQUEST = PacketIDNamedTuple(0, b'\x00')
     HANDSHAKE = PacketIDNamedTuple(0, b'\x00')
     LOGIN_START = PacketIDNamedTuple(0, b'\x00')
@@ -29,3 +39,123 @@ class PacketID(Enum):
     PLAYER_POSITION_AND_LOOK = PacketIDNamedTuple(47, b'\x2F')
     RESPAWN = PacketIDNamedTuple(53, b'\x35')
     PLAYER_LIST_HEADER_AND_FOOTER = PacketIDNamedTuple(74, b'\x4A')
+
+
+# class PacketDisconnect()
+
+def _pack_packet(packet_id: PacketID, arr_with_payload):
+    """
+    Stolen from
+    https://gist.github.com/MarshalX/40861e1d02cbbc6f23acd3eced9db1a0
+    """
+    data = bytearray(packet_id.value.bytes)
+    logging.debug(f"[SEND] {packet_id.name} {arr_with_payload}")
+
+    for arg in arr_with_payload:
+        data.extend(utils.pack_data(arg))
+
+    # logging.debug(f"[PACKED] {data}")
+
+    return data
+
+
+class Login:
+    @staticmethod
+    def create_handshake(server_data: (str, int),
+                         protocol_version: VersionNamedTuple) -> bytearray:
+        """ Returns handshake packet ready to send """
+        data = [
+            protocol_version.version_number_bytes,  # Protocol Version
+            server_data[0],  # Server Address
+            server_data[1],  # Server Port
+            State.LOGIN.value  # Next State (login)
+            ]
+        packed_packet = _pack_packet(PacketID.HANDSHAKE, data)
+
+        return packed_packet
+
+    @staticmethod
+    def create_login_start(username):
+        """ Returns "login start" packet ready to send """
+        packed_packet = _pack_packet(PacketID.LOGIN_START, [username])
+        return packed_packet
+
+
+class Status:
+
+    @staticmethod
+    def create_request():
+        """ Returns request packet """
+        packed_packet = _pack_packet(PacketID.REQUEST, [])
+        return packed_packet
+
+    @staticmethod
+    def create_ping(actual_time: float):
+        """ Returns ping packet """
+        packed_packet = _pack_packet(PacketID.PING, [actual_time])
+        return packed_packet
+
+    @staticmethod
+    def create_handshake(server_data: (str, int),
+                         protocol_version: VersionNamedTuple) -> bytearray:
+        """ Returns handshake packet ready to send """
+        data = [
+            protocol_version.value.version_number_bytes,  # Protocol Version
+            server_data[0],  # Server Address
+            server_data[1],  # Server Port
+            State.STATUS.value  # Next State (login)
+            ]
+        packed_packet = _pack_packet(PacketID.HANDSHAKE, data)
+
+        return packed_packet
+
+
+
+
+
+
+
+class PacketManager:
+    """
+    Main class for packets, that:
+        handles incoming packets(Packet().handle_incoming_packets())
+        packs given data and sens them to the host
+    """
+    protocol_version: VersionNamedTuple = None
+    _socket = None
+    _compression_threshold = -1
+
+    def __init__(self, conn: Connection, protocol_version: VersionNamedTuple):
+        """
+        Create Packet object.
+
+        :param conn: socket.socket where packets will be send
+        :param protocol_version: Version.V*_*_* of which protocol to use
+        """
+        self.protocol_version = protocol_version
+        self._conn = conn
+
+    def create_schema(self, *data):
+        """
+        Relate to any create_*() function.
+        Creates packet using packet_id and data,
+        calculates and concat packet size,
+        returns packet in bytes ready to send.
+
+        :param data: to pack and send
+        """
+        pass
+
+    def recv_schema(self, conn: socket, buffer) -> int:
+        """
+        Relate to any recv_*() function.
+        Receives data from socket, write data to buffer, returns data size.
+
+        :param conn: socket.socket to receive data from
+        :param buffer: variable to which write received data
+        :returns number of read bytes
+        :rtype int
+        """
+        pass
+
+

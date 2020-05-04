@@ -5,8 +5,9 @@ from player import Player
 from server import Server
 
 from version import Version, VersionNamedTuple
-from packet import PacketID, PacketIDNamedTuple
+from packet import PacketManager, PacketID, Login
 from state import State
+
 
 import utils
 
@@ -34,6 +35,7 @@ class Client:
     _server: Server = None
     _connection: Connection = None
     _version: VersionNamedTuple = None
+    _packet_manager: PacketManager = None
 
     def __init__(self, host: Server, version: Version):
         """
@@ -67,8 +69,12 @@ class Client:
                      f"'{self._server.socket_data[0]}:"
                      f"{self._server.socket_data[1]}'")
 
-        self.__handshake()
-        self.__send_login_start()
+        packet = Login.create_handshake(self._server.socket_data, self._version)
+        self._connection.send(packet)
+
+        packet = Login.create_login_start(self.player.data["username"])
+        self._connection.send(packet)
+
         is_logged = self.__handle_login_packets()
         return is_logged
 
@@ -91,21 +97,6 @@ class Client:
                              f", reason: {e}")
             return False
         return True
-
-    def __handshake(self):
-        """ Send handshake packet """
-        data = [
-            Version.V1_12_2.value.version_number_bytes,  # Protocol Version
-            self._server.socket_data[0],  # Server Address
-            self._server.socket_data[1],  # Server Port
-            State.LOGIN.value  # Next State (login)
-            ]
-        self._connection.send(PacketID.HANDSHAKE, data)
-
-    def __send_login_start(self):
-        """ Send "login start" packet """
-        data = [self.player.data["username"]]
-        self._connection.send(PacketID.LOGIN_START, data)
 
     # TODO: Packets...
     def __handle_login_packets(self) -> bool:

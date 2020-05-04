@@ -5,7 +5,8 @@ import struct
 
 from connection import Connection
 from state import State
-from packet import PacketID
+from packet import Status, Login
+from version import Version
 
 import utils
 
@@ -15,6 +16,7 @@ class Server:
     Main server related action manager.
 
     """
+
     socket_data = None
 
     def __init__(self, address: str, port: int):
@@ -41,36 +43,33 @@ class Server:
 
         logging.info(f"Connected")
 
-        data = [
-            utils.convert_to_varint(340),  # Protocol Version
-            self.socket_data[0],  # Server Address
-            self.socket_data[1],  # Server Port
-            State.REQUEST.value
-        ]
+        packet = Status.create_handshake(self.socket_data, Version.ANY)
+        connection.send(packet)
 
-        connection.send(PacketID.REQUEST, data)
-        connection.send(PacketID.REQUEST, [])
+        packet = Status.create_request()
+        connection.send(packet)
 
         # len_of_data, data = connection.read()
         len_of_data, data = connection.receive()
 
+        string, _ = utils.extract_string_from_data(data[1::])
+        response = json.loads(bytes(string).decode('utf8'))
+
         # Send and read unix time
-        connection.send(PacketID.PING, [time.time() * 1000])
+        packet = Status.create_ping(time.time() * 1000)
+        connection.send(packet)
+
         len_of_data, unix = connection.receive()
 
         unix = unix[1::]  # Skip first byte, for some reason
 
         # Load json and return
-        string, _ = utils.extract_string_from_data(data[1::])
-
-        response = json.loads(bytes(string).decode('utf8'))
 
         response['ping'] = int(time.time() * 1000) - struct.unpack('q', unix)[0]
 
         logging.info(f"""Server info: 
     name: {response['version']['name']}
-    protocol: {response['version']['protocol']}, version :\
-    {response['version']['protocol']} # Change to actual version
+    protocol: {response['version']['protocol']}
     ping: {response['ping']}ms
 """)
 
