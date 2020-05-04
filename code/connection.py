@@ -4,7 +4,6 @@ import logging
 
 from consts import MAX_INT
 import utils
-from packet import PacketID
 
 
 class Connection:
@@ -60,7 +59,7 @@ class Connection:
         self.__connection.settimeout(timeout)
         self.__connection.connect(socket_data)
 
-    def receive(self) -> (int, memoryview):
+    def receive(self) -> (int, bytes):
         """
         Read whole packet from connection.
         https://stackoverflow.com/a/17668009
@@ -111,17 +110,14 @@ class Connection:
 
         return length
 
-    def send(self, packet_id: PacketID, arr_with_payload):
+    def send(self, packet: bytes):
         """
-        Send the data on the connection.
-        Stolen from
-        https://gist.github.com/MarshalX/40861e1d02cbbc6f23acd3eced9db1a0
+        If needed compresses data.
+        Adds packet length and sends the packet to the host.
         """
-        data = packet_id.value.bytes
-        logging.debug(f"[SEND] {packet_id.name} {arr_with_payload}")
-        # data_log = [data, ]
-        for arg in arr_with_payload:
-            data += utils.pack_data(arg)
-            # data_log.append(utils.pack_data(arg))
 
-        self.__connection.send(utils.convert_to_varint(len(data)) + data)
+        if self._compression_threshold < 0:
+            self.__connection.send(utils.convert_to_varint(len(packet)) + packet)
+        else:
+            # TODO:
+            pass
