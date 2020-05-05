@@ -97,7 +97,7 @@ class Status:
 
     @staticmethod
     def create_handshake(server_data: (str, int),
-                         protocol_version: VersionNamedTuple) -> bytearray:
+                         protocol_version: Version) -> bytearray:
         """ Returns handshake packet """
         data = [
             protocol_version.value.version_number_bytes,  # Protocol Version
@@ -108,6 +108,13 @@ class Status:
         packed_packet = _pack_packet(PacketID.HANDSHAKE, data)
 
         return packed_packet
+
+
+class Listener:
+    """
+    Class that manages incoming packets.
+    Recommend to be run in another thread.
+    """
 
 
 class __OLD__PacketManager:

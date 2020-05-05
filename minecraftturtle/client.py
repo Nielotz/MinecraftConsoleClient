@@ -2,17 +2,17 @@ import logging
 
 from connection import Connection
 from player import Player
-from server import Server
 
 from version import Version, VersionNamedTuple
 from packet import PacketID, Login
+import packet
 from state import State
 
 
 import utils
 
 
-def create_client(host: Server):
+def create_client(socket_data: (str, int)):
     # TODO:
     """
     Creates object Client.
@@ -20,7 +20,7 @@ def create_client(host: Server):
     :return: Client
     """
 
-    return Client(host, Version.V1_12_2)
+    return Client(socket_data, Version.V1_12_2)
 
 
 class Client:
@@ -32,21 +32,21 @@ class Client:
     """
 
     player: Player = None
-    _server: Server = None
+    _socket_data: (str, int) = None
     _connection: Connection = None
     _version: VersionNamedTuple = None
 
-    def __init__(self, host: Server, version: Version):
+    def __init__(self, socket_data: (str, int), version: Version):
         """
         :param host: Server object to which client connects to
         :param version: VersionNamedTuple object from VERSION,
                         tells which version of protocol to use
         """
 
-        logging.info(f"Server address: '{host.socket_data[0]}:"
-                     f"{host.socket_data[1]}'")
+        logging.info(f"Server address: '{socket_data[0]}:"
+                     f"{socket_data[1]}'")
 
-        self._server = host
+        self._socket_data = socket_data
         self._version = version.value
         self._connection = Connection()
 
@@ -66,10 +66,10 @@ class Client:
         self.player = player
 
         logging.info("Established connection with: "
-                     f"'{self._server.socket_data[0]}:"
-                     f"{self._server.socket_data[1]}'")
+                     f"'{self._socket_data[0]}:"
+                     f"{self._socket_data[1]}'")
 
-        packet = Login.create_handshake(self._server.socket_data, self._version)
+        packet = Login.create_handshake(self._socket_data, self._version)
         self._connection.send(packet)
 
         packet = Login.create_login_start(self.player.data["username"])
@@ -89,11 +89,11 @@ class Client:
         """
 
         try:
-            self._connection.connect(self._server.socket_data, timeout)
+            self._connection.connect(self._socket_data, timeout)
         except OSError as e:
             logging.critical(f"Can't connect to: "
-                             f"'{self._server.socket_data[0]}:"
-                             f"{self._server.socket_data[1]}'"
+                             f"'{self._socket_data[0]}:"
+                             f"{self._socket_data[1]}'"
                              f", reason: {e}")
             return False
         return True
@@ -138,6 +138,5 @@ class Client:
             return True
 
         return False
-
 
 
