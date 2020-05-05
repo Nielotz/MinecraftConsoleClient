@@ -140,11 +140,11 @@ class Client:
         return False
 
 
-def start_listen(conn: Connection, buffer: queue.Queue, check_delay=0.050):
+def start_listening(conn: Connection, buffer: queue.Queue, check_delay=0.050):
     """
+    Similar to start_sending.  Has to starts as daemon.
     Starts listening packets incoming from server.
     It is blocking function, so has to be run in a new thread.
-    Starting thread as daemon gives free performance boost.
     Otherwise thread should closes right after the parent thread closes.
 
     Job:
@@ -170,53 +170,52 @@ def start_listen(conn: Connection, buffer: queue.Queue, check_delay=0.050):
     _sum = 0  # Only for test #1
 
     # After testing this code will be cleaned up.
-    if threading.current_thread().daemon:
-        while True:
-            if ready:  # Only for test #1
-                while ready:
-                    _hit += 1  # Only for test #1
-                    _, packet = conn.receive_packet()
-                    while buffer.full():
-                        time.sleep(check_delay)
-                        logging.warning(
-                            f"Buffer for incoming packets is full!")
 
-                    buffer.put(packet)
-                    logging.debug(f"[RECEIVED] {len(packet)} bytes.")
+    if not threading.current_thread().daemon:
+        raise RuntimeError("Thread start_sending ")
 
-            else:  # Only for test #1
-                _skipped += 1  # Only for test #1
-                time.sleep(check_delay)
+    while True:
+        if ready:  # Only for test #1
+            while ready:
+                _hit += 1  # Only for test #1
+                _, packet = conn.receive_packet()
+                while buffer.full():
+                    time.sleep(check_delay)
+                    logging.warning(f"Buffer for incoming packets is full!")
 
-            if _sum > 10:  # Only for test #1
-                print(f"Hit: {_hit}, skip: {_skipped}")  # Only for test #1
-                _skipped = 0  # Only for test #1
-                _hit = 0  # Only for test #1
-                _sum = 0  # Only for test #1
-    else:
-        logging.warning("Please start listen() in a daemon!")
-        while threading.main_thread().is_alive():
-            if ready:  # Only for test #1
-                while ready:
-                    _hit += 1  # Only for test #1
-                    _, packet = conn.receive_packet()
-                    while buffer.full():
-                        time.sleep(check_delay)
-                        logging.warning(
-                            f"Buffer for incoming packets is full!")
+                buffer.put(packet)
+                logging.debug(f"[RECEIVED] {len(packet)} bytes.")
 
-                    buffer.put(packet)
-                    logging.debug(f"[RECEIVED] {len(packet)} bytes.")
+        else:  # Only for test #1
+            _skipped += 1  # Only for test #1
+            time.sleep(check_delay)
 
-            else:  # Only for test #1
-                _skipped += 1  # Only for test #1
-                time.sleep(check_delay)
+        if _sum > 10:  # Only for test #1
+            print(f"Hit: {_hit}, skip: {_skipped}")  # Only for test #1
+            _skipped = 0  # Only for test #1
+            _hit = 0  # Only for test #1
+            _sum = 0  # Only for test #1
 
-            if _sum > 10:  # Only for test #1
-                print(f"Hit: {_hit}, skip: {_skipped}")  # Only for test #1
-                _skipped = 0  # Only for test #1
-                _hit = 0  # Only for test #1
-                _sum = 0  # Only for test #1
 
-        else:
-            print("While loop makes sense!")
+def start_sending(conn: Connection, buffer: queue.Queue):
+    """
+    Similar to start_listen. Has to starts as daemon.
+    Starts waiting for packets to appear in buffer then send it to the server.
+    It is blocking function, so has to be run in a new thread.
+    Otherwise thread should closes right after the parent thread closes.
+
+    Job:
+        Freeze until packet appear in buffer,
+        send it the connection.
+        Repeat.
+
+    :param conn: socket.socket to receive packets from
+    :param buffer: queue.Queue (FIFO) from where packets are reads
+    """
+
+    if not threading.current_thread().daemon:
+        raise RuntimeError("Thread running start_sending() has to be a daemon!")
+
+    while threading.main_thread().is_alive():
+        packet = buffer.get(block=True, timeout=60)
+        conn.send(packet)
