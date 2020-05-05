@@ -110,14 +110,14 @@ class Connection:
 
         return length
 
-    def send(self, packet: bytes):
+    def send(self, payload: bytes):
         """
         If needed compresses data.
         Adds packet length and sends the packet to the host.
         """
 
         if self._compression_threshold < 0:
-            self.__connection.send(utils.convert_to_varint(len(packet)) + packet)
+            self.__connection.send(utils.convert_to_varint(len(payload)) + payload)
         else:
             # TODO:
             pass

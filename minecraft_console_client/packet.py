@@ -2,6 +2,7 @@ from collections import namedtuple
 from enum import Enum
 from socket import socket
 import logging
+import queue
 
 from version import VersionNamedTuple, Version
 from state import State
@@ -110,54 +111,21 @@ class Status:
         return packed_packet
 
 
-class Listener:
+def listen(conn: socket, buffer: queue.Queue, check_delay=50):
     """
-    Class that manages incoming packets.
-    Recommend to be run in another thread.
+    Starts listening packets incoming from server.
+    It is blocking function, so have to be run in thread.
+
+    Job:
+        Receives all packets waiting to be received,
+        writes them to buffer specified in constructor,
+        sleeps for check_delay [ms].
+        Repeat.
+
+    :param conn: socket.socket to receive packets from
+    :param buffer: queue.Queue (FIFO) where read packets append to
+    :param check_delay: delay in ms
+                        specifies how long sleep between receiving packets
     """
-
-
-class __OLD__PacketManager:
-    """
-    Main class for packets, that:
-        handles incoming packets(Packet().handle_incoming_packets())
-        packs given data and sens them to the host
-    """
-    protocol_version: VersionNamedTuple = None
-    _socket = None
-    _compression_threshold = -1
-
-    def __init__(self, conn: Connection, protocol_version: VersionNamedTuple):
-        """
-        Create Packet object.
-
-        :param conn: socket.socket where packets will be send
-        :param protocol_version: Version.V*_*_* of which protocol to use
-        """
-        self.protocol_version = protocol_version
-        self._conn = conn
-
-    def create_schema(self, *data):
-        """
-        Relate to any create_*() function.
-        Creates packet using packet_id and data,
-        calculates and concat packet size,
-        returns packet in bytes ready to send.
-
-        :param data: to pack and send
-        """
-        pass
-
-    def recv_schema(self, conn: socket, buffer) -> int:
-        """
-        Relate to any recv_*() function.
-        Receives data from socket, write data to buffer, returns data size.
-
-        :param conn: socket.socket to receive data from
-        :param buffer: variable to which write received data
-        :returns number of read bytes
-        :rtype int
-        """
-        pass
-
+    pass
 
