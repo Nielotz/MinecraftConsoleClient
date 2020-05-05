@@ -30,10 +30,10 @@ def get_status(host, port, timeout=5):
 
     logging.info(f"Connected")
 
-    packet = Status.create_handshake((host, port), Version.ANY)
+    packet = Status.handshake((host, port), Version.ANY)
     connection.send(packet)
 
-    packet = Status.create_request()
+    packet = Status.request()
     connection.send(packet)
 
     # len_of_data, data = connection.read()
@@ -43,7 +43,7 @@ def get_status(host, port, timeout=5):
     response = json.loads(bytes(string).decode('utf8'))
 
     # Send and read unix time
-    packet = Status.create_ping(time.time() * 1000)
+    packet = Status.ping(time.time() * 1000)
     connection.send(packet)
 
     len_of_data, unix = connection.receive()

@@ -121,7 +121,8 @@ class Connection:
         """
 
         if self._compression_threshold < 0:
-            self.__connection.send(utils.convert_to_varint(len(payload)) + payload)
+            self.__connection.send(utils.convert_to_varint(len(payload))
+                                   + payload)
         else:
             # TODO:
             pass

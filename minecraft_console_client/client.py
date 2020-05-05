@@ -2,15 +2,13 @@ import logging
 
 from connection import Connection
 from player import Player
-
-from version import Version, VersionNamedTuple
-from packet import PacketID, Login
 import queue
 import threading
 import select
 import time
 
-
+from version import Version, VersionNamedTuple
+from packet import PacketCreator, PacketID
 import utils
 
 
@@ -71,10 +69,10 @@ class Client:
                      f"'{self._socket_data[0]}:"
                      f"{self._socket_data[1]}'")
 
-        packet = Login.create_handshake(self._socket_data, self._version)
+        packet = PacketCreator.Login.handshake(self._socket_data, self._version)
         self._connection.send(packet)
 
-        packet = Login.create_login_start(self.player.data["username"])
+        packet = PacketCreator.Login.login_start(self.player.data["username"])
         self._connection.send(packet)
 
         is_logged = self.__handle_login_packets()

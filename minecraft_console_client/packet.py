@@ -2,10 +2,8 @@ from collections import namedtuple
 from enum import Enum
 import logging
 
-
 from version import VersionNamedTuple, Version
 from state import State
-from connection import Connection
 import utils
 
 PacketIDNamedTuple = namedtuple("PacketIDNamedTuple", "int bytes")
@@ -41,9 +39,7 @@ class PacketID(Enum):
     PLAYER_LIST_HEADER_AND_FOOTER = PacketIDNamedTuple(74, b'\x4A')
 
 
-# class PacketDisconnect()
-
-def _pack_packet(packet_id: PacketID, arr_with_payload):
+def _pack_payload(packet_id: PacketID, arr_with_payload):
     """
     Stolen from
     https://gist.github.com/MarshalX/40861e1d02cbbc6f23acd3eced9db1a0
@@ -59,52 +55,52 @@ def _pack_packet(packet_id: PacketID, arr_with_payload):
     return data
 
 
-class Login:
-    @staticmethod
-    def create_handshake(server_data: (str, int),
-                         protocol_version: VersionNamedTuple) -> bytearray:
-        """ Returns handshake packet ready to send """
-        data = [
-            protocol_version.version_number_bytes,  # Protocol Version
-            server_data[0],  # Server Address
-            server_data[1],  # Server Port
-            State.LOGIN.value  # Next State (login)
-            ]
-        packed_packet = _pack_packet(PacketID.HANDSHAKE, data)
+class PacketCreator:
+    class Login:
+        @staticmethod
+        def handshake(server_data: (str, int),
+                      protocol_version: VersionNamedTuple) -> bytearray:
+            """ Returns handshake packet ready to send """
+            data = [
+                protocol_version.version_number_bytes,  # Protocol Version
+                server_data[0],  # Server Address
+                server_data[1],  # Server Port
+                State.LOGIN.value  # Next State (login)
+                ]
+            packed_packet = _pack_payload(PacketID.HANDSHAKE, data)
 
-        return packed_packet
+            return packed_packet
 
-    @staticmethod
-    def create_login_start(username):
-        """ Returns "login start" packet """
-        packed_packet = _pack_packet(PacketID.LOGIN_START, [username])
-        return packed_packet
+        @staticmethod
+        def login_start(username):
+            """ Returns "login start" packet """
+            packed_packet = _pack_payload(PacketID.LOGIN_START, [username])
+            return packed_packet
 
+    class Status:
 
-class Status:
+        @staticmethod
+        def request():
+            """ Returns request packet """
+            packed_packet = _pack_payload(PacketID.REQUEST, [])
+            return packed_packet
 
-    @staticmethod
-    def create_request():
-        """ Returns request packet """
-        packed_packet = _pack_packet(PacketID.REQUEST, [])
-        return packed_packet
+        @staticmethod
+        def ping(actual_time: float):
+            """ Returns ping packet """
+            packed_packet = _pack_payload(PacketID.PING, [actual_time])
+            return packed_packet
 
-    @staticmethod
-    def create_ping(actual_time: float):
-        """ Returns ping packet """
-        packed_packet = _pack_packet(PacketID.PING, [actual_time])
-        return packed_packet
+        @staticmethod
+        def handshake(server_data: (str, int),
+                      protocol_version: Version) -> bytearray:
+            """ Returns handshake packet """
+            data = [
+                protocol_version.value.version_number_bytes,  # Protocol Version
+                server_data[0],  # Server Address
+                server_data[1],  # Server Port
+                State.STATUS.value  # Next State (login)
+                ]
+            packed_packet = _pack_payload(PacketID.HANDSHAKE, data)
 
-    @staticmethod
-    def create_handshake(server_data: (str, int),
-                         protocol_version: Version) -> bytearray:
-        """ Returns handshake packet """
-        data = [
-            protocol_version.value.version_number_bytes,  # Protocol Version
-            server_data[0],  # Server Address
-            server_data[1],  # Server Port
-            State.STATUS.value  # Next State (login)
-            ]
-        packed_packet = _pack_packet(PacketID.HANDSHAKE, data)
-
-        return packed_packet
+            return packed_packet
