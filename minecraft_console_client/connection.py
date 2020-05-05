@@ -39,6 +39,10 @@ class Connection:
         except:
             pass
 
+    def setblocking(self, is_blocking: bool = True):
+        """ Change socket behavior """
+        self.__connection.setblocking(is_blocking)
+
     def set_compression(self, threshold: int):
         self._compression_threshold = threshold
 
@@ -59,7 +63,7 @@ class Connection:
         self.__connection.settimeout(timeout)
         self.__connection.connect(socket_data)
 
-    def receive(self) -> (int, bytes):
+    def receive_packet(self) -> (int, bytes):
         """
         Reads whole packet from connection.
         https://stackoverflow.com/a/17668009
