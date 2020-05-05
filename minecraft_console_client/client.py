@@ -160,7 +160,6 @@ def start_listening(conn: Connection, buffer: queue.Queue, check_delay=0.050):
     """
 
     conn.setblocking(False)
-    ready = select.select([conn], [], [], 0.01)
 
     # Test#1:
     #   check is better to sleep, or use recv with setblocking(True)
@@ -175,6 +174,7 @@ def start_listening(conn: Connection, buffer: queue.Queue, check_delay=0.050):
         raise RuntimeError("Thread start_sending ")
 
     while True:
+        ready = select.select([conn], [], [], 0.01)
         if ready:  # Only for test #1
             while ready:
                 _hit += 1  # Only for test #1
