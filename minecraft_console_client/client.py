@@ -108,7 +108,7 @@ class Client:
         :rtype bool
         """
 
-        packet_length, data = self._connection.receive()
+        packet_length, data = self._connection.receive_packet()
 
         # Protection from crash when server is starting
         if len(data) == 0:
@@ -123,7 +123,7 @@ class Client:
             self._connection.set_compression(threshold)
 
             # Next packet have to be login success
-            packet_length, data = self._connection.receive()
+            packet_length, data = self._connection.receive_packet()
             packet_id, data = utils.extract_data(data,
                     compression=not (self._connection._compression_threshold < 0)
                                                  )
