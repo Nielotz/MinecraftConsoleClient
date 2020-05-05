@@ -113,83 +113,84 @@ class Status:
         return packed_packet
 
 
-def listen(conn: Connection, buffer: queue.Queue, check_delay=0.050):
-    """
-    Starts listening packets incoming from server.
-    It is blocking function, so has to be run in a new thread.
-    Starting thread as daemon gives free performance boost.
-    Otherwise thread should closes right after the parent thread closes.
+class Listener:
+    @staticmethod
+    def start_listen(conn: Connection, buffer: queue.Queue, check_delay=0.050):
+        """
+        Starts listening packets incoming from server.
+        It is blocking function, so has to be run in a new thread.
+        Starting thread as daemon gives free performance boost.
+        Otherwise thread should closes right after the parent thread closes.
 
-    Job:
-        Receives all packets waiting to be received,
-        appends them to buffer specified in constructor,
-        sleeps for check_delay [seconds].
-        Repeat.
+        Job:
+            Receives all packets waiting to be received,
+            appends them to buffer specified in constructor,
+            sleeps for check_delay [seconds].
+            Repeat.
 
-    :param conn: socket.socket to receive packets from
-    :param buffer: queue.Queue (FIFO) where read packets append to
-    :param check_delay: delay in seconds that
-                        specifies how long sleep between receiving packets
-    """
+        :param conn: socket.socket to receive packets from
+        :param buffer: queue.Queue (FIFO) where read packets append to
+        :param check_delay: delay in seconds that
+                            specifies how long sleep between receiving packets
+        """
 
-    conn.setblocking(False)
-    ready = select.select([conn], [], [], 0.01)
+        conn.setblocking(False)
+        ready = select.select([conn], [], [], 0.01)
 
-    # Test#1:
-    #   check is better to sleep, or use recv with setblocking(True)
+        # Test#1:
+        #   check is better to sleep, or use recv with setblocking(True)
 
-    _skipped = 0  # Only for test #1
-    _hit = 0  # Only for test #1
-    _sum = 0  # Only for test #1
+        _skipped = 0  # Only for test #1
+        _hit = 0  # Only for test #1
+        _sum = 0  # Only for test #1
 
-    # After testing this code will be cleaned up.
-    if threading.current_thread().daemon:
-        while True:
-            if ready:  # Only for test #1
-                while ready:
-                    _hit += 1  # Only for test #1
-                    _, packet = conn.receive_packet()
-                    while buffer.full():
-                        time.sleep(check_delay)
-                        logging.warning(f"Buffer for incoming packets is full!")
+        # After testing this code will be cleaned up.
+        if threading.current_thread().daemon:
+            while True:
+                if ready:  # Only for test #1
+                    while ready:
+                        _hit += 1  # Only for test #1
+                        _, packet = conn.receive_packet()
+                        while buffer.full():
+                            time.sleep(check_delay)
+                            logging.warning(f"Buffer for incoming packets is full!")
 
-                    buffer.put(packet)
-                    logging.debug(f"[RECEIVED] {len(packet)} bytes.")
+                        buffer.put(packet)
+                        logging.debug(f"[RECEIVED] {len(packet)} bytes.")
 
-            else:  # Only for test #1
-                _skipped += 1  # Only for test #1
-                time.sleep(check_delay)
+                else:  # Only for test #1
+                    _skipped += 1  # Only for test #1
+                    time.sleep(check_delay)
 
-            if _sum > 10:  # Only for test #1
-                print(f"Hit: {_hit}, skip: {_skipped}")  # Only for test #1
-                _skipped = 0  # Only for test #1
-                _hit = 0  # Only for test #1
-                _sum = 0  # Only for test #1
-    else:
-        logging.warning("Please start listen() in a daemon!")
-        while threading.main_thread().is_alive():
-            if ready:  # Only for test #1
-                while ready:
-                    _hit += 1  # Only for test #1
-                    _, packet = conn.receive_packet()
-                    while buffer.full():
-                        time.sleep(check_delay)
-                        logging.warning(f"Buffer for incoming packets is full!")
-
-                    buffer.put(packet)
-                    logging.debug(f"[RECEIVED] {len(packet)} bytes.")
-
-            else:  # Only for test #1
-                _skipped += 1  # Only for test #1
-                time.sleep(check_delay)
-
-            if _sum > 10:  # Only for test #1
-                print(f"Hit: {_hit}, skip: {_skipped}")  # Only for test #1
-                _skipped = 0  # Only for test #1
-                _hit = 0  # Only for test #1
-                _sum = 0  # Only for test #1
-
+                if _sum > 10:  # Only for test #1
+                    print(f"Hit: {_hit}, skip: {_skipped}")  # Only for test #1
+                    _skipped = 0  # Only for test #1
+                    _hit = 0  # Only for test #1
+                    _sum = 0  # Only for test #1
         else:
-            print("While loop makes sense!")
+            logging.warning("Please start listen() in a daemon!")
+            while threading.main_thread().is_alive():
+                if ready:  # Only for test #1
+                    while ready:
+                        _hit += 1  # Only for test #1
+                        _, packet = conn.receive_packet()
+                        while buffer.full():
+                            time.sleep(check_delay)
+                            logging.warning(f"Buffer for incoming packets is full!")
 
+                        buffer.put(packet)
+                        logging.debug(f"[RECEIVED] {len(packet)} bytes.")
+
+                else:  # Only for test #1
+                    _skipped += 1  # Only for test #1
+                    time.sleep(check_delay)
+
+                if _sum > 10:  # Only for test #1
+                    print(f"Hit: {_hit}, skip: {_skipped}")  # Only for test #1
+                    _skipped = 0  # Only for test #1
+                    _hit = 0  # Only for test #1
+                    _sum = 0  # Only for test #1
+
+            else:
+                print("While loop makes sense!")
 
