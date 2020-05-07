@@ -1,5 +1,6 @@
 import struct
 import zlib
+
 from consts import MAX_INT, MIN_INT,  MAX_UINT
 
 
@@ -114,10 +115,6 @@ def unpack_varint(data: bytes) -> (int, bytes):
     return number, None
 
 
-def decompress(data: bytes) -> bytes:
-    return zlib.decompress(data)
-
-
 def extract_data(data: bytes, compression=False) -> (int, bytes):
     """
     Extracts Packet ID and payload from packet data.
@@ -129,7 +126,7 @@ def extract_data(data: bytes, compression=False) -> (int, bytes):
     if compression:
         data_length, data = unpack_varint(data)
         if data_length:
-            data = decompress(data)
+            data = zlib.decompress(data)
         packet_id, data = unpack_varint(data)
         return packet_id, data
 

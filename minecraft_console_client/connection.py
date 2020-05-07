@@ -1,4 +1,6 @@
 import socket
+import zlib
+import select
 
 import logging
 
@@ -8,7 +10,7 @@ import utils
 
 class Connection:
     """
-    Main class that creates and handles tcp connection between server and
+    Main class that creates and handles tcp connection between server(host) and
     client(localhost).
     Handle reading(sending) data from(to) server.
 
@@ -65,7 +67,7 @@ class Connection:
 
     def receive_packet(self) -> (int, bytes):
         """
-        Reads whole packet from connection.
+        Reads whole packet from connection and auto-decompress.
         https://stackoverflow.com/a/17668009
 
         :returns length of packet, read bytes
@@ -76,13 +78,68 @@ class Connection:
         fragments = []
         read_bytes = 0
         while read_bytes < packet_length:
-            packet = self.__connection.recv(packet_length - read_bytes)
-            if not packet:
-                return None
-            fragments.append(packet)
-            read_bytes += len(packet)
+            packet_part = self.__connection.recv(packet_length - read_bytes)
+            if not packet_part:
+                return None, None
+            fragments.append(packet_part)
+            read_bytes += len(packet_part)
 
-        return packet_length, b''.join(fragments)
+        packet = b''.join(fragments)
+
+        # Decompression section didn't move to its own function to avoid
+        # unnecessary copying of potentially huge amount of data
+
+        # If compression is enabled
+        if not self._compression_threshold < 0:
+            data_length, packet = utils.unpack_varint(packet)
+            if data_length != 0:
+                packet = zlib.decompress(packet)
+                packet_length = data_length
+            else:
+                # Exclude data_length(0) from packet_length
+                packet_length -= 1
+
+        # End of decompression
+
+        return packet_length, packet
+
+    def send(self, payload: bytes):
+        """
+        If compression_threshold is non-negative then auto-compresses data.
+        Adds packet length and sends the packet to the host.
+
+        :param payload: b'VarInt(Packet ID)' + b'VarInt(Data)'
+        """
+
+        payload_len = len(payload)
+
+        # Compression is disabled
+        if self._compression_threshold < 0:
+            packet = utils.convert_to_varint(payload_len) + payload
+
+        else:
+            # Compression section didn't move to its own function to avoid
+            # unnecessary copying of potentially huge amount of data
+
+            # TODO: If works optimize by hard coding some values.
+            # Compression disabled for this packet
+            if payload_len < self._compression_threshold:
+                payload_len = utils.convert_to_varint(0)
+                payload = payload_len + payload
+                packet_len = len(payload)
+
+                packet = utils.convert_to_varint(packet_len) + payload
+
+            # Compression is enabled
+            else:
+                compressed_payload = zlib.compress(payload)
+                payload = utils.convert_to_varint(
+                    payload_len) + compressed_payload
+                packet_len = len(payload)
+                packet = utils.convert_to_varint(packet_len) + payload
+        # End of compression
+
+        self.__connection.send(packet)
 
     def __read_packet_length(self) -> int:
         """
@@ -114,15 +171,7 @@ class Connection:
 
         return length
 
-    def send(self, payload: bytes):
-        """
-        If needed compresses data.
-        Adds packet length and sends the packet to the host.
-        """
+    def wait_for_packet(self, timeout=0.05):
+        """ Return when packet is ready to receive. Wait up to timeout."""
+        return select.select([self.__connection, ], [], [], timeout)
 
-        if self._compression_threshold < 0:
-            self.__connection.send(utils.convert_to_varint(len(payload))
-                                   + payload)
-        else:
-            # TODO:
-            pass

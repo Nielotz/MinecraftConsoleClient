@@ -55,8 +55,12 @@ def _pack_payload(packet_id: PacketID, arr_with_payload):
     return data
 
 
-class PacketCreator:
+class Creator:
+    """ Namespace for creating packets """
+
     class Login:
+        """ Namespace for packets used to login """
+
         @staticmethod
         def handshake(server_data: (str, int),
                       protocol_version: VersionNamedTuple) -> bytearray:
@@ -78,6 +82,7 @@ class PacketCreator:
             return packed_packet
 
     class Status:
+        """ Namespace for packets used to receive status """
 
         @staticmethod
         def request():
@@ -104,3 +109,4 @@ class PacketCreator:
             packed_packet = _pack_payload(PacketID.HANDSHAKE, data)
 
             return packed_packet
+
