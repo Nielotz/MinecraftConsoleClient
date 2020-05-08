@@ -1,4 +1,6 @@
 import logging
+logger = logging.getLogger('mainLogger')
+
 import sys
 import queue
 import threading
@@ -12,171 +14,156 @@ import utils
 from packet import Creator
 
 
-def critic_exit(message=None):
-    logging.critical(f"Something went wrong: {message}")
-    sys.exit(-1)
-
-
 class Player:
     """
     Manages player behavior. Highest API level
-    Imitate last stage e.g. "game": system->client->GAME
+    Imitate last stage e.g. "game" in system->client->GAME
     """
-    _host: (str, int) = None
     version: VersionNamedTuple = None
     action_list: dict = None
+
+    received_queue: queue.Queue = queue.Queue()
+    to_send_queue: queue.Queue = queue.Queue()
 
     listener: threading.Thread = None
     sender: threading.Thread = None
 
     _conn: Connection = None
-
+    _host: (str, int) = None
     _data: dict = {"username": "Anyone"}
-
-    received_queue: queue.Queue = queue.Queue()
-    to_send_queue: queue.Queue = queue.Queue()
-
-    __stop_threads = False
+    _ready = threading.Event()
 
     def __init__(self, host: (str, int), version: Version, username: str):
         """
         :param host: host data (address, port) to which client connects to
         :param version: VersionNamedTuple object from VERSION,
                         tells which version of protocol to use
-        :param username:
+        :param username: username
         """
 
-        logging.info("Creating player".center(60, "-"))
+        logger.info("Creating player".center(60, "-"))
 
         self._data["username"] = username
-        logging.info("|" +
-                     f"Username: '{self._data['username']}'".center(58, " ") +
-                     "|")
+        logger.info("|" +
+                    f"Username: '{self._data['username']}'".center(58, " ") +
+                    "|")
 
         self.version = version.value
-        logging.info("|" +
-                     f"Client version: '{self.version.release_name}'".center(58, " ") + "|")
+        logger.info("|" +
+                    f"Client version: '{self.version.release_name}'"
+                    .center(58, " ") + "|")
 
         self._host = host
-        logging.info("|" + f"Server address: '{self._host[0]}: {self._host[1]}'"
-                     .center(58, " ") + "|")
+        logger.info("|" + f"Server address: '{self._host[0]}: {self._host[1]}'"
+                    .center(58, " ") + "|")
+
+        logger.info("".center(60, "-"))
+
         self._conn = Connection()
 
         self.action_list = action.get_action_list(self.version)
 
-        logging.info("".center(60, "-"))
+        self.listener = threading.Thread(target=self.__start_listening,
+                                         args=(self.received_queue, self._ready),
+                                         daemon=True
+                                         )
 
-        self.listener = threading.Thread(target=self.start_listening,
-                         args=(self.received_queue, 0,),
-                         daemon=True
-                         )
-
-        self.sender = threading.Thread(target=self.start_sending,
-                         args=(self.to_send_queue, ),
-                         daemon=True
-                         )
+        self.sender = threading.Thread(target=self.__start_sending,
+                                       args=(self.to_send_queue, self._ready),
+                                       daemon=True
+                                       )
 
     def __del__(self):
-        self.stop()  # Temporally
+        self.stop("Shutting down player")  # Temporally
 
     def start(self):
         """ Starts as bot. """
 
-        logging.info(f"Starting bot: '{self._data['username']}'")
+        logger.info(f"Starting bot: '{self._data['username']}'")
+
+        # If possible change to decorators
         if not self.connect_to_server():
-            critic_exit("Can't connect to the server")
+            logger.critical("Can't connect to the server")
+            self.stop("Can't connect to the server")
+            return False
+
+    def start_listening(self):
+        """
+        Similar to start_sending.
+        Starts new thread-daemon that listens packets incoming from server.
+        When received packet (if need) - decompresses,
+        then inserts it into self.received_queue.
+        Thread ends when received packet longer or shorted than declared,
+        len(packet) or declared length equals zero.
+        When connection has been interrupted puts b'' into queue.
+        """
+        if self.listener.is_alive():
+            logger.error("Listener already started")
             return False
         try:
             self.listener.start()
-            self.sender.start()
+            self._ready.wait(15)
         except Exception:
-            self.stop("Cannot create thread")
+            return False
+        return True
 
-        if not self.login():
-            if not self.stop("Cannot login to the server"):
-                critic_exit("Cannot stop threads")
-            else:
-                logging.info("Cannot login to the server")
-                return False
-        logging.info("Successfully logged in.")
-
-    # TODO: Refract
-    def stop(self, reason=""):
-        logging.info(f"Stopping program. Reason: {reason}")
-        __stop_threads = True
-        success = [True, True]
-        if self.listener is not None and self.listener.is_alive():
-            success[0] = False
-            logging.debug(f"Stopping receiving thread. Attempt 0/5")
-            attempt = 1
-            time.sleep(5)
-            while attempt < 6:
-                if not self.listener.is_alive():
-                    logging.debug("Successfully stopped receiving thread.")
-                    success[0] = True
-                    break
-                logging.debug(f"Stopping receiving thread. Attempt {attempt}/5")
-                time.sleep(5)
-                attempt += 1
-            else:
-                if self.listener.is_alive():
-                    logging.warning("Failed to stop receiving thread.")
-                else:
-                    success[0] = True
-                    logging.debug("Successfully stopped receiving thread.")
-        else:
-            logging.debug("Successfully stopped receiving thread.")
-
-        if self.sender is not None and self.sender.is_alive():
-            success[1] = False
-            logging.debug(f"Stopping sending thread. Attempt 0/5")
-            attempt = 1
-            time.sleep(5)
-            while attempt < 6:
-                if not self.sender.is_alive():
-                    logging.debug("Successfully stopped sending thread.")
-                    success[1] = True
-                    break
-                logging.debug(f"Stopping sending thread. Attempt {attempt}/5")
-                time.sleep(5)
-                attempt += 1
-            else:
-                if self.sender.is_alive():
-                    logging.warning("Failed to stop sending thread.")
-                else:
-                    logging.debug("Successfully stopped sending thread.")
-                    success[1] = True
-        else:
-            logging.debug("Successfully stopped receiving thread.")
-
-        return success[0] and success[1]
-
-    def connect_to_server(self):
+    def start_sending(self):
         """
-        Connects to server.
+        Similar to start_listening.
+        Starts new thread-daemon which waits for packets to appear in
+        self.to_send_queue then sends it to server.
+        """
+        if self.sender.is_alive():
+            logger.error("Sender already started")
+            return False
+        try:
+            self.sender.start()
+            self._ready.wait(15)
+        except Exception:
+            return False
+        return True
+
+    def stop(self, reason="not defined"):
+        logger.info(f"Stopping program. Reason: {reason}")
+        self._conn.close()
+
+    def connect_to_server(self, timeout=5):
+        """
+        Connects to the server.
+        Allows to start sending playing packets.
+        Starts sender and receiver.
 
         :returns: success
         :rtype: bool
 
         """
         # TODO: add retry, timeout, etc...
-        if not self.__connect():
+        if not self._connect(timeout=timeout):
+            return False
+
+        if not self.start_listening():
+            self.stop("Cannot start listener")
+            return False
+        logger.debug("Successfully started listening thread")
+
+        if not self.start_sending():
+            self.stop("Cannot start listener")
+            return False
+        logger.debug("Successfully started sending thread")
+
+        if not self._login():
             return False
         return True
 
-    def login(self):
+    def _login(self):
         """
         # TODO: Make this comment readable
-        Login to offline (non-premium) server e.g. without encryption.
+        Sends login packets to offline (non-premium) server e.g. without encryption.
 
-        :return True when logged in otherwise False
+        :return success
         :rtype bool
         """
-        logging.info("Trying to log in in offline mode")
-
-        logging.info("Established connection with: "
-                     f"'{self._host[0]}:"
-                     f"{self._host[1]}'")
+        logger.info("Trying to log in in offline mode")
 
         packet = Creator.Login.handshake(self._host, self.version)
         self.to_send_queue.put(packet)
@@ -184,10 +171,12 @@ class Player:
         packet = Creator.Login.login_start(self._data["username"])
         self.to_send_queue.put(packet)
 
+        # self._conn.close()
+
         for i in range(10):  # Try for 10 packets
             data = self.received_queue.get(timeout=10)
             if len(data) == 0:
-                logging.error("Received 0 bytes")
+                logger.error("Received 0 bytes")
                 return False
             packet_id, data = utils.unpack_varint(data)
 
@@ -196,69 +185,93 @@ class Player:
         return False
 
     def interpret_packet(self, packet_id: int, payload: bytes):
-        logging.debug(f"[1/2] Interpreting packet with id: {packet_id}")
+        logger.debug(f"[1/2] Interpreting packet with id: {packet_id}")
 
         if packet_id in self.action_list:
             self.action_list[packet_id](self, payload)
         else:
-            logging.debug("[2/2] Not implemented yet")
+            logger.debug("[2/2] Not implemented yet")
 
     def interpret_login_packet(self, packet_id: int, payload: bytes):
-        logging.debug(f"[1/2] Interpreting packet with id: {packet_id}")
+        logger.debug(f"[1/2] Interpreting packet with id: {packet_id}")
 
         if packet_id in self.action_list:
             self.action_list[packet_id](self, payload)
             if packet_id == 2:
                 return True
         else:
-            logging.debug("[2/2] Not implemented yet")
+            logger.debug("[2/2] Not implemented yet")
         return False
 
-    def start_listening(self, buffer: queue.Queue,
-                        check_delay=0.050):
+    def __start_listening(self, buffer: queue.Queue, ready: threading.Event,
+                          check_delay=0.050):
         """
-        Similar to start_sending. Has to starts as daemon.
+        Similar to start_sending.
         Starts listening packets incoming from server.
         When received packet (if need) - decompresses,
         then inserts it into buffer.
-        It is blocking function, so has to be run in a new thread.
-        Otherwise thread should closes right after the parent thread closes.
+        It is blocking function, so has to be run in a new thread as daemon.
+        Closes when receive packet longer or shorted than declared,
+        len(packet) or declared length equals zero.
+        When connection has been interrupted puts b'' into queue.
 
         Job:
-            Receives all packets waiting to be received,
+            Receives packets waiting to be received,
             appends them to buffer specified in constructor,
             sleeps for check_delay [seconds].
             Repeat.
 
         :param buffer: queue.Queue (FIFO) where read packets append to
+        :param ready: threading.Event object sets when thread started
         :param check_delay: delay in seconds that
                             specifies how long sleep between receiving packets
         """
 
         if not threading.current_thread().daemon:
-            raise RuntimeError("Thread start_sending ")
+            raise RuntimeError(
+                "Thread running start_listening() has to start as daemon!")
 
-        while not self.__stop_threads:
-            _, packet = self._conn.receive_packet()
-            while buffer.full():
+        ready.set()
+
+        while True:
+            size, packet = self._conn.receive_packet()
+
+            # buffer.put() blocks if necessary until a free slot is available.
+
+            logger.debug(f'[RECEIVED] size: {size}')
+
+            if size != len(packet):
+                logger.error(f"Packet length: {len(packet)} "
+                             f"not equal to declared size: {size}")
+
+            elif len(packet) == 0:
+                logger.error(f"Packet length: equals zero. Declared size: {size}")
+
+            elif size == 0:
+                logger.error(f"Declared packet length equals zero")
+
+            else:  # Everything is everything
+                buffer.put(packet)
                 time.sleep(check_delay)
-                logging.warning(f"Buffer for incoming packets is full!")
+                continue
 
-            buffer.put(packet)
-            # logging.debug(f"[RECEIVED] {len(packet)} bytes.")
+            buffer.put(b'')
+            break
 
-    def start_sending(self, buffer: queue.Queue):
+        logger.info("Exiting listening thread")
+
+    def __start_sending(self, buffer: queue.Queue, ready: threading.Event):
         """
-        Similar to start_listen. Has to starts as daemon.
-        Starts waiting for packets to appear in buffer then send it to the server.
-        It is blocking function, so has to be run in a new thread.
-        Thread will stop before 10 sec pass after self.__stop_threads set to True.
+        Similar to start_listen.
+        Starts waiting for packets to appear in buffer then sends it to server.
+        It is blocking function, so has to be run in a new thread as daemon.
 
         Job:
             Freeze until packet appear in buffer,
             send it the connection.
             Repeat.
 
+        :param ready: threading.Event object sets when thread started
         :param buffer: queue.Queue (FIFO) from where packets are reads
         """
 
@@ -266,33 +279,42 @@ class Player:
             raise RuntimeError(
                 "Thread running start_sending() has to be a daemon!")
 
-        # TODO: change to wait and signals
-        while not self.__stop_threads:
-            try:
-                packet = buffer.get(block=True, timeout=10)
-            except queue.Empty:
-                pass
-            else:
-                self._conn.send(packet)
+        ready.set()
 
-    def __connect(self, timeout=5):
+        while True:
+            packet = buffer.get(block=True)
+            logger.debug(f'[SEND] size: {len(packet)}')
+            try:
+                self._conn.sendall(packet)
+            except ConnectionAbortedError:
+                """ Client closed connection """
+                logger.info("Connection has been shut down by client. ")
+                break
+
+        logger.info("Exiting sending thread")
+
+    def _connect(self, timeout=5):
         """
         Connects to server.
         Not raises exceptions.
 
         :param timeout: connection timeout
-        :returns True when connected, otherwise False
+        :returns success
         :rtype bool
         """
 
         try:
             self._conn.connect(self._host, timeout)
         except OSError as e:
-            logging.critical(f"Can't connect to: "
-                             f"'{self._host[0]}:"
-                             f"{self._host[1]}'"
-                             f", reason: {e}")
+            logger.critical(f"Can't connect to: "
+                            f"'{self._host[0]}:"
+                            f"{self._host[1]}'"
+                            f", reason: {e}")
             return False
+
+        logger.info("Established connection with: "
+                    f"'{self._host[0]}:"
+                    f"{self._host[1]}'")
         return True
 
 

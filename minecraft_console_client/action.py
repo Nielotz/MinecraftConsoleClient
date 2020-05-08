@@ -1,4 +1,5 @@
 import logging
+logger = logging.getLogger('mainLogger')
 
 from exceptions import DisconnectedError
 from version import VersionNamedTuple, Version
@@ -13,14 +14,14 @@ class Sever:
 
     @staticmethod
     def not_implemented():
-        logging.debug("[2/2] Not implemented yet")
+        logger.debug("[2/2] Not implemented yet")
 
     @staticmethod
     def disconnect(player, data: bytes):
         reason = utils.extract_string_from_data(data)
         # reason should be dict Chat type.
-        logging.error(f"[2/2] {player._data['username']} has been "
-                      f"disconnected by server. Reason: {reason}")
+        logger.error(f"[2/2] {player._data['username']} has been "
+                     f"disconnected by server. Reason: {reason}")
         raise DisconnectedError("Disconnected by server.")
 
     @staticmethod
@@ -29,7 +30,7 @@ class Sever:
         uuid = uuid.decode('utf-8')
         player._data["uuid"] = uuid
 
-        logging.debug("[2/2] Successfully logged to the server")
+        logger.debug("[2/2] Successfully logged to the server")
 
     @staticmethod
     def set_compression(player, data: bytes):
@@ -37,9 +38,9 @@ class Sever:
         player._conn.set_compression(threshold)
 
         if threshold < 0:
-            logging.debug(f"[2/2] Compression is disabled")
+            logger.debug(f"[2/2] Compression is disabled")
         else:
-            logging.debug(f"[2/2] Compression set to {threshold} bytes")
+            logger.debug(f"[2/2] Compression set to {threshold} bytes")
 
 
 class Client:
@@ -47,11 +48,17 @@ class Client:
 
     @staticmethod
     def not_implemented():
-        logging.debug("[2/2] Not implemented yet")
+        logger.debug("[2/2] Not implemented yet")
 
 
-def get_action_list(player_version: VersionNamedTuple):
-    """ Dictionary that pairs packet_id to the action based on game version """
+def get_action_list(player_version: VersionNamedTuple) -> dict:
+    """
+    Returns dictionary that pairs packet_id to the action based on game version.
+
+    :param player_version: VersionNamedTuple from Version
+    :returns dict(int, method)
+    :rtype dict
+    """
 
     actions: dict = {
         "1.12.2": {
@@ -61,4 +68,9 @@ def get_action_list(player_version: VersionNamedTuple):
                 3: Sever.set_compression,
         }
     }
-    return actions[player_version.release_name]
+    try:
+        actions_list = actions[player_version.release_name]
+    except Exception:
+        actions_list = None
+
+    return actions_list

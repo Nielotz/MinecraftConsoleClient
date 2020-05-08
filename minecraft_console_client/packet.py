@@ -1,6 +1,7 @@
 from collections import namedtuple
 from enum import Enum
 import logging
+logger = logging.getLogger('mainLogger')
 
 from version import VersionNamedTuple, Version
 from state import State
@@ -45,12 +46,12 @@ def _pack_payload(packet_id: PacketID, arr_with_payload):
     https://gist.github.com/MarshalX/40861e1d02cbbc6f23acd3eced9db1a0
     """
     data = bytearray(packet_id.value.bytes)
-    logging.debug(f"[SEND] {packet_id.name} {arr_with_payload}")
+    logger.debug(f"[SEND] {packet_id.name} {arr_with_payload}")
 
     for arg in arr_with_payload:
         data.extend(utils.pack_data(arg))
 
-    # logging.debug(f"[PACKED] {data}")
+    # logger.debug(f"[PACKED] {data}")
 
     return data
 

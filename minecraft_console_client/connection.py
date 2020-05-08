@@ -3,6 +3,7 @@ import zlib
 import select
 
 import logging
+logger = logging.getLogger('mainLogger')
 
 from consts import MAX_INT
 import utils
@@ -30,16 +31,7 @@ class Connection:
         self.__connection = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
     def __del__(self):
-        try:
-            self.__connection.shutdown(socket.SHUT_RDWR)
-            logging.info("Shutdown connection")
-        except:
-            pass
-        try:
-            self.__connection.close()
-            logging.info("Closed socket")
-        except:
-            pass
+        self.close()
 
     def setblocking(self, is_blocking: bool = True):
         """ Change socket behavior """
@@ -49,9 +41,9 @@ class Connection:
         self._compression_threshold = threshold
 
         if threshold < 0:
-            logging.info(f"Compression is disabled")
+            logger.info(f"Compression is disabled")
         else:
-            logging.info(f"Compression is enabled, threshold: {threshold}")
+            logger.info(f"Compression is enabled, threshold: {threshold}")
 
     def connect(self, socket_data: (str, int), timeout: int = 5):
         """"
@@ -70,21 +62,36 @@ class Connection:
         Reads whole packet from connection and auto-decompress.
         https://stackoverflow.com/a/17668009
 
+        Returns 0, b'' when connection is broken or sth
+
         :returns length of packet, read bytes
         :rtype int, bytes
         """
-        packet_length = self.__read_packet_length()
+        # Broad try, because when sth went wrong here we are in danger.
+        try:
+            packet_length = self.__read_packet_length()
 
-        fragments = []
-        read_bytes = 0
-        while read_bytes < packet_length:
-            packet_part = self.__connection.recv(packet_length - read_bytes)
-            if not packet_part:
-                return None, None
-            fragments.append(packet_part)
-            read_bytes += len(packet_part)
+            fragments = []
+            read_bytes = 0
+            while read_bytes < packet_length:
+                packet_part = self.__connection.recv(packet_length - read_bytes)
+                if not packet_part:
+                    return 0, b''
+                fragments.append(packet_part)
+                read_bytes += len(packet_part)
+
+        except BrokenPipeError:
+            logger.critical("Connection has been broken.")
+            return 0, b''
+        except Exception as e:
+            logger.critical(f"Uncaught exception occurred: {e}")
+            return 0, b''
 
         packet = b''.join(fragments)
+
+        if len(packet) == 0:
+            logger.critical("Packet length equals zero.")
+            return 0, b''
 
         # Decompression section didn't move to its own function to avoid
         # unnecessary copying of potentially huge amount of data
@@ -103,7 +110,7 @@ class Connection:
 
         return packet_length, packet
 
-    def send(self, payload: bytes):
+    def sendall(self, payload: bytes):
         """
         If compression_threshold is non-negative then auto-compresses data.
         Adds packet length and sends the packet to the host.
@@ -139,7 +146,7 @@ class Connection:
                 packet = utils.convert_to_varint(packet_len) + payload
         # End of compression
 
-        self.__connection.send(packet)
+        self.__connection.sendall(packet)
 
     def __read_packet_length(self) -> int:
         """
@@ -171,7 +178,17 @@ class Connection:
 
         return length
 
-    def wait_for_packet(self, timeout=0.05):
-        """ Return when packet is ready to receive. Wait up to timeout."""
-        return select.select([self.__connection, ], [], [], timeout)
-
+    def close(self):
+        try:
+            """ Shut down one or both halves of the connection. """
+            self.__connection.shutdown(socket.SHUT_RDWR)
+            logger.debug("Shutdown connection")
+        except:
+            pass
+        try:
+            """ Close a socket file descriptor. """
+            self.__connection.close()
+            logger.debug("Closed socket")
+        except:
+            pass
+        logger.info("Closed connection")
