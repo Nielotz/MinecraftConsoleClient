@@ -1,7 +1,7 @@
 import struct
 import zlib
 
-from consts import MAX_INT, MIN_INT,  MAX_UINT
+from consts import MAX_INT, MIN_INT, MAX_UINT
 
 
 def __convert_to_vartype(value: int, vartype_length: int):
@@ -167,4 +167,3 @@ def pack_data(data):
         return struct.pack('q', int(data))
     else:
         return data
-

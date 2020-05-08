@@ -1,4 +1,5 @@
 import logging
+
 logger = logging.getLogger('mainLogger')
 
 import sys
@@ -245,7 +246,8 @@ class Player:
                              f"not equal to declared size: {size}")
 
             elif len(packet) == 0:
-                logger.error(f"Packet length: equals zero. Declared size: {size}")
+                logger.error(
+                    f"Packet length: equals zero. Declared size: {size}")
 
             elif size == 0:
                 logger.error(f"Declared packet length equals zero")
@@ -316,6 +318,3 @@ class Player:
                     f"'{self._host[0]}:"
                     f"{self._host[1]}'")
         return True
-
-
-

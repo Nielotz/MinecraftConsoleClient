@@ -1,6 +1,7 @@
 from collections import namedtuple
 from enum import Enum
 import logging
+
 logger = logging.getLogger('mainLogger')
 
 from version import VersionNamedTuple, Version
@@ -71,7 +72,7 @@ class Creator:
                 server_data[0],  # Server Address
                 server_data[1],  # Server Port
                 State.LOGIN.value  # Next State (login)
-                ]
+            ]
             packed_packet = _pack_payload(PacketID.HANDSHAKE, data)
 
             return packed_packet
@@ -106,8 +107,7 @@ class Creator:
                 server_data[0],  # Server Address
                 server_data[1],  # Server Port
                 State.STATUS.value  # Next State (login)
-                ]
+            ]
             packed_packet = _pack_payload(PacketID.HANDSHAKE, data)
 
             return packed_packet
-

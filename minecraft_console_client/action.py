@@ -1,4 +1,5 @@
 import logging
+
 logger = logging.getLogger('mainLogger')
 
 from exceptions import DisconnectedError
@@ -62,10 +63,10 @@ def get_action_list(player_version: VersionNamedTuple) -> dict:
 
     actions: dict = {
         "1.12.2": {
-                0: Sever.disconnect,
-                # 1: Sever._encryption_request,
-                2: Sever.login_success,
-                3: Sever.set_compression,
+            0: Sever.disconnect,
+            # 1: Sever._encryption_request,
+            2: Sever.login_success,
+            3: Sever.set_compression,
         }
     }
     try:

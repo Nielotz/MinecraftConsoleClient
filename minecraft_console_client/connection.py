@@ -3,6 +3,7 @@ import zlib
 import select
 
 import logging
+
 logger = logging.getLogger('mainLogger')
 
 from consts import MAX_INT
