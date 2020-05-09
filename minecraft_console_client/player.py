@@ -2,7 +2,6 @@ import logging
 
 logger = logging.getLogger('mainLogger')
 
-import sys
 import queue
 import threading
 import time
@@ -29,6 +28,7 @@ class Player:
     listener: threading.Thread = None
     sender: threading.Thread = None
 
+    _server_data = {}
     _conn: Connection = None
     _host: (str, int) = None
     _data: dict = {"username": "Anyone"}
@@ -55,6 +55,8 @@ class Player:
                     .center(58, " ") + "|")
 
         self._host = host
+        self._server_data["host"] = host[0]
+        self._server_data["port"] = host[1]
         logger.info("|" + f"Server address: '{self._host[0]}: {self._host[1]}'"
                     .center(58, " ") + "|")
 
@@ -62,10 +64,13 @@ class Player:
 
         self._conn = Connection()
 
-        self.action_list = action.get_action_list(self.version)
+        if not self.switch_action_packet("login"):
+            raise RuntimeError("Not found 'login' in action_packet")
 
         self.listener = threading.Thread(target=self.__start_listening,
-                                         args=(self.received_queue, self._ready),
+                                         args=(self.received_queue,
+                                               self._ready,
+                                               0.001),
                                          daemon=True
                                          )
 
@@ -75,18 +80,48 @@ class Player:
                                        )
 
     def __del__(self):
+        logger.info("Deleting player")
         self.stop("Shutting down player")  # Temporally
 
-    def start(self):
-        """ Starts as bot. """
+    def start(self) -> str:
+        """
+        Starts playing.
+        Returns error message, or - when everything worked as expected - "".
+
+        :return error message
+        :rtype str
+        """
 
         logger.info(f"Starting bot: '{self._data['username']}'")
 
-        # If possible change to decorators
         if not self.connect_to_server():
-            logger.critical("Can't connect to the server")
-            self.stop("Can't connect to the server")
-            return False
+            return "Can't connect to the server"
+        logger.info("Successfully connected to server.")
+
+        if not self.start_listening():
+            return "Cannot start listener"
+        logger.debug("Successfully started listening thread")
+
+        if not self.start_sending():
+            return "Cannot start listener"
+        logger.debug("Successfully started sending thread")
+
+        if not self.login_non_premium():
+            return "Can't connect to the server"
+        logger.info("Successfully logged in to server.")
+
+        if not self.switch_action_packet("play"):
+            return "Can't assign 'play' action packet."
+
+        while True:
+            data = self.received_queue.get(timeout=10)
+            if len(data) == 0:
+                return "Received 0 bytes"
+            packet_id, data = utils.unpack_varint(data)
+
+            self._interpret_packet(packet_id, data)
+
+        return ""
 
     def start_listening(self):
         """
@@ -125,38 +160,32 @@ class Player:
         return True
 
     def stop(self, reason="not defined"):
-        logger.info(f"Stopping program. Reason: {reason}")
+        """ Shutdowns and closes connection then threads get auto-closed """
+        logger.info(
+            f"Stopping player '{self._data['username']}'. Reason: {reason}")
         self._conn.close()
+        # Closing connection makes listener exit.
+        if self.listener.is_alive():
+            logger.debug("Waiting for listener to end")
+            try:
+                self.listener.join(timeout=10)
+            except TimeoutError:
+                logger.error("Cannot stop listener.")
+        else:
+            logger.debug("Listener is already closed")
 
-    def connect_to_server(self, timeout=5):
-        """
-        Connects to the server.
-        Allows to start sending playing packets.
-        Starts sender and receiver.
+        # When listener exits, sends packet that exits sender.
+        if self.sender.is_alive():
+            logger.debug("Waiting for sender to end")
+            try:
+                self.sender.join(timeout=10)
+            except TimeoutError:
+                logger.error("Cannot stop sender.")
+        else:
+            logger.debug("Sender is already closed")
+        logger.debug("Stopped".center(60, '-'))
 
-        :returns: success
-        :rtype: bool
-
-        """
-        # TODO: add retry, timeout, etc...
-        if not self._connect(timeout=timeout):
-            return False
-
-        if not self.start_listening():
-            self.stop("Cannot start listener")
-            return False
-        logger.debug("Successfully started listening thread")
-
-        if not self.start_sending():
-            self.stop("Cannot start listener")
-            return False
-        logger.debug("Successfully started sending thread")
-
-        if not self._login():
-            return False
-        return True
-
-    def _login(self):
+    def login_non_premium(self):
         """
         # TODO: Make this comment readable
         Sends login packets to offline (non-premium) server e.g. without encryption.
@@ -164,7 +193,7 @@ class Player:
         :return success
         :rtype bool
         """
-        logger.info("Trying to log in in offline mode")
+        logger.info("Trying to log in in offline mode (non-premium)")
 
         packet = Creator.Login.handshake(self._host, self.version)
         self.to_send_queue.put(packet)
@@ -172,37 +201,84 @@ class Player:
         packet = Creator.Login.login_start(self._data["username"])
         self.to_send_queue.put(packet)
 
-        # self._conn.close()
-
-        for i in range(10):  # Try for 10 packets
+        for i in range(5):  # Try for 5 incoming packets.
             data = self.received_queue.get(timeout=10)
             if len(data) == 0:
                 logger.error("Received 0 bytes")
                 return False
             packet_id, data = utils.unpack_varint(data)
 
-            if self.interpret_login_packet(packet_id, data):
+            if self._interpret_packet(packet_id, data):
                 return True
+
         return False
 
-    def interpret_packet(self, packet_id: int, payload: bytes):
+    def connect_to_server(self, timeout=5):
+        """
+        Starts connection with the server.
+
+        :returns: success
+        :rtype: bool
+
+        """
+
+        # TODO: add retry, timeout, etc...
+        if not self._establish_connection(timeout=timeout):
+            return False
+        return True
+
+    def switch_action_packet(self, actions_type: str = "login"):
+        """
+        Switches between different action types.
+        To see possible action types see: docs of action.get_action_list()
+
+        Based on V1_12_2:
+        packet id of disconnect in "login" equals 0 whereas in "play" equals 26.
+        """
+        self.action_list = action.get_action_list(self.version, actions_type)
+        return self.action_list is not None
+
+    def _interpret_packet(self, packet_id: int, payload: bytes):
+        """
+        Interpret given packet and call function assigned to packet id in
+        action_list.
+
+        :param packet_id: int representing packet id e.g 0,1,2,3,4...
+        :param payload: uncompressed data
+        :return: whatever action_list[packet_id]() returns
+        """
+
         logger.debug(f"[1/2] Interpreting packet with id: {packet_id}")
 
         if packet_id in self.action_list:
-            self.action_list[packet_id](self, payload)
+            return self.action_list[packet_id](self, payload)
         else:
             logger.debug("[2/2] Not implemented yet")
+            return None
 
-    def interpret_login_packet(self, packet_id: int, payload: bytes):
-        logger.debug(f"[1/2] Interpreting packet with id: {packet_id}")
+    def _establish_connection(self, timeout=5):
+        """
+        Establishes connection with to server.
+        Not raises exceptions.
 
-        if packet_id in self.action_list:
-            self.action_list[packet_id](self, payload)
-            if packet_id == 2:
-                return True
-        else:
-            logger.debug("[2/2] Not implemented yet")
-        return False
+        :param timeout: connection timeout
+        :returns success
+        :rtype bool
+        """
+
+        try:
+            self._conn.connect(self._host, timeout)
+        except OSError as e:
+            logger.critical(f"Can't connect to: "
+                            f"'{self._host[0]}:"
+                            f"{self._host[1]}'"
+                            f", reason: {e}")
+            return False
+
+        logger.info("Established connection with: "
+                    f"'{self._host[0]}:"
+                    f"{self._host[1]}'")
+        return True
 
     def __start_listening(self, buffer: queue.Queue, ready: threading.Event,
                           check_delay=0.050):
@@ -238,8 +314,6 @@ class Player:
             size, packet = self._conn.receive_packet()
 
             # buffer.put() blocks if necessary until a free slot is available.
-
-            logger.debug(f'[RECEIVED] size: {size}')
 
             if size != len(packet):
                 logger.error(f"Packet length: {len(packet)} "
@@ -294,27 +368,3 @@ class Player:
                 break
 
         logger.info("Exiting sending thread")
-
-    def _connect(self, timeout=5):
-        """
-        Connects to server.
-        Not raises exceptions.
-
-        :param timeout: connection timeout
-        :returns success
-        :rtype bool
-        """
-
-        try:
-            self._conn.connect(self._host, timeout)
-        except OSError as e:
-            logger.critical(f"Can't connect to: "
-                            f"'{self._host[0]}:"
-                            f"{self._host[1]}'"
-                            f", reason: {e}")
-            return False
-
-        logger.info("Established connection with: "
-                    f"'{self._host[0]}:"
-                    f"{self._host[1]}'")
-        return True
