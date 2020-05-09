@@ -1,7 +1,33 @@
 import struct
 import zlib
+import json
+import struct
+
 
 from consts import MAX_INT, MIN_INT, MAX_UINT
+
+
+class Item:
+    present = False
+    item_id = None
+    item_count = None
+    NBT = None
+
+    def __init__(self, data: bytes = None):
+        if data is not None:
+            present = (data[0] & 0x01) and True
+            if present:
+                self.item_id, data = unpack_varint(data[1::])
+                self.item_count, data = extract_byte(data)
+                x, data = extract_byte(data)
+                if x != 0:
+                    print(x, data)
+                    print()
+
+
+
+
+
 
 
 def __convert_to_vartype(value: int, vartype_length: int):
@@ -88,7 +114,7 @@ def unpack_varint(data: bytes) -> (int, bytes):
 
     :raise ValueError: when VarInt not fit into int32
     :param data: bytes of data containing VarInt
-    :returns value, leftover of data
+    :returns value, leftover of data or None
     :rtype int, bytes
     """
 
@@ -110,9 +136,10 @@ def unpack_varint(data: bytes) -> (int, bytes):
     if number > MAX_INT:
         number -= MAX_UINT
 
-    if len(data) > i + 2:
+    try:
         return number, data[i + 1::]
-    return number, None
+    except IndexError:
+        return number, None
 
 
 def extract_data(data: bytes, compression=False) -> (int, bytes):
@@ -135,22 +162,6 @@ def extract_data(data: bytes, compression=False) -> (int, bytes):
         return packet_id, data
 
 
-def extract_string_from_data(data: bytes) -> (bytes, bytes):
-    """
-    Extracts string from given bytes.
-
-    :param data: decompressed array of bytes
-    :return bytes of string(unicode(pure bytes)), bytes of leftover
-    :rtype bytes, bytes
-    """
-
-    string_len, data = unpack_varint(data)
-
-    string = data[:string_len:]
-    data = data[string_len::]
-    return string, data
-
-
 def pack_data(data):
     """
     Pages the data.
@@ -167,3 +178,123 @@ def pack_data(data):
         return struct.pack('q', int(data))
     else:
         return data
+
+
+def extract_string_from_data(data: bytes) -> (bytes, bytes):
+    """
+    Extracts string from given bytes.
+
+    :param data: decompressed array of bytes
+    :return bytes of string(unicode(pure bytes)), bytes of leftover
+    :rtype bytes, bytes
+    """
+
+    string_len, data = unpack_varint(data)
+
+    string = data[:string_len:]
+    try:
+        data = data[string_len::]
+    except IndexError:
+        data = None
+    return string, data
+
+
+def extract_json_from_chat(data: bytes) -> dict:
+    string, leftover = extract_string_from_data(data)
+
+    return json.loads(string)
+
+
+def extract_int(data: bytes) -> (int, bytes):
+    """
+    Extracts int from bytes.
+
+    :param data: bytes from which extract int
+    :return extracted int, leftover
+    :rtype int, bytes
+    """
+    value = int.from_bytes(data[0:4:], byteorder="big", signed=True)
+    try:
+        return value, data[4::]
+    except IndexError:
+        return value, None
+
+
+def extract_unsigned_byte(data: bytes) -> (int, bytes):
+    """
+    Extracts unsigned byte from bytes.
+
+    :param data: bytes from which extract int
+    :return extracted unsigned byte, leftover
+    :rtype int, bytes
+    """
+    value = int.from_bytes(data[0:1:], byteorder="big", signed=True)
+    try:
+        return value, data[1::]
+    except IndexError:
+        return value, None
+
+
+def extract_boolean(data: bytes) -> (bool, bytes):
+    """
+    Extracts boolean from bytes.
+
+    :param data: bytes from which extract
+    :return True or False, leftover
+    :rtype bool, bytes
+    """
+    try:
+        return data[0], data[1::]
+    except IndexError:
+        return data[0] and True, None
+
+
+def extract_byte(data: bytes) -> (int, bytes):
+    """
+    Extracts byte from bytes.
+
+    :param data: bytes from which extract
+    :return byte, leftover
+    :rtype byte, bytes
+    """
+    value = int.from_bytes(data[0:1:], byteorder="big", signed=True)
+    try:
+        return value, data[1::]
+    except IndexError:
+        return value, None
+
+
+def extract_slot(data: bytes) -> (Item, bytes):
+    """
+    Extracts slot item from given bytes.
+    Slot:
+        Boolean  True if there is an item in this position; false if it is empty.
+        VarInt    The item ID. Omitted if present is false
+        Item Count Optional Byte
+        NBT        If 0, there is no NBT data, and no further data follows.
+
+    :param data: bytes from which extract int
+
+    :return item containing item data, leftover
+    :rtype Item, bytes
+    """
+    return Item(data)
+
+
+def extract_float(data: bytes) -> (float, bytes):
+    print(data)
+    value: float = struct.unpack('f', data[0:4:])[0]
+    try:
+        return value, data[4::]
+    except IndexError:
+        return value, None
+
+
+def extract_double(data: bytes) -> (float, bytes):
+    value: float = struct.unpack('d', data[0:8:])[0]
+    try:
+        return value, data[8::]
+    except IndexError:
+        return value, None
+
+
