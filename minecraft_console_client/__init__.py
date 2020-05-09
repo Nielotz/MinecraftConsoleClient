@@ -2,10 +2,12 @@ import logging
 
 logger = logging.getLogger("mainLogger")
 logger.setLevel(logging.DEBUG)
+formatter = logging.Formatter('%(name)-12s: %(levelname)-8s %(message)s')
 # fh = logging.FileHandler()
 # fh.setLevel(logging.DEBUG)
 ch = logging.StreamHandler()
 ch.setLevel(logging.DEBUG)
+ch.setFormatter(formatter)
 logger.addHandler(ch)
 
 from player import Player
@@ -24,8 +26,11 @@ def run():
                          version=game_version,
                          username=username)
 
-    bot.start()
+    message = bot.start()
+    bot.stop(message or "normal exit")
 
 
 if __name__ == "__main__":
     run()
+
+
