@@ -282,8 +282,7 @@ def extract_slot(data: bytes) -> (Item, bytes):
 
 
 def extract_float(data: bytes) -> (float, bytes):
-    print(data)
-    value: float = struct.unpack('f', data[0:4:])[0]
+    value: float = struct.unpack('>f', data[0:4:])[0]
     try:
         return value, data[4::]
     except IndexError:
@@ -291,7 +290,7 @@ def extract_float(data: bytes) -> (float, bytes):
 
 
 def extract_double(data: bytes) -> (float, bytes):
-    value: float = struct.unpack('d', data[0:8:])[0]
+    value: float = struct.unpack('>d', data[0:8:])[0]
     try:
         return value, data[8::]
     except IndexError:
