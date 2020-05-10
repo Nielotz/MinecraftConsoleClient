@@ -1,6 +1,5 @@
 import socket
 import zlib
-import select
 
 import logging
 
@@ -100,6 +99,7 @@ class Connection:
         # If compression is enabled
         if not self._compression_threshold < 0:
             data_length, packet = utils.unpack_varint(packet)
+
             if data_length != 0:
                 packet = zlib.decompress(packet)
                 packet_length = data_length

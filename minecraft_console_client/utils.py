@@ -229,6 +229,7 @@ def extract_unsigned_byte(data: bytes) -> (int, bytes):
     :rtype int, bytes
     """
     value = int.from_bytes(data[0:1:], byteorder="big", signed=True)
+    assert data[0] == value
     try:
         return value, data[1::]
     except IndexError:

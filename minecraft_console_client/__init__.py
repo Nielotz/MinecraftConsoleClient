@@ -6,11 +6,11 @@ formatter = logging.Formatter('%(name)-12s: %(levelname)-8s %(message)s')
 # fh = logging.FileHandler()
 # fh.setLevel(logging.DEBUG)
 ch = logging.StreamHandler()
-ch.setLevel(logging.DEBUG)
+ch.setLevel(logging.INFO)
 ch.setFormatter(formatter)
 logger.addHandler(ch)
 
-from player import Player
+from bot import Bot
 from version import VersionNamedTuple, Version
 
 
@@ -22,9 +22,9 @@ def run():
     username = "Bob"
 
     # Create basic objects.
-    bot: Player = Player(host=server_data,
-                         version=game_version,
-                         username=username)
+    bot: Bot = Bot(host=server_data,
+                   version=game_version,
+                   username=username)
 
     message = bot.start()
     bot.stop(message or "normal exit")

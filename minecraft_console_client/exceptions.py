@@ -1,3 +1,3 @@
 class DisconnectedError(Exception):
-    """ Raised when player was disconnected by server """
+    """ Raised when bot was disconnected by server """
     pass

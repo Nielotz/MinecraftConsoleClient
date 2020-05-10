@@ -6,19 +6,18 @@ import queue
 import threading
 import time
 
-
 from connection import Connection
 from version import Version, VersionNamedTuple
 import action
 import utils
 from game_data import GameData
 from packet import Creator
-from mob import Mob
+from player import Player
 
 
-class Player(Mob):
+class Bot:
     """
-    Manages player behavior. Highest API level
+    Manages bot behavior. Highest API level
     Imitate last stage e.g. "game" in system->client->GAME
     """
 
@@ -28,20 +27,8 @@ class Player(Mob):
     received_queue: queue.Queue = queue.Queue()
     to_send_queue: queue.Queue = queue.Queue()
 
-    uuid: str = None
-    gamemode: int = None
-    is_hardcore: bool = None
-    dimension: int = None
-    is_invulnerable: bool = None
-    is_flying: bool = None
-    is_allow_flying: bool = None
-    is_creative_mode: bool = None
-    flying_speed: float = None
-    fov_modifier: float = None
-    active_slot: int = None
-
-    game_data: GameData = GameData()
-
+    game_data: GameData = None
+    player: Player = None
     _conn: Connection = None
 
     __listener: threading.Thread = None
@@ -58,11 +45,14 @@ class Player(Mob):
         :param username: username
         """
 
-        logger.info("Creating player".center(60, "-"))
+        self.game_data = GameData()
+        self.player = Player()
 
-        self.username = username
+        logger.info("Creating bot".center(60, "-"))
+
+        self.player.username = username
         logger.info("|" +
-                    f"Username: '{self.username}'".center(58, " ") +
+                    f"Username: '{username}'".center(58, " ") +
                     "|")
 
         self.version = version.value
@@ -95,8 +85,8 @@ class Player(Mob):
                                          )
 
     def __del__(self):
-        logger.info("Deleting player")
-        self.stop("Shutting down player")  # Temporally
+        logger.info("Deleting bot")
+        self.stop("Shutting down bot")  # Temporally
 
     def start(self) -> str:
         """
@@ -107,7 +97,7 @@ class Player(Mob):
         :rtype str
         """
 
-        logger.info(f"Starting bot: '{self.username}'")
+        logger.info(f"Starting bot: '{self.player.username}'")
 
         if not self.connect_to_server():
             return "Can't connect to the server"
@@ -177,7 +167,7 @@ class Player(Mob):
     def stop(self, reason="not defined"):
         """ Shutdowns and closes connection then threads get auto-closed """
         logger.info(
-            f"Stopping player '{self.username}'. Reason: {reason}")
+            f"Stopping bot '{self.player.username}'. Reason: {reason}")
         self._conn.close()
         # Closing connection makes listener exit.
         if self.__listener.is_alive():
@@ -213,10 +203,11 @@ class Player(Mob):
         packet = Creator.Login.handshake(self.__host, self.version)
         self.to_send_queue.put(packet)
 
-        packet = Creator.Login.login_start(self.username)
+        packet = Creator.Login.login_start(self.player.username)
         self.to_send_queue.put(packet)
 
-        for i in range(5):  # Try for 5 incoming packets.
+        # Try to log in for 50 sec (10 sec x 5 packets)
+        for i in range(5):
             data = self.received_queue.get(timeout=10)
             if len(data) == 0:
                 logger.error("Received 0 bytes")
