@@ -29,13 +29,13 @@ class Player:
     _data: dict = {"username": "Anyone"}
     _server_data = {}
 
-    _host: (str, int) = None
     _conn: Connection = None
 
     __listener: threading.Thread = None
     __sender: threading.Thread = None
 
     __ready = threading.Event()
+    __host: (str, int) = None
 
     def __init__(self, host: (str, int), version: Version, username: str):
         """
@@ -57,10 +57,9 @@ class Player:
                     f"Client version: '{self.version.release_name}'"
                     .center(58, " ") + "|")
 
-        self._host = host
-        self._server_data["host"] = host[0]
-        self._server_data["port"] = host[1]
-        logger.info("|" + f"Server address: '{self._host[0]}: {self._host[1]}'"
+        self.__host = host
+
+        logger.info("|" + f"Server address: '{self.__host[0]}: {self.__host[1]}'"
                     .center(58, " ") + "|")
 
         logger.info("".center(60, "-"))
@@ -72,8 +71,8 @@ class Player:
 
         self.__listener = threading.Thread(target=self.__start_listening,
                                            args=(self.received_queue,
-                                               self.__ready,
-                                               0.001),
+                                                 self.__ready,
+                                                 0.001),
                                            daemon=True
                                            )
 
@@ -198,7 +197,7 @@ class Player:
         """
         logger.info("Trying to log in in offline mode (non-premium)")
 
-        packet = Creator.Login.handshake(self._host, self.version)
+        packet = Creator.Login.handshake(self.__host, self.version)
         self.to_send_queue.put(packet)
 
         packet = Creator.Login.login_start(self._data["username"])
@@ -218,16 +217,28 @@ class Player:
 
     def connect_to_server(self, timeout=5):
         """
-        Starts connection with the server.
+        Establishes connection with to server.
+        Not raises exceptions.
 
+        :param timeout: connection timeout
         :returns: success
         :rtype: bool
 
         """
 
         # TODO: add retry, timeout, etc...
-        if not self._establish_connection(timeout=timeout):
+        try:
+            self._conn.connect(self.__host, timeout)
+        except OSError as e:
+            logger.critical(f"Can't connect to: "
+                            f"'{self.__host[0]}:"
+                            f"{self.__host[1]}'"
+                            f", reason: {e}")
             return False
+
+        logger.info("Established connection with: "
+                    f"'{self.__host[0]}:"
+                    f"{self.__host[1]}'")
         return True
 
     def switch_action_packet(self, actions_type: str = "login"):
@@ -256,30 +267,6 @@ class Player:
         else:
             logger.debug(f"Packet with id: {packet_id} is not implemented yet")
             return None
-
-    def _establish_connection(self, timeout=5):
-        """
-        Establishes connection with to server.
-        Not raises exceptions.
-
-        :param timeout: connection timeout
-        :returns success
-        :rtype bool
-        """
-
-        try:
-            self._conn.connect(self._host, timeout)
-        except OSError as e:
-            logger.critical(f"Can't connect to: "
-                            f"'{self._host[0]}:"
-                            f"{self._host[1]}'"
-                            f", reason: {e}")
-            return False
-
-        logger.info("Established connection with: "
-                    f"'{self._host[0]}:"
-                    f"{self._host[1]}'")
-        return True
 
     def __start_listening(self, buffer: queue.Queue, ready: threading.Event,
                           check_delay=0.050):
