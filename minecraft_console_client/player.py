@@ -60,9 +60,9 @@ class Player(Mob):
 
         logger.info("Creating player".center(60, "-"))
 
-        self._data["username"] = username
+        self.username = username
         logger.info("|" +
-                    f"Username: '{self._data['username']}'".center(58, " ") +
+                    f"Username: '{self.username}'".center(58, " ") +
                     "|")
 
         self.version = version.value
@@ -107,7 +107,7 @@ class Player(Mob):
         :rtype str
         """
 
-        logger.info(f"Starting bot: '{self._data['username']}'")
+        logger.info(f"Starting bot: '{self.username}'")
 
         if not self.connect_to_server():
             return "Can't connect to the server"
@@ -177,7 +177,7 @@ class Player(Mob):
     def stop(self, reason="not defined"):
         """ Shutdowns and closes connection then threads get auto-closed """
         logger.info(
-            f"Stopping player '{self._data['username']}'. Reason: {reason}")
+            f"Stopping player '{self.username}'. Reason: {reason}")
         self._conn.close()
         # Closing connection makes listener exit.
         if self.__listener.is_alive():
@@ -213,7 +213,7 @@ class Player(Mob):
         packet = Creator.Login.handshake(self.__host, self.version)
         self.to_send_queue.put(packet)
 
-        packet = Creator.Login.login_start(self._data["username"])
+        packet = Creator.Login.login_start(self.username)
         self.to_send_queue.put(packet)
 
         for i in range(5):  # Try for 5 incoming packets.
