@@ -19,20 +19,23 @@ class Player:
     Manages player behavior. Highest API level
     Imitate last stage e.g. "game" in system->client->GAME
     """
+
     version: VersionNamedTuple = None
     action_list: dict = None
 
     received_queue: queue.Queue = queue.Queue()
     to_send_queue: queue.Queue = queue.Queue()
 
-    listener: threading.Thread = None
-    sender: threading.Thread = None
-
-    _server_data = {}
-    _conn: Connection = None
-    _host: (str, int) = None
     _data: dict = {"username": "Anyone"}
-    _ready = threading.Event()
+    _server_data = {}
+
+    _host: (str, int) = None
+    _conn: Connection = None
+
+    __listener: threading.Thread = None
+    __sender: threading.Thread = None
+
+    __ready = threading.Event()
 
     def __init__(self, host: (str, int), version: Version, username: str):
         """
@@ -67,17 +70,17 @@ class Player:
         if not self.switch_action_packet("login"):
             raise RuntimeError("Not found 'login' in action_packet")
 
-        self.listener = threading.Thread(target=self.__start_listening,
-                                         args=(self.received_queue,
-                                               self._ready,
+        self.__listener = threading.Thread(target=self.__start_listening,
+                                           args=(self.received_queue,
+                                               self.__ready,
                                                0.001),
+                                           daemon=True
+                                           )
+
+        self.__sender = threading.Thread(target=self.__start_sending,
+                                         args=(self.to_send_queue, self.__ready),
                                          daemon=True
                                          )
-
-        self.sender = threading.Thread(target=self.__start_sending,
-                                       args=(self.to_send_queue, self._ready),
-                                       daemon=True
-                                       )
 
     def __del__(self):
         logger.info("Deleting player")
@@ -133,12 +136,12 @@ class Player:
         len(packet) or declared length equals zero.
         When connection has been interrupted puts b'' into queue.
         """
-        if self.listener.is_alive():
+        if self.__listener.is_alive():
             logger.error("Listener already started")
             return False
         try:
-            self.listener.start()
-            self._ready.wait(15)
+            self.__listener.start()
+            self.__ready.wait(15)
         except Exception:
             return False
         return True
@@ -149,12 +152,12 @@ class Player:
         Starts new thread-daemon which waits for packets to appear in
         self.to_send_queue then sends it to server.
         """
-        if self.sender.is_alive():
+        if self.__sender.is_alive():
             logger.error("Sender already started")
             return False
         try:
-            self.sender.start()
-            self._ready.wait(15)
+            self.__sender.start()
+            self.__ready.wait(15)
         except Exception:
             return False
         return True
@@ -165,20 +168,20 @@ class Player:
             f"Stopping player '{self._data['username']}'. Reason: {reason}")
         self._conn.close()
         # Closing connection makes listener exit.
-        if self.listener.is_alive():
+        if self.__listener.is_alive():
             logger.debug("Waiting for listener to end")
             try:
-                self.listener.join(timeout=10)
+                self.__listener.join(timeout=10)
             except TimeoutError:
                 logger.error("Cannot stop listener.")
         else:
             logger.debug("Listener is already closed")
 
         # When listener exits, sends packet that exits sender.
-        if self.sender.is_alive():
+        if self.__sender.is_alive():
             logger.debug("Waiting for sender to end")
             try:
-                self.sender.join(timeout=10)
+                self.__sender.join(timeout=10)
             except TimeoutError:
                 logger.error("Cannot stop sender.")
         else:
@@ -248,12 +251,10 @@ class Player:
         :return: whatever action_list[packet_id]() returns
         """
 
-        logger.debug(f"[1/2] Interpreting packet with id: {packet_id}")
-
         if packet_id in self.action_list:
             return self.action_list[packet_id](self, payload)
         else:
-            logger.debug("[2/2] Not implemented yet")
+            logger.debug(f"Packet with id: {packet_id} is not implemented yet")
             return None
 
     def _establish_connection(self, timeout=5):
