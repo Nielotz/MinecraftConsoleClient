@@ -6,15 +6,17 @@ import queue
 import threading
 import time
 
+
 from connection import Connection
 from version import Version, VersionNamedTuple
 import action
 import utils
-
+from game_data import GameData
 from packet import Creator
+from mob import Mob
 
 
-class Player:
+class Player(Mob):
     """
     Manages player behavior. Highest API level
     Imitate last stage e.g. "game" in system->client->GAME
@@ -26,8 +28,19 @@ class Player:
     received_queue: queue.Queue = queue.Queue()
     to_send_queue: queue.Queue = queue.Queue()
 
-    _data: dict = {"username": "Anyone"}
-    _server_data = {}
+    uuid: str = None
+    gamemode: int = None
+    is_hardcore: bool = None
+    dimension: int = None
+    is_invulnerable: bool = None
+    is_flying: bool = None
+    is_allow_flying: bool = None
+    is_creative_mode: bool = None
+    flying_speed: float = None
+    fov_modifier: float = None
+    active_slot: int = None
+
+    game_data: GameData = GameData()
 
     _conn: Connection = None
 
