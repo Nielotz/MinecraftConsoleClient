@@ -8,6 +8,7 @@ from exceptions import DisconnectedError
 from version import VersionNamedTuple, Version
 import utils
 from packet import Creator
+from position import Position
 
 """ Actions possible to happen, e.g. packets available to be received/sent. """
 
@@ -33,8 +34,9 @@ class Server:
 
     @staticmethod
     def login_success(bot, data: bytes) -> True:
-        bot._player.uuid = utils.extract_string_from_data(data)[0].decode('utf-8')
-        logger.info(f"Successfully logged to the server, UUID: {bot._player.uuid}")
+        bot._player.uuid = utils.extract_string(data)[0].decode('utf-8')
+        logger.info(f"Successfully logged to the server, "
+                    f"UUID: {bot._player.uuid}")
         return True
 
     @staticmethod
@@ -73,7 +75,7 @@ class Server:
 
         # default, flat, largeBiomes, amplified, default_1_1
         bot._game_data.level_type, data = \
-            utils.extract_string_from_data(data)
+            utils.extract_string(data)
 
         # Reduced Debug Info
         # bot.player._server_data["RDI"], data = utils.extract_boolean(data)
@@ -152,12 +154,12 @@ class Server:
         else:
             bot._player.pitch = pitch
 
-        logger.info(f"Player pos: "
-                    f"x: {bot._player.pos_x}, "
-                    f"y: {bot._player.pos_y}, "
-                    f"z: {bot._player.pos_z}, "
-                    f"yaw: {bot._player.yaw}, "
-                    f"pitch: {bot._player.pitch}")
+        logger.debug(f"Player pos: "
+                     f"x: {bot._player.pos_x}, "
+                     f"y: {bot._player.pos_y}, "
+                     f"z: {bot._player.pos_z}, "
+                     f"yaw: {bot._player.yaw}, "
+                     f"pitch: {bot._player.pitch}")
 
         bot.to_send_queue.put(Creator.Play.teleport_confirm(teleport_id))
 
@@ -166,9 +168,11 @@ class Server:
         pass
         # logger.debug(f"")
 
-    # @staticmethod
-    # def spawn_position(bot, data: bytes):
-    #     logger.debug(f"Held slot changed to {slot}")
+    @staticmethod
+    def spawn_position(bot, data: bytes):
+        bot._player.position, data = utils.extract_position(data)
+        logger.info(f"Changed player spawn position to {bot._player.position}")
+
 
     # @staticmethod
     # def something(bot, data: bytes):
@@ -207,7 +211,7 @@ clientbound_action_list = {
             0x23: Server.join_game,
             0x2F: Server.player_position_and_look,
             0x3A: Server.held_item_change,
-
+            0x46: Server.spawn_position,
 
         }
     }
