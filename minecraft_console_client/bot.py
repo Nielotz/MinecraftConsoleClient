@@ -1,3 +1,4 @@
+from typing import Any
 import logging
 
 logger = logging.getLogger('mainLogger')
@@ -27,8 +28,8 @@ class Bot:
     received_queue: queue.Queue = queue.Queue()
     to_send_queue: queue.Queue = queue.Queue()
 
-    game_data: GameData = None
-    player: Player = None
+    _game_data: GameData = None
+    _player: Player = None
     _conn: Connection = None
 
     __listener: threading.Thread = None
@@ -45,12 +46,12 @@ class Bot:
         :param username: username
         """
 
-        self.game_data = GameData()
-        self.player = Player()
+        self._game_data = GameData()
+        self._player = Player()
 
         logger.info("Creating bot".center(60, "-"))
 
-        self.player.username = username
+        self._player.username = username
         logger.info("|" +
                     f"Username: '{username}'".center(58, " ") +
                     "|")
@@ -97,7 +98,7 @@ class Bot:
         :rtype str
         """
 
-        logger.info(f"Starting bot: '{self.player.username}'")
+        logger.info(f"Starting bot: '{self._player.username}'")
 
         if not self.connect_to_server():
             return "Can't connect to the server"
@@ -128,7 +129,7 @@ class Bot:
 
         return ""
 
-    def start_listening(self):
+    def start_listening(self) -> bool:
         """
         Similar to start_sending.
         Starts new thread-daemon that listens packets incoming from server.
@@ -137,6 +138,9 @@ class Bot:
         Thread ends when received packet longer or shorted than declared,
         len(packet) or declared length equals zero.
         When connection has been interrupted puts b'' into queue.
+
+        :returns success
+        :rtype bool
         """
         if self.__listener.is_alive():
             logger.error("Listener already started")
@@ -148,11 +152,14 @@ class Bot:
             return False
         return True
 
-    def start_sending(self):
+    def start_sending(self) -> bool:
         """
         Similar to start_listening.
         Starts new thread-daemon which waits for packets to appear in
         self.to_send_queue then sends it to server.
+
+        :returns success
+        :rtype bool
         """
         if self.__sender.is_alive():
             logger.error("Sender already started")
@@ -167,7 +174,7 @@ class Bot:
     def stop(self, reason="not defined"):
         """ Shutdowns and closes connection then threads get auto-closed """
         logger.info(
-            f"Stopping bot '{self.player.username}'. Reason: {reason}")
+            f"Stopping bot '{self._player.username}'. Reason: {reason}")
         self._conn.close()
         # Closing connection makes listener exit.
         if self.__listener.is_alive():
@@ -190,7 +197,7 @@ class Bot:
             logger.debug("Sender is already closed")
         logger.debug("Stopped".center(60, '-'))
 
-    def login_non_premium(self):
+    def login_non_premium(self) -> bool:
         """
         # TODO: Make this comment readable
         Sends login packets to offline (non-premium) server e.g. without encryption.
@@ -203,7 +210,7 @@ class Bot:
         packet = Creator.Login.handshake(self.__host, self.version)
         self.to_send_queue.put(packet)
 
-        packet = Creator.Login.login_start(self.player.username)
+        packet = Creator.Login.login_start(self._player.username)
         self.to_send_queue.put(packet)
 
         # Try to log in for 50 sec (10 sec x 5 packets)
@@ -219,7 +226,7 @@ class Bot:
 
         return False
 
-    def connect_to_server(self, timeout=5):
+    def connect_to_server(self, timeout=5) -> bool:
         """
         Establishes connection with to server.
         Not raises exceptions.
@@ -245,18 +252,21 @@ class Bot:
                     f"{self.__host[1]}'")
         return True
 
-    def switch_action_packet(self, actions_type: str = "login"):
+    def switch_action_packet(self, actions_type: str = "login") -> bool:
         """
         Switches between different action types.
         To see possible action types see: docs of action.get_action_list()
 
         Based on V1_12_2:
         packet id of disconnect in "login" equals 0 whereas in "play" equals 26.
+
+        :return success
+        :rtype bool
         """
         self.action_list = action.get_action_list(self.version, actions_type)
         return self.action_list is not None
 
-    def _interpret_packet(self, packet_id: int, payload: bytes):
+    def _interpret_packet(self, packet_id: int, payload: bytes) -> Any:
         """
         Interpret given packet and call function assigned to packet id in
         action_list.

@@ -39,10 +39,12 @@ class PacketID(Enum):
     # PLAYER_LIST_HEADER_AND_FOOTER = PacketIDNamedTuple(74, b'\x4A')
 
 
-def _pack_payload(packet_id: PacketID, arr_with_payload):
+def _pack_payload(packet_id: PacketID, arr_with_payload) -> bytes:
     """
-    Stolen from
-    https://gist.github.com/MarshalX/40861e1d02cbbc6f23acd3eced9db1a0
+    Packs packet_id and data from arr_with_payload into blob of data.
+
+    :returns packed bytes
+    :rtype bytes
     """
     data = bytearray(packet_id.value.bytes)
     logger.debug(f"[SEND] {packet_id.name} {arr_with_payload}")
@@ -52,7 +54,7 @@ def _pack_payload(packet_id: PacketID, arr_with_payload):
 
     # logger.debug(f"[PACKED] {data}")
 
-    return data
+    return bytes(data)
 
 
 class Creator:
@@ -63,7 +65,7 @@ class Creator:
 
         @staticmethod
         def handshake(server_data: (str, int),
-                      protocol_version: VersionNamedTuple) -> bytearray:
+                      protocol_version: VersionNamedTuple) -> bytes:
             """ Returns handshake packet ready to send """
             data = [
                 protocol_version.version_number_bytes,  # Protocol Version
@@ -76,7 +78,7 @@ class Creator:
             return packed_packet
 
         @staticmethod
-        def login_start(username):
+        def login_start(username) -> bytes:
             """ Returns "login start" packet """
             packed_packet = _pack_payload(PacketID.LOGIN_START, [username])
             return packed_packet
@@ -85,20 +87,20 @@ class Creator:
         """ Namespace for packets used to receive status """
 
         @staticmethod
-        def request():
+        def request() -> bytes:
             """ Returns request packet """
             packed_packet = _pack_payload(PacketID.REQUEST, [])
             return packed_packet
 
         @staticmethod
-        def ping(actual_time: float):
+        def ping(actual_time: float) -> bytes:
             """ Returns ping packet """
             packed_packet = _pack_payload(PacketID.PING, [actual_time])
             return packed_packet
 
         @staticmethod
         def handshake(server_data: (str, int),
-                      protocol_version: Version) -> bytearray:
+                      protocol_version: Version) -> bytes:
             """ Returns handshake packet """
             data = [
                 protocol_version.value.version_number_bytes,  # Protocol Version
@@ -114,7 +116,7 @@ class Creator:
         """ Namespace for packets used in play """
 
         @staticmethod
-        def teleport_confirm(teleport_id: bytes):
+        def teleport_confirm(teleport_id: bytes) -> bytes:
             """ Return packet with confirmation for Player Position And Look. """
             return _pack_payload(PacketID.TELEPORT_CONFIRM, [teleport_id, ])
 

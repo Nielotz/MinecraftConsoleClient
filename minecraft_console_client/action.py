@@ -1,4 +1,4 @@
-from typing import Union
+from typing import Union, NoReturn
 
 import logging
 
@@ -32,36 +32,36 @@ class Server:
             logger.info(f"Compression set to {threshold} bytes")
 
     @staticmethod
-    def login_success(bot, data: bytes):
-        bot.player.uuid = utils.extract_string_from_data(data)[0].decode('utf-8')
-        logger.info(f"Successfully logged to the server, UUID: {bot.player.uuid}")
+    def login_success(bot, data: bytes) -> True:
+        bot._player.uuid = utils.extract_string_from_data(data)[0].decode('utf-8')
+        logger.info(f"Successfully logged to the server, UUID: {bot._player.uuid}")
         return True
 
     @staticmethod
-    def disconnect(bot, data: bytes):
+    def disconnect(bot, data: bytes) -> NoReturn:
         reason = utils.extract_json_from_chat(data)
         # reason should be dict Chat type.
-        logger.error(f"{bot.player.username} has been "
+        logger.error(f"{bot._player.username} has been "
                      f"disconnected by server. Reason: '{reason['text']}'")
         raise DisconnectedError("Disconnected by server.")
 
     @staticmethod
     def server_difficulty(bot, data: bytes):
-        bot.game_data.difficulty, data = \
+        bot._game_data.difficulty, data = \
             utils.extract_unsigned_byte(data)
-        logger.info(f"Server difficulty: {bot.game_data.difficulty}")
+        logger.info(f"Server difficulty: {bot._game_data.difficulty}")
 
     @staticmethod
     def join_game(bot, data: bytes):
-        bot.player.entity_id, data = utils.extract_int(data)
+        bot._player.entity_id, data = utils.extract_int(data)
 
         gamemode, data = utils.extract_unsigned_byte(data)
-        bot.player.gamemode = gamemode & 0b00000111
-        bot.player.is_hardcore = bool(gamemode & 0b00001000)
+        bot._player.gamemode = gamemode & 0b00000111
+        bot._player.is_hardcore = bool(gamemode & 0b00001000)
 
-        bot.player.dimension, data = utils.extract_int(data)
+        bot._player.dimension, data = utils.extract_int(data)
 
-        bot.game_data.difficulty, data = \
+        bot._game_data.difficulty, data = \
             utils.extract_unsigned_byte(data)
 
         """ 
@@ -72,43 +72,43 @@ class Server:
         data = data[1::]
 
         # default, flat, largeBiomes, amplified, default_1_1
-        bot.game_data.level_type, data = \
+        bot._game_data.level_type, data = \
             utils.extract_string_from_data(data)
 
         # Reduced Debug Info
         # bot.player._server_data["RDI"], data = utils.extract_boolean(data)
         logger.info(f"Join game read: "
-                    f"player_id: {bot.player.entity_id}, "
-                    f"gamemode: {bot.player.gamemode}, "
-                    f"hardcore: {bot.player.is_hardcore}, "
-                    f"dimension: {bot.player.dimension}, "
-                    f"difficulty: {bot.game_data.difficulty}, "
-                    f"level_type: {bot.game_data.level_type}, "
+                    f"player_id: {bot._player.entity_id}, "
+                    f"gamemode: {bot._player.gamemode}, "
+                    f"hardcore: {bot._player.is_hardcore}, "
+                    f"dimension: {bot._player.dimension}, "
+                    f"difficulty: {bot._game_data.difficulty}, "
+                    f"level_type: {bot._game_data.level_type}, "
                     )
 
     @staticmethod
     def player_abilities(bot, data: bytes):
 
         flags, data = utils.extract_byte(data)
-        bot.player.is_invulnerable = bool(flags & 0x01)
-        bot.player.is_flying = bool(flags & 0x02)
-        bot.player.is_allow_flying = bool(flags & 0x04)
-        bot.player.is_creative_mode = bool(flags & 0x08)
+        bot._player.is_invulnerable = bool(flags & 0x01)
+        bot._player.is_flying = bool(flags & 0x02)
+        bot._player.is_allow_flying = bool(flags & 0x04)
+        bot._player.is_creative_mode = bool(flags & 0x08)
 
-        bot.player.flying_speed, data = utils.extract_float(data)
+        bot._player.flying_speed, data = utils.extract_float(data)
 
-        bot.player.fov_modifier, data = utils.extract_float(data)
+        bot._player.fov_modifier, data = utils.extract_float(data)
 
         logger.info("Player abilities changed: "
-                    f"invulnerable: {bot.player.is_invulnerable}, "
-                    f"flying: {bot.player.is_flying}, "
-                    f"allow_flying: {bot.player.is_allow_flying}, "
-                    f"creative_mode: {bot.player.is_creative_mode}")
+                    f"invulnerable: {bot._player.is_invulnerable}, "
+                    f"flying: {bot._player.is_flying}, "
+                    f"allow_flying: {bot._player.is_allow_flying}, "
+                    f"creative_mode: {bot._player.is_creative_mode}")
 
     @staticmethod
     def held_item_change(bot, data: bytes):
-        bot.player.active_slot = utils.extract_byte(data)[0]
-        logger.debug(f"Held slot changed to {bot.player.active_slot}")
+        bot._player.active_slot = utils.extract_byte(data)[0]
+        logger.debug(f"Held slot changed to {bot._player.active_slot}")
 
     @staticmethod
     def entity_status(bot, data: bytes):
@@ -128,36 +128,36 @@ class Server:
         teleport_id = data
 
         if flags & 0x01:
-            bot.player.pos_x += x
+            bot._player.pos_x += x
         else:
-            bot.player.pos_x = x
+            bot._player.pos_x = x
 
         if flags & 0x02:
-            bot.player.pos_y += y
+            bot._player.pos_y += y
         else:
-            bot.player.pos_y = y
+            bot._player.pos_y = y
 
         if flags & 0x04:
-            bot.player.pos_z += z
+            bot._player.pos_z += z
         else:
-            bot.player.pos_z = z
+            bot._player.pos_z = z
 
         if flags & 0x08:
-            bot.player.yaw += yaw
+            bot._player.yaw += yaw
         else:
-            bot.player.yaw = yaw
+            bot._player.yaw = yaw
 
         if flags & 0x10:
-            bot.player.pitch += pitch
+            bot._player.pitch += pitch
         else:
-            bot.player.pitch = pitch
+            bot._player.pitch = pitch
 
         logger.info(f"Player pos: "
-                    f"x: {bot.player.pos_x}, "
-                    f"y: {bot.player.pos_y}, "
-                    f"z: {bot.player.pos_z}, "
-                    f"yaw: {bot.player.yaw}, "
-                    f"pitch: {bot.player.pitch}")
+                    f"x: {bot._player.pos_x}, "
+                    f"y: {bot._player.pos_y}, "
+                    f"z: {bot._player.pos_z}, "
+                    f"yaw: {bot._player.yaw}, "
+                    f"pitch: {bot._player.pitch}")
 
         bot.to_send_queue.put(Creator.Play.teleport_confirm(teleport_id))
 
