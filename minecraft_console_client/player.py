@@ -1,4 +1,5 @@
 from mob import Mob
+from position import Position
 
 
 class Player(Mob):
@@ -13,3 +14,6 @@ class Player(Mob):
     flying_speed: float = None
     fov_modifier: float = None
     active_slot: int = None
+    spawn_position: Position = None
+
+
