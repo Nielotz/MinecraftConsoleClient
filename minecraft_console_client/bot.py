@@ -7,14 +7,13 @@ import queue
 import threading
 import time
 
+from version import Version
 from connection import Connection
-from version import Version, VersionNamedTuple
-import action
 import utils
 from game_data import GameData
-from packet import Creator
 from player import Player
 
+import versions.defaults
 
 class Bot:
     """
@@ -22,8 +21,8 @@ class Bot:
     Imitate last stage e.g. "game" in system->client->GAME
     """
 
-    version: VersionNamedTuple = None
-    action_list: dict = None
+    version_data: Version = None
+    clientbound_action_list: dict = None
 
     received_queue: queue.Queue = queue.Queue()
     to_send_queue: queue.Queue = queue.Queue()
@@ -41,7 +40,7 @@ class Bot:
     def __init__(self, host: (str, int), version: Version, username: str):
         """
         :param host: host data (address, port) to which client connects to
-        :param version: VersionNamedTuple object from VERSION,
+        :param version: versions.defaults. object from VERSION,
                         tells which version of protocol to use
         :param username: username
         """
@@ -56,10 +55,13 @@ class Bot:
                     f"Username: '{username}'".center(58, " ") +
                     "|")
 
-        self.version = version.value
+        self.version_data: versions.defaults.VersionData = version.value
         logger.info("|" +
-                    f"Client version: '{self.version.release_name}'"
+                    f"Client version: '{self.version_data.release_name}'"
                     .center(58, " ") + "|")
+
+        if not self.switch_action_packets("login"):
+            raise RuntimeError("Not found 'login' in action_packet")
 
         self.__host = host
 
@@ -69,9 +71,6 @@ class Bot:
         logger.info("".center(60, "-"))
 
         self._conn = Connection()
-
-        if not self.switch_action_packet("login"):
-            raise RuntimeError("Not found 'login' in action_packet")
 
         self.__listener = threading.Thread(target=self.__start_listening,
                                            args=(self.received_queue,
@@ -116,7 +115,7 @@ class Bot:
             return "Can't connect to the server"
         logger.info("Successfully logged in to server.")
 
-        if not self.switch_action_packet("play"):
+        if not self.switch_action_packets("play"):
             return "Can't assign 'play' action packet."
 
         while True:
@@ -175,7 +174,9 @@ class Bot:
         """ Shutdowns and closes connection then threads get auto-closed """
         logger.info(
             f"Stopping bot '{self._player.username}'. Reason: {reason}")
+
         self._conn.close()
+
         # Closing connection makes listener exit.
         if self.__listener.is_alive():
             logger.debug("Waiting for listener to end")
@@ -207,11 +208,12 @@ class Bot:
         """
         logger.info("Trying to log in in offline mode (non-premium)")
 
-        packet = Creator.Login.handshake(self.__host, self.version)
+        packet = self.version_data.Creator.Login.handshake(self.__host)
+        print(packet)
         self.to_send_queue.put(packet)
 
-        packet = Creator.Login.login_start(self._player.username)
-        self.to_send_queue.put(packet)
+        self.to_send_queue.put(
+            self.version_data.Creator.Login.login_start(self._player.username))
 
         # Try to log in for 50 sec (10 sec x 5 packets)
         for i in range(5):
@@ -252,7 +254,7 @@ class Bot:
                     f"{self.__host[1]}'")
         return True
 
-    def switch_action_packet(self, actions_type: str = "login") -> bool:
+    def switch_action_packets(self, actions_type: str = "login") -> bool:
         """
         Switches between different action types.
         To see possible action types see: docs of action.get_action_list()
@@ -263,8 +265,10 @@ class Bot:
         :return success
         :rtype bool
         """
-        self.action_list = action.get_action_list(self.version, actions_type)
-        return self.action_list is not None
+        self.clientbound_action_list = \
+            self.version_data.action_list.get(actions_type)
+
+        return self.clientbound_action_list is not None
 
     def _interpret_packet(self, packet_id: int, payload: bytes) -> Any:
         """
@@ -276,8 +280,8 @@ class Bot:
         :return: whatever action_list[packet_id]() returns
         """
 
-        if packet_id in self.action_list:
-            return self.action_list[packet_id](self, payload)
+        if packet_id in self.clientbound_action_list:
+            return self.clientbound_action_list[packet_id](self, payload)
         else:
             logger.debug(f"Packet with id: {packet_id} is not implemented yet")
             return None

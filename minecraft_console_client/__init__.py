@@ -11,7 +11,7 @@ ch.setFormatter(formatter)
 logger.addHandler(ch)
 
 from bot import Bot
-from version import VersionNamedTuple, Version
+from version import Version
 
 
 def run():
@@ -32,5 +32,6 @@ def run():
 
 if __name__ == "__main__":
     run()
+
 
 

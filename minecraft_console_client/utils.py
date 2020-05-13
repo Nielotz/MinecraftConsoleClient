@@ -8,6 +8,7 @@ from consts import MAX_INT, MIN_INT, MAX_UINT
 from position import Position
 
 
+
 def convert_to_varint(value: int) -> bytes:
     """
     Converts int to VarInt.
@@ -36,7 +37,7 @@ def convert_to_varint(value: int) -> bytes:
             byte = value & 0x7F
             value >>= 7
             varint.extend(struct.pack('B', byte | (0x80 if value != 0 else 0)))
-        return varint
+        return bytes(varint)
 
     # When value is negative
     # Negative varint always has 5 bytes
@@ -112,7 +113,7 @@ def extract_data(data: bytes, compression=False) -> (int, bytes):
         return packet_id, data
 
 
-def pack_data(data: Any) -> bytes:
+def _pack_data(data: Any) -> bytes:
     """
     Pages the data.
     Stolen from
@@ -132,6 +133,21 @@ def pack_data(data: Any) -> bytes:
         return struct.pack('q', int(data))
     else:
         return data
+
+
+def pack_payload(packet_id: bytes, arr_with_payload) -> bytes:
+    """
+    Packs packet_id and data from arr_with_payload into blob of data.
+
+    :returns packed bytes
+    :rtype bytes
+    """
+    data = bytearray(packet_id)
+
+    for arg in arr_with_payload:
+        data.extend(_pack_data(arg))
+
+    return bytes(data)
 
 
 def extract_string(data: bytes) -> (bytes, Union[bytes, None]):
@@ -293,4 +309,5 @@ def extract_position(data: bytes) -> (Position, Union[bytes, None]):
         return position, data[8::]
     except IndexError:
         return position, None
+
 
