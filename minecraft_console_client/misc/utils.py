@@ -1,12 +1,10 @@
-import struct
-import zlib
 import json
 import struct
+import zlib
 from typing import Union, Any
 
-from consts import MAX_INT, MIN_INT, MAX_UINT
-from position import Position
-
+from misc.consts import MAX_INT, MIN_INT, MAX_UINT
+from data_structures.position import Position
 
 
 def convert_to_varint(value: int) -> bytes:
@@ -234,6 +232,7 @@ def extract_byte(data: bytes) -> (int, Union[bytes, None]):
     except IndexError:
         return value, None
 
+
 # def extract_slot(data: bytes) -> (Item, bytes):
 #     """
 #     Extracts slot item from given bytes.
@@ -309,5 +308,3 @@ def extract_position(data: bytes) -> (Position, Union[bytes, None]):
         return position, data[8::]
     except IndexError:
         return position, None
-
-

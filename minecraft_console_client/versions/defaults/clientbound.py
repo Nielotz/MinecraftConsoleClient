@@ -19,4 +19,3 @@ class Clientbound:
         pass
     """
     pass
-

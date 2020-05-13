@@ -7,6 +7,7 @@ PacketIDNamedTuple = namedtuple("PacketIDNamedTuple", "int bytes")
 
 class Packet(versions.defaults.packet.Packet):
     """ Translates packet name to packet_id (int varint) """
+
     class Login(versions.defaults.packet.Packet.Login):
         HANDSHAKE = LOGIN_START = PacketIDNamedTuple(0, b'\x00')
 

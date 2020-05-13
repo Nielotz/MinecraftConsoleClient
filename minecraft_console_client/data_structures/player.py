@@ -1,5 +1,5 @@
-from mob import Mob
-from position import Position
+from data_structures.mob import Mob
+from data_structures.position import Position
 
 
 class Player(Mob):
@@ -15,5 +15,3 @@ class Player(Mob):
     fov_modifier: float = None
     active_slot: int = None
     spawn_position: Position = None
-
-

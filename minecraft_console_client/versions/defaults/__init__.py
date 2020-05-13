@@ -1,6 +1,7 @@
 from versions.defaults.clientbound import Clientbound
-from versions.defaults.packet import Packet
 from versions.defaults.creator import Creator as DefaultCreator
+from versions.defaults.packet import Packet
+
 
 # print(dir(versions))
 
@@ -13,7 +14,7 @@ class VersionData:
     Creator = DefaultCreator
 
     action_list = {
-            "login": {},
-            "status": {},
-            "play": {}
+        "login": {},
+        "status": {},
+        "play": {}
     }

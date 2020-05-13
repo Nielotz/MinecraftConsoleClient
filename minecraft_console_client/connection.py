@@ -1,12 +1,11 @@
+import logging
 import socket
 import zlib
 
-import logging
-
 logger = logging.getLogger('mainLogger')
 
-from consts import MAX_INT
-import utils
+from misc.consts import MAX_INT
+from misc import utils
 
 
 class Connection:

@@ -1,5 +1,5 @@
-from typing import Any
 import logging
+from typing import Any
 
 logger = logging.getLogger('mainLogger')
 
@@ -7,13 +7,14 @@ import queue
 import threading
 import time
 
-from version import Version
+from versions.version import Version
 from connection import Connection
-import utils
-from game_data import GameData
-from player import Player
+from misc import utils
+from data_structures.game_data import GameData
+from data_structures.player import Player
 
 import versions.defaults
+
 
 class Bot:
     """
@@ -40,8 +41,7 @@ class Bot:
     def __init__(self, host: (str, int), version: Version, username: str):
         """
         :param host: host data (address, port) to which client connects to
-        :param version: versions.defaults. object from VERSION,
-                        tells which version of protocol to use
+        :param version: Version, tells which version of protocol to use
         :param username: username
         """
 
@@ -209,7 +209,6 @@ class Bot:
         logger.info("Trying to log in in offline mode (non-premium)")
 
         packet = self.version_data.Creator.Login.handshake(self.__host)
-        print(packet)
         self.to_send_queue.put(packet)
 
         self.to_send_queue.put(

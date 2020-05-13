@@ -4,6 +4,7 @@ class Creator:
     Method names same as on minecraft protocol page.
 
     """
+
     class Login:
         """ Namespace for packets used to login """
         pass
@@ -15,4 +16,3 @@ class Creator:
     class Play:
         """ Namespace for packets used in play """
         pass
-

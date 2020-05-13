@@ -1,10 +1,11 @@
 import logging
+
 logger = logging.getLogger("mainLogger")
 
 import versions.defaults.creator
 
 from versions.V1_12_2.packet import Packet
-import utils
+from misc import utils
 
 
 class Creator(versions.defaults.creator.Creator):
@@ -13,6 +14,7 @@ class Creator(versions.defaults.creator.Creator):
     Method names same as on minecraft protocol page.
 
     """
+
     class Login(versions.defaults.creator.Creator.Login):
         """ Namespace for packets used to login """
 
@@ -38,6 +40,7 @@ class Creator(versions.defaults.creator.Creator):
 
     class Status(versions.defaults.creator.Creator.Status):
         """ Namespace for packets used to receive status """
+
         # TODO
 
         @staticmethod
@@ -234,5 +237,3 @@ class Creator(versions.defaults.creator.Creator):
         def use_item() -> bytes:
             packed_packet = b''
             return packed_packet
-
-

@@ -46,4 +46,3 @@ class Version(Enum):
     # V1_7_6 = VersionNamedTuple("1.7.6", 5, b'\x05')
     # V1_7_5 = VersionNamedTuple("1.7.5", 4, b'\x04')
     # V1_7_4 = VersionNamedTuple("1.7.4", 4, b'\x04')
-

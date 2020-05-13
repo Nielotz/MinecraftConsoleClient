@@ -1,10 +1,10 @@
-from typing import Union, NoReturn, Any
-
 import logging
+from typing import NoReturn
+
 logger = logging.getLogger("mainLogger")
 
-import utils
-from exceptions import DisconnectedError
+from misc import utils
+from misc.exceptions import DisconnectedError
 from versions.defaults.creator import Creator
 import versions.defaults.clientbound
 
@@ -19,6 +19,7 @@ class Clientbound(versions.defaults.clientbound.Clientbound):
     :params bot: Bot on which process packet.
     :params bytes: Data received from server, uncompressed, without packet id.
     """
+
     @staticmethod
     def set_compression(bot, data: bytes):
         threshold, _ = utils.unpack_varint(data)
@@ -457,4 +458,3 @@ class Clientbound(versions.defaults.clientbound.Clientbound):
     @staticmethod
     def entity_effect(bot, data: bytes):
         pass
-
