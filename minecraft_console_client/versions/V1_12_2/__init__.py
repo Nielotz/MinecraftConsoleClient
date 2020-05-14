@@ -5,9 +5,9 @@ from versions.V1_12_2.creator import Creator as PacketCreator
 
 # See versions.defaults.__init__.
 class VersionData(versions.defaults.VersionData):
-    release_name = "1.15.2"
-    protocol_version_number = 578
-    protocol_version_varint = b'\xc2\x04'  # Can be calculated using utils
+    release_name = "1.12.2"
+    protocol_version_number = 340
+    protocol_version_varint = b'\xd4\x02'  # Can be calculated using utils
 
     Creator = PacketCreator
 
