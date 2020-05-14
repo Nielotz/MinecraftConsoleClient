@@ -41,7 +41,6 @@ def convert_to_varint(value: int) -> bytes:
     # Negative varint always has 5 bytes
     varint = bytearray(b'\x80\x80\x80\x80\x00')
     value_in_bytes = value.to_bytes(4, byteorder="little", signed=True)
-
     varint[0] |= value_in_bytes[0]
     varint[1] |= (value_in_bytes[1] << 1) & 0xFF | value_in_bytes[0] >> 7
     varint[2] |= (value_in_bytes[2] << 2) & 0xFF | value_in_bytes[1] >> 6
@@ -85,10 +84,9 @@ def unpack_varint(data: bytes) -> (int, bytes):
     if number > MAX_INT:
         number -= MAX_UINT
 
-    try:
-        return number, data[i + 1::]
-    except IndexError:
-        return number, None
+    if len(data) > i + 1:
+        return number, data[i + 1:]
+    return number, None
 
 
 def extract_data(data: bytes, compression=False) -> (int, bytes):
@@ -144,7 +142,6 @@ def pack_payload(packet_id: bytes, arr_with_payload) -> bytes:
 
     for arg in arr_with_payload:
         data.extend(_pack_data(arg))
-
     return bytes(data)
 
 
@@ -158,13 +155,13 @@ def extract_string(data: bytes) -> (bytes, Union[bytes, None]):
     """
 
     string_len, data = unpack_varint(data)
-
     string = data[:string_len:]
-    try:
-        data = data[string_len::]
-    except IndexError:
-        data = None
-    return string, data
+
+    if len(data) > string_len:
+        data = data[string_len:]
+        return string, data
+
+    return string, None
 
 
 def extract_json_from_chat(data: bytes) -> (dict, Union[bytes, None]):
@@ -182,10 +179,10 @@ def extract_int(data: bytes) -> (int, Union[bytes, None]):
     :rtype int, Union[bytes, None]
     """
     value = int.from_bytes(data[0:4:], byteorder="big", signed=True)
-    try:
+
+    if len(data) > 4:
         return value, data[4::]
-    except IndexError:
-        return value, None
+    return value, None
 
 
 def extract_unsigned_byte(data: bytes) -> (int, Union[bytes, None]):
@@ -196,12 +193,10 @@ def extract_unsigned_byte(data: bytes) -> (int, Union[bytes, None]):
     :return extracted unsigned byte, leftover of data or None
     :rtype int, Union[bytes, None]
     """
-    value = int.from_bytes(data[0:1:], byteorder="big", signed=True)
-    assert data[0] == value
-    try:
-        return value, data[1::]
-    except IndexError:
-        return value, None
+
+    if len(data) > 1:
+        return data[0], data[1::]
+    return data[0], None
 
 
 def extract_boolean(data: bytes) -> (bool, Union[bytes, None]):
@@ -212,10 +207,10 @@ def extract_boolean(data: bytes) -> (bool, Union[bytes, None]):
     :return True or False, leftover of data or None
     :rtype bool, Union[bytes, None]
     """
-    try:
-        return data[0], data[1::]
-    except IndexError:
-        return data[0] and True, None
+
+    if len(data) > 1:
+        return data[0] and True, data[1::]
+    return data[0] and True, None
 
 
 def extract_byte(data: bytes) -> (int, Union[bytes, None]):
@@ -227,10 +222,10 @@ def extract_byte(data: bytes) -> (int, Union[bytes, None]):
     :rtype byte, Union[bytes, None]
     """
     value = int.from_bytes(data[0:1:], byteorder="big", signed=True)
-    try:
+
+    if len(data) > 1:
         return value, data[1::]
-    except IndexError:
-        return value, None
+    return value, None
 
 
 # def extract_slot(data: bytes) -> (Item, bytes):
@@ -260,10 +255,9 @@ def extract_float(data: bytes) -> (float, Union[bytes, None]):
     """
 
     value: float = struct.unpack('>f', data[0:4:])[0]
-    try:
+    if len(data) > 4:
         return value, data[4::]
-    except IndexError:
-        return value, None
+    return value, None
 
 
 def extract_double(data: bytes) -> (float, Union[bytes, None]):
@@ -276,35 +270,32 @@ def extract_double(data: bytes) -> (float, Union[bytes, None]):
     """
 
     value: float = struct.unpack('>d', data[0:8:])[0]
-    try:
+    if len(data) > 8:
         return value, data[8::]
-    except IndexError:
-        return value, None
+    return value, None
 
 
 def extract_position(data: bytes) -> (Position, Union[bytes, None]):
     """
     Extracts Position(x, y, z) from data.
 
-    Stolen from https://github.com/MaksymilianK/NSSV-bot.
-    Thanks!
-
     :returns extracted position, leftover or None when no data left
     :rtype Position, Union[bytes, None]
     """
-    # TODO: optimize.
+
     val = int.from_bytes(data[0:8], byteorder="big", signed=True)
 
-    x = val >> 38
-    y = ((val << 26) & 0xfff0000000000000) >> 52
-    z = ((val << 38) & 0xffffffc000000000) >> 38
+    z = val & 0x3ffffff
+    val >>= 26
+    y = val & 0xfff
+    val >>= 12
+    x = val
 
-    if z >= 2 ** 25:
-        z -= 2 ** 26
+    if z >= 0x2000000:  # 2 ** 25
+        z -= 0x4000000  # 2 ** 26
 
     position = Position((x, y, z))
 
-    try:
+    if len(data) > 8:
         return position, data[8::]
-    except IndexError:
-        return position, None
+    return position, None
