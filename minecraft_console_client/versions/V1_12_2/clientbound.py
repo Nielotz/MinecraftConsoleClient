@@ -109,7 +109,7 @@ class Clientbound(versions.defaults.clientbound.Clientbound):
             utils.extract_unsigned_byte(data)
         logger.debug(f"Server difficulty: {bot._game_data.difficulty}")
 
-        gui.set_value("difficulty",
+        gui.set_value("game difficulty",
                       {0: "peaceful", 1: "easy", 2: "normal", 3: "hard"}
                       .get(bot._game_data.difficulty))
 
@@ -228,16 +228,16 @@ class Clientbound(versions.defaults.clientbound.Clientbound):
                     f"gamemode: {bot._player.gamemode}, "
                     f"hardcore: {bot._player.is_hardcore}, "
                     f"dimension: {bot._player.dimension}, "
-                    f"difficulty: {bot._game_data.difficulty}, "
-                    f"level_type: {bot._game_data.level_type}, "
+                    f"game difficulty: {bot._game_data.difficulty}, "
+                    f"game level_type: {bot._game_data.level_type}, "
                     )
 
         gui.set_value("player_id", bot._player.entity_id)
         gui.set_value("gamemode", bot._player.gamemode)
         gui.set_value("is_hardcore", bot._player.is_hardcore)
         gui.set_value("dimension", bot._player.dimension)
-        gui.set_value("difficulty", bot._game_data.difficulty)
-        gui.set_value("level_type", bot._game_data.level_type)
+        gui.set_value("game difficulty", bot._game_data.difficulty)
+        gui.set_value("game level_type", bot._game_data.level_type)
 
 
     @staticmethod
