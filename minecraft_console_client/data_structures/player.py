@@ -15,3 +15,4 @@ class Player(Mob):
     fov_modifier: float = None
     active_slot: int = None
     spawn_position: Position = None
+    username: str = None

@@ -126,8 +126,6 @@ class Bot:
 
             self._interpret_packet(packet_id, data)
 
-        return ""
-
     def start_listening(self) -> bool:
         """
         Similar to start_sending.
@@ -266,7 +264,6 @@ class Bot:
         """
         self.clientbound_action_list = \
             self.version_data.action_list.get(actions_type)
-
         return self.clientbound_action_list is not None
 
     def _interpret_packet(self, packet_id: int, payload: bytes) -> Any:

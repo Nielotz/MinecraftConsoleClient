@@ -29,7 +29,7 @@ class Creator(versions.defaults.creator.Creator):
                 host[1],  # Server Port
                 login  # Next State (login)
             ]
-
+            print(123, utils.pack_payload(Packet.Login.HANDSHAKE.value.bytes, data))
             return utils.pack_payload(Packet.Login.HANDSHAKE.value.bytes, data)
 
         @staticmethod

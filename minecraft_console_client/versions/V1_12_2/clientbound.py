@@ -5,8 +5,12 @@ logger = logging.getLogger("mainLogger")
 
 from misc import utils
 from misc.exceptions import DisconnectedError
-from versions.defaults.creator import Creator
+from versions.V1_12_2.creator import Creator
 import versions.defaults.clientbound
+
+
+from GUI.gui import GUI
+gui = GUI()
 
 
 class Clientbound(versions.defaults.clientbound.Clientbound):
@@ -25,6 +29,8 @@ class Clientbound(versions.defaults.clientbound.Clientbound):
         threshold, _ = utils.unpack_varint(data)
         bot._conn.set_compression(threshold)
 
+        gui.set_value("compression threshold", threshold)
+
         if threshold < 0:
             logger.info(f"Compression is disabled")
         else:
@@ -39,7 +45,7 @@ class Clientbound(versions.defaults.clientbound.Clientbound):
 
     @staticmethod
     def disconnect(bot, data: bytes) -> NoReturn:
-        reason = utils.extract_json_from_chat(data)
+        reason, _ = utils.extract_json_from_chat(data)
         # reason should be dict Chat type.
         logger.error(f"{bot._player.username} has been "
                      f"disconnected by server. Reason: '{reason['text']}'")
@@ -101,7 +107,12 @@ class Clientbound(versions.defaults.clientbound.Clientbound):
     def server_difficulty(bot, data: bytes):
         bot._game_data.difficulty, data = \
             utils.extract_unsigned_byte(data)
-        logger.info(f"Server difficulty: {bot._game_data.difficulty}")
+        logger.debug(f"Server difficulty: {bot._game_data.difficulty}")
+
+        gui.set_value("difficulty",
+                      {0: "peaceful", 1: "easy", 2: "normal", 3: "hard"}
+                      .get(bot._game_data.difficulty))
+
 
     @staticmethod
     def tab_complete(bot, data: bytes):
@@ -149,10 +160,6 @@ class Clientbound(versions.defaults.clientbound.Clientbound):
 
     @staticmethod
     def named_sound_effect(bot, data: bytes):
-        pass
-
-    @staticmethod
-    def disconnect(bot, data: bytes):
         pass
 
     @staticmethod
@@ -225,6 +232,14 @@ class Clientbound(versions.defaults.clientbound.Clientbound):
                     f"level_type: {bot._game_data.level_type}, "
                     )
 
+        gui.set_value("player_id", bot._player.entity_id)
+        gui.set_value("gamemode", bot._player.gamemode)
+        gui.set_value("is_hardcore", bot._player.is_hardcore)
+        gui.set_value("dimension", bot._player.dimension)
+        gui.set_value("difficulty", bot._game_data.difficulty)
+        gui.set_value("level_type", bot._game_data.level_type)
+
+
     @staticmethod
     def map(bot, data: bytes):
         pass
@@ -275,6 +290,12 @@ class Clientbound(versions.defaults.clientbound.Clientbound):
                     f"flying: {bot._player.is_flying}, "
                     f"allow_flying: {bot._player.is_allow_flying}, "
                     f"creative_mode: {bot._player.is_creative_mode}")
+
+        gui.set_value("invulnerable", bot._player.is_invulnerable)
+        gui.set_value("flying", bot._player.is_flying)
+        gui.set_value("allow_flying", bot._player.is_allow_flying)
+        gui.set_value("creative_mode", bot._player.is_creative_mode)
+
 
     @staticmethod
     def combat_event(bot, data: bytes):
@@ -327,6 +348,14 @@ class Clientbound(versions.defaults.clientbound.Clientbound):
                      f"yaw: {bot._player.yaw}, "
                      f"pitch: {bot._player.pitch}")
 
+        gui.set_value("Player position", '------------------')
+        gui.set_value("x", bot._player.pos_x)
+        gui.set_value("y", bot._player.pos_y)
+        gui.set_value("z", bot._player.pos_z)
+        gui.set_value("yaw", bot._player.yaw)
+        gui.set_value("pitch", bot._player.pitch)
+        gui.set_value("------------------", '------------------')
+
         bot.to_send_queue.put(Creator.Play.teleport_confirm(teleport_id))
 
     @staticmethod
@@ -373,6 +402,8 @@ class Clientbound(versions.defaults.clientbound.Clientbound):
     def held_item_change(bot, data: bytes):
         bot._player.active_slot = utils.extract_byte(data)[0]
         logger.debug(f"Held slot changed to {bot._player.active_slot}")
+
+        gui.set_value("Held slot", bot._player.active_slot)
 
     @staticmethod
     def display_scoreboard(bot, data: bytes):
@@ -422,6 +453,8 @@ class Clientbound(versions.defaults.clientbound.Clientbound):
     def spawn_position(bot, data: bytes):
         bot._player.position, data = utils.extract_position(data)
         logger.info(f"Changed player spawn position to {bot._player.position}")
+
+        gui.set_value("Spawn position", bot._player.position)
 
     @staticmethod
     def time_update(bot, data: bytes):

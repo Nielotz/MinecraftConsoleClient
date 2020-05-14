@@ -14,9 +14,7 @@ def run():
     username = "Bob"
 
     # Create basic objects.
-    bot: Bot = Bot(host=server_data,
-                   version=game_version,
-                   username=username)
+    bot: Bot = Bot(host=server_data, version=game_version, username=username)
 
     message = bot.start()
     bot.stop(message or "normal exit")
