@@ -333,8 +333,64 @@ def block_change(bot, data: bytes):
 def change_game_state(bot, data: bytes):
     value = utils.extract_float(data[1:])[0]
     # reason = data[0]  # reason = utils.extract_unsigned_byte()[0]
-    # med = login.ChangeGameState.action_list[data[0]]
-    # med(bot, value)
+
+    # TODO: Do sth with this:
+
+    def invalid_bed(bot, value: float):
+        logger.info("Invalid bed")
+        gui.add_to_hotbar("Invalid bed")
+
+    def end_raining(bot, _):
+        bot._game_data.is_raining = False
+        logger.info("Stopped raining")
+        gui.set_value("game: is_raining: ", False)
+
+    def begin_raining(bot, _):
+        bot._game_data.is_raining = True
+        logger.info("Started raining")
+        gui.set_value("game: is_raining: ", True)
+        print(value)
+
+    def change_gamemode(bot, value: float):
+        bot._player.gamemode = {
+            0: "survival",
+            1: "creative",
+            2: "adventure",
+            3: "spectator",
+        }.get(round(value))
+        logger.info(f"Updated gamemode: {bot._player.gamemode}")
+        gui.set_value(f"gamemode", bot._player.gamemode)
+
+    def exit_end(bot, value: float):
+        pass
+
+    def demo_message(bot, value: float):
+        pass
+
+    def arrow_hitting_player(bot, value: float):
+        logger.info("An arrow hit a player")
+
+    def fade_value(bot, value: float):
+        pass
+
+    def fade_time(bot, value: float):
+        pass
+
+    def play_elder_guardian_mob_appearance(bot, value: float):
+        pass
+
+    {
+        0: invalid_bed,
+        1: end_raining,
+        2: begin_raining,
+        3: change_gamemode,
+        4: exit_end,
+        5: demo_message,
+        6: arrow_hitting_player,
+        7: fade_value,
+        8: fade_time,
+        10: play_elder_guardian_mob_appearance,
+    }.get(data[0])(bot, value)
 
 
 def keep_alive(bot, data: bytes):
@@ -357,8 +413,15 @@ def join_game(bot, data: bytes):
     bot._player.entity_id, data = utils.extract_int(data)
 
     gamemode, data = utils.extract_unsigned_byte(data)
-    bot._player.gamemode = gamemode & 0b00000111
-    bot._player.is_hardcore = bool(gamemode & 0b00001000)
+
+    bot._player.gamemode = {
+        0: "survival",
+        1: "creative",
+        2: "adventure",
+        3: "spectator",
+    }.get(gamemode & 0b00000111)
+
+    bot._player.is_hardcore = bool(gamemode >> 3)
 
     bot._player.dimension, data = utils.extract_int(data)
 
@@ -455,3 +518,6 @@ def disconnect(bot, data: bytes) -> NoReturn:
     logger.error(f"{bot._player.username} has been "
                  f"disconnected by server. Reason: '{reason['text']}'")
     raise DisconnectedError("Disconnected by server.")
+
+
+
