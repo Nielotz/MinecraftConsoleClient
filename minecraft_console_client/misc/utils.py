@@ -299,3 +299,19 @@ def extract_position(data: bytes) -> (Position, Union[bytes, None]):
     if len(data) > 8:
         return position, data[8::]
     return position, None
+
+
+def extract_long(data: bytes) -> (int, Union[bytes, None]):
+    """
+    Extracts long from bytes.
+
+    :param data: bytes from which extract int
+    :return extracted int, leftover of data or None
+    :rtype int, Union[bytes, None]
+    """
+    value = int.from_bytes(data[0:8:], byteorder="big", signed=True)
+
+    if len(data) > 8:
+        return value, data[8::]
+    return value, None
+
