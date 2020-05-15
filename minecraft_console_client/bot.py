@@ -206,11 +206,11 @@ class Bot:
         """
         logger.info("Trying to log in in offline mode (non-premium)")
 
-        packet = self.version_data.Creator.Login.handshake(self.__host)
+        packet = self.version_data.PacketCreator.login.handshake(self.__host)
         self.to_send_queue.put(packet)
 
         self.to_send_queue.put(
-            self.version_data.Creator.Login.login_start(self._player.username))
+            self.version_data.PacketCreator.login.login_start(self._player.username))
 
         # Try to log in for 50 sec (10 sec x 5 packets)
         for i in range(5):
@@ -262,6 +262,7 @@ class Bot:
         :return success
         :rtype bool
         """
+
         self.clientbound_action_list = \
             self.version_data.action_list.get(actions_type)
         return self.clientbound_action_list is not None
@@ -361,7 +362,7 @@ class Bot:
 
         while True:
             packet = buffer.get(block=True)
-            logger.debug(f'[SEND] size: {len(packet)}')
+            # logger.debug(f'[SEND] size: {len(packet)}')
             try:
                 self._conn.sendall(packet)
             except ConnectionAbortedError:

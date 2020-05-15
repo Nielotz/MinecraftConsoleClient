@@ -1,5 +1,7 @@
 import tkinter as tk
 
+gui = None
+
 
 class GUI(tk.Tk):
     position_frame: tk.Frame = None
@@ -38,7 +40,7 @@ class GUI(tk.Tk):
         self.chat.grid()
 
         self.keep_alive()
-        print("Created GUI")
+        print("Created gui")
 
     # TODO: optimize
     def add_to_chat(self, message):
@@ -79,7 +81,7 @@ class GUI(tk.Tk):
         import types
         self.set_value = types.MethodType(self.do_nothing, self)
         self.destroy()
-        print("Closed GUI")
+        print("Closed gui")
 
     def keep_alive(self):
         """ Keeps window not frozen. """
