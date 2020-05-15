@@ -26,7 +26,7 @@ class Clientbound(versions.defaults.clientbound.Clientbound):
 
     @staticmethod
     def set_compression(bot, data: bytes):
-        threshold, _ = utils.unpack_varint(data)
+        threshold = utils.unpack_varint(data)[0]
         bot._conn.set_compression(threshold)
 
         gui.set_value("compression threshold", threshold)
@@ -45,7 +45,7 @@ class Clientbound(versions.defaults.clientbound.Clientbound):
 
     @staticmethod
     def disconnect(bot, data: bytes) -> NoReturn:
-        reason, _ = utils.extract_json_from_chat(data)
+        reason = utils.extract_json_from_chat(data)[0]
         # reason should be dict Chat type.
         logger.error(f"{bot._player.username} has been "
                      f"disconnected by server. Reason: '{reason['text']}'")
@@ -105,8 +105,7 @@ class Clientbound(versions.defaults.clientbound.Clientbound):
 
     @staticmethod
     def server_difficulty(bot, data: bytes):
-        bot._game_data.difficulty, data = \
-            utils.extract_unsigned_byte(data)
+        bot._game_data.difficulty = utils.extract_unsigned_byte(data)[0]
         logger.debug(f"Server difficulty: {bot._game_data.difficulty}")
 
         gui.set_value("game difficulty",
@@ -120,7 +119,8 @@ class Clientbound(versions.defaults.clientbound.Clientbound):
 
     @staticmethod
     def chat_message(bot, data: bytes):
-        pass
+        json_data, position = utils.extract_json_from_chat(data)
+        gui.add_to_chat(f"{position}: {json_data}")
 
     @staticmethod
     def multi_block_change(bot, data: bytes):
@@ -183,7 +183,8 @@ class Clientbound(versions.defaults.clientbound.Clientbound):
 
     @staticmethod
     def keep_alive(bot, data: bytes):
-        pass
+        keep_alive_id = utils.extract_long(data)[0]
+        print(keep_alive_id)  # TODO: send to server same data 
 
     @staticmethod
     def chunk_data(bot, data: bytes):
@@ -215,11 +216,10 @@ class Clientbound(versions.defaults.clientbound.Clientbound):
         bot.player._server_data["max_players"], data = \
             utils.extract_unsigned_byte(data)
          """
-        data = data[1::]
+        data = data[1:]
 
         # default, flat, largeBiomes, amplified, default_1_1
-        bot._game_data.level_type, data = \
-            utils.extract_string(data)
+        bot._game_data.level_type = utils.extract_string(data)[0]
 
         # Reduced Debug Info
         # bot.player._server_data["RDI"], data = utils.extract_boolean(data)
@@ -283,7 +283,7 @@ class Clientbound(versions.defaults.clientbound.Clientbound):
 
         bot._player.flying_speed, data = utils.extract_float(data)
 
-        bot._player.fov_modifier, data = utils.extract_float(data)
+        bot._player.fov_modifier = utils.extract_float(data)[0]
 
         logger.info("Player abilities changed: "
                     f"invulnerable: {bot._player.is_invulnerable}, "
@@ -313,8 +313,7 @@ class Clientbound(versions.defaults.clientbound.Clientbound):
         z, data = utils.extract_double(data)
         yaw, data = utils.extract_float(data)
         pitch, data = utils.extract_float(data)
-        flags, data = utils.extract_byte(data)
-        teleport_id = data
+        flags, teleport_id = utils.extract_byte(data)
 
         if flags & 0x01:
             bot._player.pos_x += x
@@ -451,7 +450,7 @@ class Clientbound(versions.defaults.clientbound.Clientbound):
 
     @staticmethod
     def spawn_position(bot, data: bytes):
-        bot._player.position, data = utils.extract_position(data)
+        bot._player.position = utils.extract_position(data)[0]
         logger.info(f"Changed player spawn position to {bot._player.position}")
 
         gui.set_value("Spawn position", bot._player.position)

@@ -178,10 +178,10 @@ def extract_int(data: bytes) -> (int, Union[bytes, None]):
     :return extracted int, leftover of data or None
     :rtype int, Union[bytes, None]
     """
-    value = int.from_bytes(data[0:4:], byteorder="big", signed=True)
+    value = int.from_bytes(data[:4:], byteorder="big", signed=True)
 
     if len(data) > 4:
-        return value, data[4::]
+        return value, data[4:]
     return value, None
 
 
@@ -195,7 +195,7 @@ def extract_unsigned_byte(data: bytes) -> (int, Union[bytes, None]):
     """
 
     if len(data) > 1:
-        return data[0], data[1::]
+        return data[0], data[1:]
     return data[0], None
 
 
@@ -209,7 +209,7 @@ def extract_boolean(data: bytes) -> (bool, Union[bytes, None]):
     """
 
     if len(data) > 1:
-        return data[0] and True, data[1::]
+        return data[0] and True, data[1:]
     return data[0] and True, None
 
 
@@ -221,10 +221,10 @@ def extract_byte(data: bytes) -> (int, Union[bytes, None]):
     :return byte, leftover of data or None
     :rtype byte, Union[bytes, None]
     """
-    value = int.from_bytes(data[0:1:], byteorder="big", signed=True)
+    value = int.from_bytes(data[:1:], byteorder="big", signed=True)
 
     if len(data) > 1:
-        return value, data[1::]
+        return value, data[1:]
     return value, None
 
 
@@ -254,9 +254,9 @@ def extract_float(data: bytes) -> (float, Union[bytes, None]):
     :rtype float, Union[bytes, None]
     """
 
-    value: float = struct.unpack('>f', data[0:4:])[0]
+    value: float = struct.unpack('>f', data[:4:])[0]
     if len(data) > 4:
-        return value, data[4::]
+        return value, data[4:]
     return value, None
 
 
@@ -269,9 +269,9 @@ def extract_double(data: bytes) -> (float, Union[bytes, None]):
     :rtype float, Union[bytes, None]
     """
 
-    value: float = struct.unpack('>d', data[0:8:])[0]
+    value: float = struct.unpack('>d', data[:8:])[0]
     if len(data) > 8:
-        return value, data[8::]
+        return value, data[8:]
     return value, None
 
 
@@ -283,7 +283,7 @@ def extract_position(data: bytes) -> (Position, Union[bytes, None]):
     :rtype Position, Union[bytes, None]
     """
 
-    val = int.from_bytes(data[0:8], byteorder="big", signed=True)
+    val = int.from_bytes(data[:8], byteorder="big", signed=True)
 
     z = val & 0x3ffffff
     val >>= 26
@@ -297,7 +297,7 @@ def extract_position(data: bytes) -> (Position, Union[bytes, None]):
     position = Position((x, y, z))
 
     if len(data) > 8:
-        return position, data[8::]
+        return position, data[8:]
     return position, None
 
 
@@ -309,9 +309,9 @@ def extract_long(data: bytes) -> (int, Union[bytes, None]):
     :return extracted int, leftover of data or None
     :rtype int, Union[bytes, None]
     """
-    value = int.from_bytes(data[0:8:], byteorder="big", signed=True)
+    value = int.from_bytes(data[:8:], byteorder="big", signed=True)
 
     if len(data) > 8:
-        return value, data[8::]
+        return value, data[8:]
     return value, None
 
