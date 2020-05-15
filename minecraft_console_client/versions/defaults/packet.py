@@ -1,17 +1,16 @@
 from collections import namedtuple
-from enum import Enum
 
 PacketIDNamedTuple = namedtuple("PacketIDNamedTuple", "int bytes")
 
 
 class Packet:
-    """ Translates packet name to packet_id (int varint)"""
+    """ Translates packet name to packet_id varint"""
 
-    class Login(Enum):
+    class Login:
         pass
 
-    class Status(Enum):
+    class Status:
         pass
 
-    class Play(Enum):
+    class Play:
         pass

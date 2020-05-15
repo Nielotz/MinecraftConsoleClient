@@ -29,13 +29,12 @@ class Creator(versions.defaults.creator.Creator):
                 host[1],  # Server Port
                 login  # Next State (login)
             ]
-            print(123, utils.pack_payload(Packet.Login.HANDSHAKE.value.bytes, data))
-            return utils.pack_payload(Packet.Login.HANDSHAKE.value.bytes, data)
+            return utils.pack_payload(Packet.Login.HANDSHAKE, data)
 
         @staticmethod
         def login_start(username) -> bytes:
             """ Returns "login start" packet """
-            return utils.pack_payload(Packet.Login.LOGIN_START.value.bytes,
+            return utils.pack_payload(Packet.Login.LOGIN_START,
                                       [username])
 
     class Status(versions.defaults.creator.Creator.Status):
@@ -46,12 +45,12 @@ class Creator(versions.defaults.creator.Creator):
         @staticmethod
         def request() -> bytes:
             """ Returns request packet """
-            return utils.pack_payload(Packet.Status.REQUEST.value.bytes, [])
+            return utils.pack_payload(Packet.Status.REQUEST, [])
 
         @staticmethod
         def ping(actual_time: float) -> bytes:
             """ Returns ping packet """
-            packed_packet = utils.pack_payload(Packet.Status.PING.value.bytes,
+            packed_packet = utils.pack_payload(Packet.Status.PING,
                                                [actual_time])
             return packed_packet
 
@@ -67,7 +66,7 @@ class Creator(versions.defaults.creator.Creator):
                 status  # Next State (login)
             ]
 
-            return utils.pack_payload(Packet.Status.HANDSHAKE.value.bytes, data)
+            return utils.pack_payload(Packet.Status.HANDSHAKE, data)
 
     class Play(versions.defaults.creator.Creator.Play):
         """ Namespace for packets used in play """
@@ -75,7 +74,7 @@ class Creator(versions.defaults.creator.Creator):
         @staticmethod
         def teleport_confirm(teleport_id: bytes) -> bytes:
             """ Return packet with confirmation for Player Position And Look. """
-            return utils.pack_payload(Packet.Play.TELEPORT_CONFIRM.value.bytes,
+            return utils.pack_payload(Packet.Play.TELEPORT_CONFIRM,
                                       [teleport_id])
 
         @staticmethod
@@ -129,9 +128,9 @@ class Creator(versions.defaults.creator.Creator):
             return packed_packet
 
         @staticmethod
-        def keep_alive() -> bytes:
-            packed_packet = b''
-            return packed_packet
+        def keep_alive(keep_alive_id: bytes) -> bytes:
+            return utils.pack_payload(Packet.Play.TELEPORT_CONFIRM,
+                                      keep_alive_id)
 
         @staticmethod
         def player() -> bytes:
