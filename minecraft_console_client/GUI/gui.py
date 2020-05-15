@@ -1,9 +1,8 @@
 import tkinter as tk
-from tkinter import Frame
 
 
 class GUI(tk.Tk):
-    position_frame: Frame = None
+    position_frame: tk.Frame = None
     data: dict = {
         # "x": tk.Label(),
     }
@@ -11,19 +10,34 @@ class GUI(tk.Tk):
     def __init__(self):
         super(GUI, self).__init__()
         self.grid()
-        self.keep_alive()
         self.protocol("WM_DELETE_WINDOW", self.close)
 
-        self.data_frame = Frame(self)
-        self.data_frame.grid(row=0, column=0, sticky="nw")
-
-        self.chat_frame = Frame(self)
-        self.chat_frame.grid(row=0, column=1, sticky="nw")
+        self.hotbar_messages = []
         self.chat_messages = []
 
+        self.data_frame = tk.Frame(self)
+        self.messages_frame = tk.Frame(self)
+
+        self.data_frame.grid(row=0, column=0, sticky="nw")
+        self.messages_frame.grid(row=0, column=1, sticky="nw")
+
+        self.hotbar_frame = tk.LabelFrame(self.messages_frame,
+                                          text="HOTBAR",
+                                          labelanchor="n")
+        self.chat_frame = tk.LabelFrame(self.messages_frame,
+                                        text="CHAT",
+                                        labelanchor="n")
+
+        self.hotbar_frame.grid(row=0, column=0, sticky="nw")
+        self.chat_frame.grid(row=1, column=0, sticky="nw")
+
+        self.hotbar = tk.Label(self.hotbar_frame, anchor="nw")
         self.chat = tk.Label(self.chat_frame, anchor="nw")
+
+        self.hotbar.grid()
         self.chat.grid()
 
+        self.keep_alive()
         print("Created GUI")
 
     # TODO: optimize
@@ -32,6 +46,14 @@ class GUI(tk.Tk):
         if len(self.chat_messages) > 20:
             self.chat_messages.pop(0)
         self.chat['text'] = '\n'.join(self.chat_messages)
+
+        self.update()
+
+    def add_to_hotbar(self, message):
+        self.hotbar_messages.append(message)
+        if len(self.hotbar_messages) > 20:
+            self.hotbar_messages.pop(0)
+        self.hotbar['text'] = '\n'.join(self.hotbar_messages)
 
         self.update()
 
