@@ -16,9 +16,9 @@ def handshake(host: (str, int)) -> bytes:
         host[1],  # Server Port
         b'\x02'  # Next State (login)
     ]
-    return utils.pack_payload(login.HANDSHAKE, data)
+    return utils.pack_data(login.HANDSHAKE, data)
 
 
 def login_start(username) -> bytes:
     """ Returns "login start" packet """
-    return utils.pack_payload(login.LOGIN_START, [username])
+    return utils.pack_data(login.LOGIN_START, [username])
