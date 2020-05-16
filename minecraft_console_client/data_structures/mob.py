@@ -1,9 +1,9 @@
+from data_structures.position import Position
+
+
 class Mob:
     entity_id: int = None
-    pos_x: int = None
-    pos_y: int = None
-    pos_z: int = None
-    yaw: int = None
-    pitch: int = None
+    position: Position = None
     health: float = None
+    on_ground: bool = None
 
