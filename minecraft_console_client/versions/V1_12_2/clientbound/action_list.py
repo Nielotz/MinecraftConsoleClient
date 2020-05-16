@@ -1,5 +1,7 @@
 from versions.V1_12_2.clientbound import login, play
 
+# 60 45 18?
+
 action_list = {
         "login": {
             0: login.disconnect,
@@ -53,7 +55,7 @@ action_list = {
             # 0x2A: play.open_sign_editor,
             # 0x2B: play.craft_recipe_response,
             0x2C: play.player_abilities,
-            # 0x2D: play.combat_event,
+            0x2D: play.combat_event,
             # 0x2E: play.player_list_item,
             0x2F: play.player_position_and_look,
             # 0x30: play.use_bed,
@@ -61,7 +63,7 @@ action_list = {
             # 0x32: play.destroy_entities,
             # 0x33: play.remove_entity_effect,
             # 0x34: play.resource_pack_send,
-            # 0x35: play.respawn,
+            0x35: play.respawn,
             # 0x36: play.entity_head_look,
             # 0x37: play.select_advancement_tab,
             # 0x38: play.world_border,
@@ -73,7 +75,7 @@ action_list = {
             # 0x3E: play.entity_velocity,
             # 0x3F: play.entity_equipment,
             # 0x40: play.set_experience,
-            # 0x41: play.update_health,
+            0x41: play.update_health,
             # 0x42: play.scoreboard_objective,
             # 0x43: play.set_passengers,
             # 0x44: play.teams,
