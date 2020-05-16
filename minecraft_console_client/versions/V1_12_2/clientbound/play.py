@@ -11,7 +11,37 @@ from gui.gui import gui
 
 
 def combat_event(bot, data: bytes):
-    pass
+    """
+    'Now only used to display the game over screen
+    (with enter combat and end combat completely ignored by the Notchain client)'
+     """
+
+    event, data = utils.unpack_varint(data)
+
+    if event == 2:  # Entity dead
+        player_id, data = utils.unpack_varint(data)
+        entity_id, data = utils.extract_int(data)
+        message = utils.extract_json_from_chat(data)
+        """ 
+        'Entity ID of the player that died (should match the client's entity ID).'
+        """
+
+        if entity_id == bot._player.entity_id:
+
+            logger.info(f"Player has been killed by: {entity_id}, "
+                        f"death message: '{message}' ")
+
+            gui.add_to_hotbar(f"Player has been killed by: {entity_id}, "
+                              f"death message: '{message}' ")
+
+            bot.on_death()
+        else:
+            logger.info(f"Entity: {player_id} has been killed by: {entity_id}, "
+                        f"death message: '{message}' ")
+
+            gui.add_to_hotbar(f"Entity: {player_id} has been killed "
+                              f"by: {entity_id}, "
+                              f"death message: '{message}' ")
 
 
 def player_list_item(bot, data: bytes):
@@ -52,12 +82,12 @@ def player_position_and_look(bot, data: bytes):
     else:
         bot._player.pitch = pitch
 
-    logger.debug(f"Player pos: "
-                 f"x: {bot._player.pos_x}, "
-                 f"y: {bot._player.pos_y}, "
-                 f"z: {bot._player.pos_z}, "
-                 f"yaw: {bot._player.yaw}, "
-                 f"pitch: {bot._player.pitch}")
+    # logger.debug(f"Player pos: "
+    #              f"x: {bot._player.pos_x}, "
+    #              f"y: {bot._player.pos_y}, "
+    #              f"z: {bot._player.pos_z}, "
+    #              f"yaw: {bot._player.yaw}, "
+    #              f"pitch: {bot._player.pitch}")
 
 
     gui.set_value("Player position", '------------------')
@@ -92,7 +122,22 @@ def resource_pack_send(bot, data: bytes):
 
 
 def respawn(bot, data: bytes):
-    pass
+    bot._player.dimension, data = utils.extract_int(data)
+    bot._game_data.difficulty = data[0]
+    bot._player.gamemode = data[1]
+    bot._game_data.level_type = utils.extract_string(data[2:])[0]
+
+    logger.info(f"Player respawn: "
+                f"gamemode: {bot._player.gamemode}, "
+                f"dimension: {bot._player.dimension}, "
+                f"game difficulty: {bot._game_data.difficulty}, "
+                f"game level_type: {bot._game_data.level_type}, "
+                )
+
+    gui.set_value("dimension", bot._player.dimension)
+    gui.set_value("game difficulty", bot._game_data.difficulty)
+    gui.set_value("gamemode", bot._player.gamemode)
+    gui.set_value("game level_type", bot._game_data.level_type)
 
 
 def entity_head_look(bot, data: bytes):
@@ -143,7 +188,20 @@ def set_experience(bot, data: bytes):
 
 
 def update_health(bot, data: bytes):
-    pass
+    bot._player.health, data = utils.extract_float(data)
+    bot._player.food, data = utils.unpack_varint(data)
+    bot._player.food_saturation = utils.extract_float(data)[0]
+
+    logger.info(f"Updated player. Health: {bot._player.health} "
+                f"Food: {bot._player.food} "
+                f"Food_saturation: {bot._player.food_saturation}")
+
+    gui.set_value("health", bot._player.health)
+    gui.set_value("food", bot._player.food)
+    gui.set_value("food_saturation", bot._player.food_saturation)
+
+    if not bot._player.health > 0:
+        bot.on_death()
 
 
 def scoreboard_objective(bot, data: bytes):
@@ -198,7 +256,16 @@ def advancements(bot, data: bytes):
 
 
 def entity_properties(bot, data: bytes):
-    pass
+    """
+    entity_id, data = utils.unpack_varint(data)
+    n_of_properties, data = utils.extract_int(data)
+    for i in range(n_of_properties):
+        key, data = utils.extract_string(data)
+        value, data = utils.extract_double(data)
+        n_of_modifiers, data = utils.unpack_varint(data)
+        for j in range(n_of_modifiers):
+            pass
+    """
 
 
 def entity_effect(bot, data: bytes):
@@ -349,7 +416,6 @@ def change_game_state(bot, data: bytes):
         bot._game_data.is_raining = True
         logger.info("Started raining")
         gui.set_value("game: is_raining: ", True)
-        print(value)
 
     def change_gamemode(bot, value: float):
         bot._player.gamemode = {

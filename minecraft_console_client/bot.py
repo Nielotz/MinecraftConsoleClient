@@ -23,6 +23,7 @@ class Bot:
     """
 
     version_data: Version = None
+    PacketCreator = None
     clientbound_action_list: dict = None
 
     received_queue: queue.Queue = queue.Queue()
@@ -56,6 +57,7 @@ class Bot:
                     "|")
 
         self.version_data: versions.defaults.VersionData = version.value
+        self.PacketCreator = self.version_data.PacketCreator
         logger.info("|" +
                     f"Client version: '{self.version_data.release_name}'"
                     .center(58, " ") + "|")
@@ -206,11 +208,12 @@ class Bot:
         """
         logger.info("Trying to log in in offline mode (non-premium)")
 
-        packet = self.version_data.PacketCreator.login.handshake(self.__host)
-        self.to_send_queue.put(packet)
+        self.to_send_queue.put(
+            self.version_data.PacketCreator.login.handshake(self.__host))
 
         self.to_send_queue.put(
-            self.version_data.PacketCreator.login.login_start(self._player.username))
+            self.version_data.PacketCreator.login.login_start(
+                self._player.username))
 
         # Try to log in for 50 sec (10 sec x 5 packets)
         for i in range(5):
@@ -282,6 +285,11 @@ class Bot:
         else:
             logger.debug(f"Packet with id: {packet_id} is not implemented yet")
             return None
+
+    def on_death(self):
+        logger.info("Player has dead.")
+        logger.info("Respawning")
+        self.to_send_queue.put(self.PacketCreator.play.client_status(0))
 
     def __start_listening(self, buffer: queue.Queue, ready: threading.Event,
                           check_delay=0.050):
