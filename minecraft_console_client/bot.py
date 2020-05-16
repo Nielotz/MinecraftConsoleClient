@@ -287,8 +287,7 @@ class Bot:
             return None
 
     def on_death(self):
-        logger.info("Player has dead.")
-        logger.info("Respawning")
+        logger.info("Player has dead. Respawning.")
         self.to_send_queue.put(self.PacketCreator.play.client_status(0))
 
     def __start_listening(self, buffer: queue.Queue, ready: threading.Event,
