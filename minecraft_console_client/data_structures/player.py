@@ -16,3 +16,5 @@ class Player(Mob):
     active_slot: int = None
     spawn_position: Position = None
     username: str = None
+    food: int = None
+    food_saturation: float = None
