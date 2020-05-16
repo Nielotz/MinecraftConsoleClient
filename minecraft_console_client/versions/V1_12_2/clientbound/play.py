@@ -49,7 +49,9 @@ def player_list_item(bot, data: bytes):
 
 
 def player_position_and_look(bot, data: bytes):
-    """ Auto-sends teleport confirm """
+    """
+    Auto-sends teleport confirm, and player_position_and_look (serverbound)
+    """
     x, data = utils.extract_double(data)
     y, data = utils.extract_double(data)
     z, data = utils.extract_double(data)
@@ -58,47 +60,47 @@ def player_position_and_look(bot, data: bytes):
     flags, teleport_id = utils.extract_byte(data)
 
     if flags & 0x01:
-        bot._player.pos_x += x
+        bot._player.position.x += x
     else:
-        bot._player.pos_x = x
+        bot._player.position.x = x
 
     if flags & 0x02:
-        bot._player.pos_y += y
+        bot._player.position.y += y
     else:
-        bot._player.pos_y = y
+        bot._player.position.y = y
 
     if flags & 0x04:
-        bot._player.pos_z += z
+        bot._player.position.z += z
     else:
-        bot._player.pos_z = z
+        bot._player.position.z = z
 
     if flags & 0x08:
-        bot._player.yaw += yaw
+        bot._player.position.yaw += yaw
     else:
-        bot._player.yaw = yaw
+        bot._player.position.yaw = yaw
 
     if flags & 0x10:
-        bot._player.pitch += pitch
+        bot._player.position.pitch += pitch
     else:
-        bot._player.pitch = pitch
+        bot._player.position.pitch = pitch
 
-    # logger.debug(f"Player pos: "
-    #              f"x: {bot._player.pos_x}, "
-    #              f"y: {bot._player.pos_y}, "
-    #              f"z: {bot._player.pos_z}, "
-    #              f"yaw: {bot._player.yaw}, "
-    #              f"pitch: {bot._player.pitch}")
-
+    logger.debug(f"Player pos: {bot._player.position}")
 
     gui.set_value("Player position", '------------------')
-    gui.set_value("x", bot._player.pos_x)
-    gui.set_value("y", bot._player.pos_y)
-    gui.set_value("z", bot._player.pos_z)
-    gui.set_value("yaw", bot._player.yaw)
-    gui.set_value("pitch", bot._player.pitch)
+    gui.set_value("x", bot._player.position.x)
+    gui.set_value("y", bot._player.position.y)
+    gui.set_value("z", bot._player.position.z)
+    gui.set_value("yaw", bot._player.position.yaw)
+    gui.set_value("pitch", bot._player.position.pitch)
     gui.set_value("------------------", '------------------')
 
+    # Teleport confirm.
     bot.to_send_queue.put(packet_creator.play.teleport_confirm(teleport_id))
+
+    # Answer player position and look.
+    bot.to_send_queue.put(
+        packet_creator.play.player_position_and_look(bot._player.position,
+                                                     bot._player.on_ground))
 
 
 def use_bed(bot, data: bytes):
