@@ -131,7 +131,54 @@ def _pack_data(data: Any) -> bytes:
         return data
 
 
-def pack_payload(packet_id: bytes, arr_with_payload) -> bytes:
+def pack_float(value: float) -> bytes:
+    """
+    Pack float into 4 bytes and returns them.
+
+    :param value: value to be packed
+    :return: bytes of packed float
+    :rtype: bytes
+    """
+    return struct.pack("!f", value)
+
+
+def pack_double(value: float) -> bytes:
+    """
+    Pack float into 8 bytes and returns them.
+
+    :param value: value to be packed
+    :return: bytes of packed float
+    :rtype: bytes
+    """
+    return struct.pack("!d", value)
+
+
+def pack_byte(value) -> bytes:
+    """
+    Pack value into 1 byte and return this.
+
+    :param value: value to be packed
+    :return: bytes of packed float
+    :rtype: bytes
+    """
+    return struct.pack("!b", value)
+
+
+def pack_bool(value: bool) -> bytes:
+    """
+    Pack value into 1 byte and return this.
+
+    :param value: value to be packed
+    :return: bytes of packed float
+    :rtype: bytes
+    """
+
+    if value:
+        return b'\x01'
+    return b'\x00'
+
+
+def pack_data(packet_id: bytes, arr_with_payload) -> bytes:
     """
     Packs packet_id and data from arr_with_payload into blob of data.
 
