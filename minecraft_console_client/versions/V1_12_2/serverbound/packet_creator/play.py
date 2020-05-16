@@ -1,10 +1,11 @@
 import misc.utils as utils
 from versions.V1_12_2.serverbound.packet_id import play
+from data_structures.position import Position
 
 
 def teleport_confirm(teleport_id: bytes) -> bytes:
     """ Return packet with confirmation for Player Position And Look. """
-    return utils.pack_payload(play.TELEPORT_CONFIRM, [teleport_id])
+    return utils.pack_data(play.TELEPORT_CONFIRM, [teleport_id])
 
 
 def tabcomplete() -> bytes:
@@ -17,9 +18,12 @@ def chat_message() -> bytes:
     return packed_packet
 
 
-def client_status() -> bytes:
-    packed_packet = b''
-    return packed_packet
+def client_status(action_id: int) -> bytes:
+    try:
+        ac_id = [b'\x00', b'\x01'][action_id]
+    except IndexError:
+        ac_id = utils.convert_to_varint(action_id)
+    return utils.pack_data(play.CLIENT_STATUS, [ac_id])
 
 
 def client_settings() -> bytes:
@@ -58,7 +62,7 @@ def use_entity() -> bytes:
 
 
 def keep_alive(keep_alive_id: bytes) -> bytes:
-    return utils.pack_payload(play.TELEPORT_CONFIRM, keep_alive_id)
+    return utils.pack_data(play.TELEPORT_CONFIRM, keep_alive_id)
 
 
 def player() -> bytes:
@@ -71,9 +75,15 @@ def player_position() -> bytes:
     return packed_packet
 
 
-def player_position_and_look() -> bytes:
-    packed_packet = b''
-    return packed_packet
+def player_position_and_look(position: Position, on_ground: bool) -> bytes:
+    return b''.join((play.PLAYER_POSITION_AND_LOOK,
+                     utils.pack_double(position.x),
+                     utils.pack_double(position.y),
+                     utils.pack_double(position.z),
+                     utils.pack_float(position.yaw),
+                     utils.pack_float(position.pitch),
+                     utils.pack_bool(on_ground))
+                    )
 
 
 def player_look() -> bytes:
