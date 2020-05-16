@@ -39,8 +39,8 @@ class GUI(tk.Tk):
         self.hotbar.grid()
         self.chat.grid()
 
-        self.keep_alive()
         print("Created gui")
+        self.keep_alive()
 
     # TODO: optimize
     def add_to_chat(self, message):
@@ -85,6 +85,7 @@ class GUI(tk.Tk):
 
     def keep_alive(self):
         """ Keeps window not frozen. """
-        self.after(1000, self.keep_alive)
-        self.update()
+        # self.update_idletasks()
+        # self.update()
+        # self.after(100, self.keep_alive)
 
