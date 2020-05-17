@@ -1,6 +1,9 @@
 import logging
 import socket
 import zlib
+import threading
+import queue
+import time
 
 logger = logging.getLogger('mainLogger')
 
@@ -25,6 +28,11 @@ class Connection:
     """
     _compression_threshold = -1
     __connection: socket.socket = None
+
+    __listener: threading.Thread = None
+    __sender: threading.Thread = None
+
+    __ready = threading.Event()
 
     def __init__(self):
         self.__connection = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -148,6 +156,63 @@ class Connection:
 
         self.__connection.sendall(packet)
 
+    def start_listener(self, received_queue: queue.Queue) -> bool:
+        """
+        Similar to start_sending.
+        Starts new thread-daemon that listens packets incoming from server.
+        When received packet (if need) - decompresses,
+        then inserts it into self.received_queue.
+        Thread ends when received packet longer or shorted than declared,
+        len(packet) or declared length equals zero.
+        When connection has been interrupted puts b'' into queue.
+
+        :param received_queue: where to put received packets
+        :returns started successfully
+        :rtype bool
+        """
+
+        if self.__listener is not None and self.__listener.is_alive():
+            logger.error("Listener already started")
+            return False
+
+        self.__listener = threading.Thread(target=self.__start_listening,
+                                           args=(received_queue,
+                                                 self.__ready,
+                                                 0.001),
+                                           daemon=True
+                                           )
+        try:
+            self.__listener.start()
+            self.__ready.wait(15)
+        except Exception:
+            return False
+        return True
+
+    def start_sender(self, to_send_queue: queue.Queue) -> bool:
+        """
+        Similar to start_listening.
+        Starts new thread-daemon which waits for packets to appear in
+        self.to_send_queue then sends it to server.
+
+        :param to_send_queue: from where send packets
+        :returns started successfully
+        :rtype bool
+        """
+        if self.__sender is not None and self.__sender.is_alive():
+            logger.error("Sender already started")
+            return False
+
+        self.__sender = threading.Thread(target=self.__start_sending,
+                                         args=(to_send_queue, self.__ready),
+                                         daemon=True
+                                         )
+        try:
+            self.__sender.start()
+            self.__ready.wait(15)
+        except Exception:
+            return False
+        return True
+
     def __read_packet_length(self) -> int:
         """
         Reads and unpacks unknown length (up to 5 bytes) VarInt.
@@ -191,4 +256,116 @@ class Connection:
             logger.debug("Closed socket")
         except:
             pass
+
+        # Closing connection makes listener exit.
+        if self.__listener.is_alive():
+            logger.debug("Waiting for listener to end")
+            try:
+                self.__listener.join(timeout=10)
+            except TimeoutError:
+                logger.error("Cannot stop listener.")
+        else:
+            logger.debug("Listener is already closed")
+
+        # When listener exits, sends packet that exits sender.
+        if self.__sender.is_alive():
+            logger.debug("Waiting for sender to end")
+            try:
+                self.__sender.join(timeout=10)
+            except TimeoutError:
+                logger.error("Cannot stop sender.")
+        else:
+            logger.debug("Sender is already closed")
+
         logger.info("Closed connection")
+
+    def __start_listening(self, buffer: queue.Queue, ready: threading.Event,
+                          check_delay=0.050):
+        """
+        Similar to start_sending.
+        Starts listening packets incoming from server.
+        When received packet (if need) - decompresses,
+        then inserts it into buffer.
+        It is blocking function, so has to be run in a new thread as daemon.
+        Closes when receive packet longer or shorted than declared,
+        len(packet) or declared length equals zero.
+        When connection has been interrupted puts b'' into queue.
+
+        Job:
+            Receives packets waiting to be received,
+            appends them to buffer specified in constructor,
+            sleeps for check_delay [seconds].
+            Repeat.
+
+        :param buffer: queue.Queue (FIFO) where read packets append to
+        :param ready: threading.Event object sets when thread started
+        :param check_delay: delay in seconds that
+                            specifies how long sleep between receiving packets
+        """
+
+        if not threading.current_thread().daemon:
+            raise RuntimeError(
+                "Thread running start_listening() has to start as daemon!")
+
+        ready.set()
+
+        while True:
+            size, packet = self.receive_packet()
+
+            # buffer.put() blocks if necessary until a free slot is available.
+
+            if size != len(packet):
+                logger.error(f"Packet length: {len(packet)} "
+                             f"not equal to declared size: {size}")
+
+            elif len(packet) == 0:
+                logger.error(
+                    f"Packet length: equals zero. Declared size: {size}")
+
+            elif size == 0:
+                logger.error(f"Declared packet length equals zero")
+
+            else:  # Everything is everything
+                buffer.put(packet)
+                time.sleep(check_delay)
+                continue
+
+            buffer.put(b'')
+            break
+
+        logger.info("Exiting listening thread")
+
+    def __start_sending(self, buffer: queue.Queue, ready: threading.Event):
+        """
+        Similar to start_listen.
+        Starts waiting for packets to appear in buffer then sends it to server.
+        It is blocking function, so has to be run in a new thread as daemon.
+
+        Job:
+            Freeze until packet appear in buffer,
+            send it the connection.
+            Repeat.
+
+        :param ready: threading.Event object sets when thread started
+        :param buffer: queue.Queue (FIFO) from where packets are reads
+        """
+
+        if not threading.current_thread().daemon:
+            raise RuntimeError(
+                "Thread running start_sending() has to be a daemon!")
+
+        ready.set()
+
+        while True:
+            packet = buffer.get(block=True)
+            # logger.debug(f'[SEND] size: {len(packet)}')
+            try:
+                self.sendall(packet)
+            except ConnectionAbortedError:
+                """ Client closed connection """
+                logger.info("Connection has been shut down by client. ")
+                break
+
+        logger.info("Exiting sending thread")
+
+

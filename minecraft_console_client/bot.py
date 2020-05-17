@@ -3,10 +3,6 @@ from typing import Any
 
 logger = logging.getLogger('mainLogger')
 
-import queue
-import threading
-import time
-
 from versions.version import Version
 from connection import Connection
 from misc import utils
@@ -14,6 +10,8 @@ from data_structures.game_data import GameData
 from data_structures.player import Player
 
 import versions.defaults
+
+import queue
 
 
 class Bot:
@@ -26,17 +24,15 @@ class Bot:
     PacketCreator = None
     clientbound_action_list: dict = None
 
-    received_queue: queue.Queue = queue.Queue()
-    to_send_queue: queue.Queue = queue.Queue()
+    """ Being initialized in start_listening """
+    received_queue: queue.Queue = None
+    """ Being initialized in start_sending """
+    to_send_queue: queue.Queue = None
 
     _game_data: GameData = None
     _player: Player = None
     _conn: Connection = None
 
-    __listener: threading.Thread = None
-    __sender: threading.Thread = None
-
-    __ready = threading.Event()
     __host: (str, int) = None
 
     def __init__(self, host: (str, int), version: Version, username: str):
@@ -73,18 +69,6 @@ class Bot:
         logger.info("".center(60, "-"))
 
         self._conn = Connection()
-
-        self.__listener = threading.Thread(target=self.__start_listening,
-                                           args=(self.received_queue,
-                                                 self.__ready,
-                                                 0.001),
-                                           daemon=True
-                                           )
-
-        self.__sender = threading.Thread(target=self.__start_sending,
-                                         args=(self.to_send_queue, self.__ready),
-                                         daemon=True
-                                         )
 
     def __del__(self):
         logger.info("Deleting bot")
@@ -128,47 +112,15 @@ class Bot:
 
             self._interpret_packet(packet_id, data)
 
-    def start_listening(self) -> bool:
-        """
-        Similar to start_sending.
-        Starts new thread-daemon that listens packets incoming from server.
-        When received packet (if need) - decompresses,
-        then inserts it into self.received_queue.
-        Thread ends when received packet longer or shorted than declared,
-        len(packet) or declared length equals zero.
-        When connection has been interrupted puts b'' into queue.
-
-        :returns success
-        :rtype bool
-        """
-        if self.__listener.is_alive():
-            logger.error("Listener already started")
-            return False
-        try:
-            self.__listener.start()
-            self.__ready.wait(15)
-        except Exception:
-            return False
-        return True
-
     def start_sending(self) -> bool:
-        """
-        Similar to start_listening.
-        Starts new thread-daemon which waits for packets to appear in
-        self.to_send_queue then sends it to server.
+        """ See Connection.start_sender() """
+        self.to_send_queue: queue.Queue = queue.Queue()
+        return self._conn.start_sender(self.to_send_queue)
 
-        :returns success
-        :rtype bool
-        """
-        if self.__sender.is_alive():
-            logger.error("Sender already started")
-            return False
-        try:
-            self.__sender.start()
-            self.__ready.wait(15)
-        except Exception:
-            return False
-        return True
+    def start_listening(self):
+        """ See Connection.start_listener() """
+        self.received_queue: queue.Queue = queue.Queue()
+        return self._conn.start_listener(self.received_queue)
 
     def stop(self, reason="not defined"):
         """ Shutdowns and closes connection then threads get auto-closed """
@@ -177,25 +129,6 @@ class Bot:
 
         self._conn.close()
 
-        # Closing connection makes listener exit.
-        if self.__listener.is_alive():
-            logger.debug("Waiting for listener to end")
-            try:
-                self.__listener.join(timeout=10)
-            except TimeoutError:
-                logger.error("Cannot stop listener.")
-        else:
-            logger.debug("Listener is already closed")
-
-        # When listener exits, sends packet that exits sender.
-        if self.__sender.is_alive():
-            logger.debug("Waiting for sender to end")
-            try:
-                self.__sender.join(timeout=10)
-            except TimeoutError:
-                logger.error("Cannot stop sender.")
-        else:
-            logger.debug("Sender is already closed")
         logger.debug("Stopped".center(60, '-'))
 
     def login_non_premium(self) -> bool:
@@ -290,91 +223,3 @@ class Bot:
         logger.info("Player has dead. Respawning.")
         self.to_send_queue.put(self.PacketCreator.play.client_status(0))
 
-    def __start_listening(self, buffer: queue.Queue, ready: threading.Event,
-                          check_delay=0.050):
-        """
-        Similar to start_sending.
-        Starts listening packets incoming from server.
-        When received packet (if need) - decompresses,
-        then inserts it into buffer.
-        It is blocking function, so has to be run in a new thread as daemon.
-        Closes when receive packet longer or shorted than declared,
-        len(packet) or declared length equals zero.
-        When connection has been interrupted puts b'' into queue.
-
-        Job:
-            Receives packets waiting to be received,
-            appends them to buffer specified in constructor,
-            sleeps for check_delay [seconds].
-            Repeat.
-
-        :param buffer: queue.Queue (FIFO) where read packets append to
-        :param ready: threading.Event object sets when thread started
-        :param check_delay: delay in seconds that
-                            specifies how long sleep between receiving packets
-        """
-
-        if not threading.current_thread().daemon:
-            raise RuntimeError(
-                "Thread running start_listening() has to start as daemon!")
-
-        ready.set()
-
-        while True:
-            size, packet = self._conn.receive_packet()
-
-            # buffer.put() blocks if necessary until a free slot is available.
-
-            if size != len(packet):
-                logger.error(f"Packet length: {len(packet)} "
-                             f"not equal to declared size: {size}")
-
-            elif len(packet) == 0:
-                logger.error(
-                    f"Packet length: equals zero. Declared size: {size}")
-
-            elif size == 0:
-                logger.error(f"Declared packet length equals zero")
-
-            else:  # Everything is everything
-                buffer.put(packet)
-                time.sleep(check_delay)
-                continue
-
-            buffer.put(b'')
-            break
-
-        logger.info("Exiting listening thread")
-
-    def __start_sending(self, buffer: queue.Queue, ready: threading.Event):
-        """
-        Similar to start_listen.
-        Starts waiting for packets to appear in buffer then sends it to server.
-        It is blocking function, so has to be run in a new thread as daemon.
-
-        Job:
-            Freeze until packet appear in buffer,
-            send it the connection.
-            Repeat.
-
-        :param ready: threading.Event object sets when thread started
-        :param buffer: queue.Queue (FIFO) from where packets are reads
-        """
-
-        if not threading.current_thread().daemon:
-            raise RuntimeError(
-                "Thread running start_sending() has to be a daemon!")
-
-        ready.set()
-
-        while True:
-            packet = buffer.get(block=True)
-            # logger.debug(f'[SEND] size: {len(packet)}')
-            try:
-                self._conn.sendall(packet)
-            except ConnectionAbortedError:
-                """ Client closed connection """
-                logger.info("Connection has been shut down by client. ")
-                break
-
-        logger.info("Exiting sending thread")
