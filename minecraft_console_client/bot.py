@@ -30,7 +30,6 @@ class Bot:
     to_send_queue: queue.Queue = None
 
     _game_data: GameData = None
-    _player: Player = None
     _conn: Connection = None
 
     __host: (str, int) = None
@@ -43,11 +42,11 @@ class Bot:
         """
 
         self._game_data = GameData()
-        self._player = Player()
+        self._game_data.player = Player()
 
         logger.info("Creating bot".center(60, "-"))
 
-        self._player.username = username
+        self._game_data.player.username = username
         logger.info("|" +
                     f"Username: '{username}'".center(58, " ") +
                     "|")
@@ -83,7 +82,7 @@ class Bot:
         :rtype str
         """
 
-        logger.info(f"Starting bot: '{self._player.username}'")
+        logger.info(f"Starting bot: '{self._game_data.player.username}'")
 
         if not self.connect_to_server():
             return "Can't connect to the server"
@@ -124,8 +123,8 @@ class Bot:
 
     def stop(self, reason="not defined"):
         """ Shutdowns and closes connection then threads get auto-closed """
-        logger.info(
-            f"Stopping bot '{self._player.username}'. Reason: {reason}")
+        logger.info(f"Stopping bot '{self._game_data.player.username}'. "
+                    f""f"Reason: {reason}")
 
         self._conn.close()
 
@@ -146,7 +145,7 @@ class Bot:
 
         self.to_send_queue.put(
             self.version_data.PacketCreator.login.login_start(
-                self._player.username))
+                self._game_data.player.username))
 
         # Try to log in for 50 sec (10 sec x 5 packets)
         for i in range(5):
