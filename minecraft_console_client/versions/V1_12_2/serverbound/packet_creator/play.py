@@ -70,9 +70,13 @@ def player() -> bytes:
     return packed_packet
 
 
-def player_position() -> bytes:
-    packed_packet = b''
-    return packed_packet
+def player_position(position: Position, on_ground: bool) -> bytes:
+    return b''.join((play.PLAYER_POSITION,
+                     utils.pack_double(position.x),
+                     utils.pack_double(position.y),
+                     utils.pack_double(position.z),
+                     utils.pack_bool(on_ground))
+                    )
 
 
 def player_position_and_look(position: Position, on_ground: bool) -> bytes:
@@ -86,9 +90,12 @@ def player_position_and_look(position: Position, on_ground: bool) -> bytes:
                     )
 
 
-def player_look() -> bytes:
-    packed_packet = b''
-    return packed_packet
+def player_look(position: Position, on_ground: bool) -> bytes:
+    return b''.join((play.PLAYER_LOOK,
+                     utils.pack_float(position.yaw),
+                     utils.pack_float(position.pitch),
+                     utils.pack_bool(on_ground))
+                    )
 
 
 def vehicle_move() -> bytes:
