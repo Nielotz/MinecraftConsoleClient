@@ -71,7 +71,7 @@ class Bot:
 
     def __del__(self):
         logger.info("Deleting bot")
-        self.stop("Shutting down bot")  # Temporally
+        self.exit("Shutting down bot")  # Temporally
 
     def start(self) -> str:
         """
@@ -121,7 +121,7 @@ class Bot:
         self.received_queue: queue.Queue = queue.Queue()
         return self._conn.start_listener(self.received_queue)
 
-    def stop(self, reason="not defined"):
+    def exit(self, reason="not defined"):
         """ Shutdowns and closes connection then threads get auto-closed """
         logger.info(f"Stopping bot '{self._game_data.player.username}'. "
                     f""f"Reason: {reason}")

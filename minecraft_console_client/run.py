@@ -17,4 +17,4 @@ def run():
     bot: Bot = Bot(host=server_data, version=game_version, username=username)
 
     message = bot.start()
-    bot.stop(message or "normal exit")
+    bot.exit(message or "normal exit")
