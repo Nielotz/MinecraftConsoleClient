@@ -75,23 +75,25 @@ def player_position_and_look(bot, data: bytes):
         bot._game_data.player.position.z = z
 
     if flags & 0x08:
-        bot._game_data.player.position.yaw += yaw
+        bot._game_data.player.look_yaw += yaw
     else:
-        bot._game_data.player.position.yaw = yaw
+        bot._game_data.player.look_yaw = yaw
 
     if flags & 0x10:
-        bot._game_data.player.position.pitch += pitch
+        bot._game_data.player.look_pitch += pitch
     else:
-        bot._game_data.player.position.pitch = pitch
+        bot._game_data.player.look_pitch = pitch
 
-    logger.debug(f"Player pos: {bot._game_data.player.position}")
+    logger.debug(f"Player pos: {bot._game_data.player.position} ")
+    logger.debug(f"Look: yaw: {bot._game_data.player.look_yaw}, "
+                 f"pitch: {bot._game_data.player.look_pitch}")
 
     gui.set_value("Player position", '------------------')
     gui.set_value("x", bot._game_data.player.position.x)
     gui.set_value("y", bot._game_data.player.position.y)
     gui.set_value("z", bot._game_data.player.position.z)
-    gui.set_value("yaw", bot._game_data.player.position.yaw)
-    gui.set_value("pitch", bot._game_data.player.position.pitch)
+    gui.set_value("yaw", bot._game_data.player.look_yaw)
+    gui.set_value("pitch", bot._game_data.player.look_pitch)
     gui.set_value("------------------", '------------------')
 
     # Teleport confirm.
@@ -99,8 +101,10 @@ def player_position_and_look(bot, data: bytes):
 
     # Answer player position and look.
     bot.to_send_queue.put(
-        packet_creator.play.player_position_and_look(bot._game_data.player.position,
-                                                     bot._game_data.player.on_ground))
+        packet_creator.play.player_position_and_look(
+            bot._game_data.player.position,
+            [bot._game_data.player.look_yaw, bot._game_data.player.look_pitch],
+            bot._game_data.player.on_ground))
 
 
 def use_bed(bot, data: bytes):

@@ -79,21 +79,25 @@ def player_position(position: Position, on_ground: bool) -> bytes:
                     )
 
 
-def player_position_and_look(position: Position, on_ground: bool) -> bytes:
+def player_position_and_look(position: Position,
+                             look: (float, float),
+                             on_ground: bool) -> bytes:
+    """ :param look: (yaw, pitch)"""
+
     return b''.join((play.PLAYER_POSITION_AND_LOOK,
                      utils.pack_double(position.x),
                      utils.pack_double(position.y),
                      utils.pack_double(position.z),
-                     utils.pack_float(position.yaw),
-                     utils.pack_float(position.pitch),
+                     utils.pack_float(look[0]),
+                     utils.pack_float(look[1]),
                      utils.pack_bool(on_ground))
                     )
 
 
-def player_look(position: Position, on_ground: bool) -> bytes:
+def player_look(look: (float, float), on_ground: bool) -> bytes:
     return b''.join((play.PLAYER_LOOK,
-                     utils.pack_float(position.yaw),
-                     utils.pack_float(position.pitch),
+                     utils.pack_float(look[0]),
+                     utils.pack_float(look[1]),
                      utils.pack_bool(on_ground))
                     )
 
