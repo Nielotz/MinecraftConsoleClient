@@ -1,7 +1,7 @@
 from data_structures.position import Position
 
 
-class Mob:
+class Entity:
     entity_id: int = None
     position: Position = None
     look_yaw: float = 0

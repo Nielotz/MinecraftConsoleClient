@@ -1,8 +1,8 @@
-from data_structures.mob import Mob
+from data_structures.entity import Entity
 from data_structures.position import Position
 
 
-class Player(Mob):
+class Player(Entity):
     uuid: str = None
     gamemode: int = None
     is_hardcore: bool = None
