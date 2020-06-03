@@ -179,8 +179,7 @@ class Connection:
                                            args=(received_queue,
                                                  self.__ready,
                                                  0.001),
-                                           daemon=True
-                                           )
+                                           daemon=True)
         try:
             self.__listener.start()
             self.__ready.wait(15)
