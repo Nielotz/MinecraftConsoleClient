@@ -8,7 +8,5 @@ class Entity:
     look_pitch: float = 0
     health: float = None
     on_ground: bool = None
-    velocity_x: int = None
-    velocity_y: int = None
-    velocity_z: int = None
+    velocity: [int, int, int] = [None, None, None]  # (x, y, z)
 
