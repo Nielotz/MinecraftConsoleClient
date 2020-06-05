@@ -12,7 +12,7 @@ def set_compression(bot, data: bytes):
     threshold = utils.unpack_varint(data)[0]
     bot._conn.set_compression(threshold)
 
-    gui.set_value("compression threshold", threshold)
+    gui.set_labels(("compression threshold", threshold))
 
     if threshold < 0:
         logger.info(f"Compression is disabled")

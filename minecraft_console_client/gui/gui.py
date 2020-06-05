@@ -1,3 +1,5 @@
+from typing import Any
+
 import tkinter as tk
 
 gui = None
@@ -59,16 +61,23 @@ class GUI(tk.Tk):
 
         self.update()
 
-    def set_value(self, target: str, value):
-        """ Display 'target: value' """
-        if target in self.data:
-            self.data[target]['text'] = f"{target}: {value}"
-        else:
-            self.data[target] = tk.Label(master=self.data_frame,
-                                         text=f"{target}: {value}",
-                                         width=50,
-                                         anchor="w")
-            self.data[target].grid(column=0)
+    def set_labels(self, *labels: (str, Any)):
+        """
+        Display 'name: value' for pair in labels.
+
+        :param labels: tuple of pairs
+        """
+        for label in labels:
+            name = label[0]
+            value = label[1]
+            if name in self.data:
+                self.data[name]['text'] = f"{name}: {value}"
+            else:
+                self.data[name] = tk.Label(master=self.data_frame,
+                                           text=f"{name}: {value}",
+                                           width=50,
+                                           anchor="w")
+                self.data[name].grid(column=0)
 
         self.update()
 
@@ -77,9 +86,9 @@ class GUI(tk.Tk):
         pass
 
     def close(self):
-        """ Closes tkinter window, and changes set_value() to do_nothing() """
+        """ Closes tkinter window, and changes set_labels(() to do_nothing() """
         import types
-        self.set_value = types.MethodType(self.do_nothing, self)
+        self.set_labels = types.MethodType(self.do_nothing, self)
         self.destroy()
         print("Closed gui")
 
