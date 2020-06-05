@@ -2,19 +2,18 @@ from typing import Union
 
 
 class Position:
-    x = None
-    y = None
-    z = None
+    pos = {'x': None, 'y': None, 'z': None}
 
     def __init__(self, pos: (int, int, int)):
         """ pos = (x, y, z)"""
-        self.x = pos[0]
-        self.y = pos[1]
-        self.z = pos[2]
+        self.pos['x'] = pos[0]
+        self.pos['y'] = pos[1]
+        self.pos['z'] = pos[2]
 
-    def get(self):
-        """ Returns tuple (x, y, z)"""
-        return self.x, self.y, self.z
+    def get_list(self):
+        pos = self.pos
+        return pos['x'], pos['y'], pos['z']
 
     def __repr__(self):
-        return f"[x: {self.x}, y: {self.y}, z: {self.z}]"
+
+        return f"[x: {self.pos['x']}, y: {self.pos['y']}, z: {self.pos['z']}]"
