@@ -88,13 +88,13 @@ def player_position_and_look(bot, data: bytes):
                  f"Look: yaw: {bot._game_data.player.look_yaw}, "
                  f"pitch: {bot._game_data.player.look_pitch}")
 
-    gui.set_labels((("Player position", '------------------'),
-                    ("x", bot._game_data.player.position.x),
-                    ("y", bot._game_data.player.position.y),
-                    ("z", bot._game_data.player.position.z),
-                    ("yaw", bot._game_data.player.look_yaw),
-                    ("pitch", bot._game_data.player.look_pitch),
-                    ("------------------", '------------------')))
+    gui.set_labels(("Player position", '------------------'),
+                   ("x", bot._game_data.player.position.x),
+                   ("y", bot._game_data.player.position.y),
+                   ("z", bot._game_data.player.position.z),
+                   ("yaw", bot._game_data.player.look_yaw),
+                   ("pitch", bot._game_data.player.look_pitch),
+                   ("------------------", '------------------'))
 
     # Teleport confirm.
     bot.to_send_queue.put(packet_creator.play.teleport_confirm(teleport_id))
@@ -386,9 +386,9 @@ def server_difficulty(bot, data: bytes):
     bot._game_data.difficulty = utils.extract_unsigned_byte(data)[0]
     logger.debug(f"Server difficulty: {bot._game_data.difficulty}")
 
-    gui.set_labels((("game difficulty",
+    gui.set_labels(("game difficulty",
                    {0: "peaceful", 1: "easy", 2: "normal", 3: "hard"}
-                   .get(bot._game_data.difficulty))))
+                   .get(bot._game_data.difficulty)))
 
 
 def boss_bar(bot, data: bytes):
@@ -521,12 +521,12 @@ def join_game(bot, data: bytes):
                 f"game level_type: {bot._game_data.level_type}, "
                 )
 
-    gui.set_labels((("player_id", bot._game_data.player.entity_id),
-                    ("gamemode", bot._game_data.player.gamemode),
-                    ("is_hardcore", bot._game_data.player.is_hardcore),
-                    ("dimension", bot._game_data.player.dimension),
-                    ("game difficulty", bot._game_data.difficulty),
-                    ("game level_type", bot._game_data.level_type)))
+    gui.set_labels(("player_id", bot._game_data.player.entity_id),
+                   ("gamemode", bot._game_data.player.gamemode),
+                   ("is_hardcore", bot._game_data.player.is_hardcore),
+                   ("dimension", bot._game_data.player.dimension),
+                   ("game difficulty", bot._game_data.difficulty),
+                   ("game level_type", bot._game_data.level_type))
 
 
 def map(bot, data: bytes):
