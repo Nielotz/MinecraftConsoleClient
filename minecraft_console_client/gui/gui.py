@@ -44,7 +44,7 @@ class GUI(tk.Tk):
         print("Created gui")
         self.keep_alive()
 
-    # TODO: optimize
+    # TODO: optimize, add colors, fireworks etc.
     def add_to_chat(self, message):
         self.chat_messages.append(message)
         if len(self.chat_messages) > 20:
@@ -68,8 +68,7 @@ class GUI(tk.Tk):
         :param labels: tuple of pairs
         """
         for label in labels:
-            name = label[0]
-            value = label[1]
+            name, value = label
             if name in self.data:
                 self.data[name]['text'] = f"{name}: {value}"
             else:
@@ -94,6 +93,8 @@ class GUI(tk.Tk):
 
     def keep_alive(self):
         """ Keeps window not frozen. """
+        # Not worth worrying. GUI has to be changed anyway to enable buttons.
+
         # self.update_idletasks()
         # self.update()
         # self.after(100, self.keep_alive)
