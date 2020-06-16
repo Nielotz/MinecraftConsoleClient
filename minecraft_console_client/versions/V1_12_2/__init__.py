@@ -8,7 +8,7 @@ class VersionData(versions.defaults.VersionData):
     protocol_version_number = 340
     protocol_version_varint = b'\xd4\x02'  # Can be calculated using utils
 
-    PacketCreator = None
+    packet_creator = None
     action_list = None
 
 
@@ -17,5 +17,5 @@ import versions.V1_12_2.clientbound.action_list as clientbound_action_list
 
 
 
-VersionData.PacketCreator = packet_creator
+VersionData.packet_creator = packet_creator
 VersionData.action_list = clientbound_action_list.action_list

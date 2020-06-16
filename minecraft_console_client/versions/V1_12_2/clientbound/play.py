@@ -59,41 +59,44 @@ def player_position_and_look(bot, data: bytes):
     pitch, data = utils.extract_float(data)
     flags, teleport_id = utils.extract_byte(data)
 
+    player = bot._game_data.player
+    player_pos = player.position.pos
+
     if flags & 0x01:
-        bot._game_data.player.position.x += x
+        player_pos["x"] += x
     else:
-        bot._game_data.player.position.x = x
+        player_pos["x"] = x
 
     if flags & 0x02:
-        bot._game_data.player.position.y += y
+        player_pos["y"] += y
     else:
-        bot._game_data.player.position.y = y
+        player_pos["y"] = y
 
     if flags & 0x04:
-        bot._game_data.player.position.z += z
+        player_pos["z"] += z
     else:
-        bot._game_data.player.position.z = z
+        player_pos["z"] = z
 
     if flags & 0x08:
-        bot._game_data.player.look_yaw += yaw
+        player.look_yaw += yaw
     else:
-        bot._game_data.player.look_yaw = yaw
+        player.look_yaw = yaw
 
     if flags & 0x10:
-        bot._game_data.player.look_pitch += pitch
+        player.look_pitch += pitch
     else:
-        bot._game_data.player.look_pitch = pitch
+        player.look_pitch = pitch
 
-    logger.debug(f"Player pos: {bot._game_data.player.position} "
-                 f"Look: yaw: {bot._game_data.player.look_yaw}, "
-                 f"pitch: {bot._game_data.player.look_pitch}")
+    logger.debug(f"Player pos: {player_pos} "
+                 f"Look: yaw: {player.look_yaw}, "
+                 f"pitch: {player.look_pitch}")
 
     gui.set_labels(("Player position", '------------------'),
-                   ("x", bot._game_data.player.position.x),
-                   ("y", bot._game_data.player.position.y),
-                   ("z", bot._game_data.player.position.z),
-                   ("yaw", bot._game_data.player.look_yaw),
-                   ("pitch", bot._game_data.player.look_pitch),
+                   ("x", player_pos["x"]),
+                   ("y", player_pos["y"]),
+                   ("z", player_pos["z"]),
+                   ("yaw", player.look_yaw),
+                   ("pitch", player.look_pitch),
                    ("------------------", '------------------'))
 
     # Teleport confirm.
@@ -102,9 +105,9 @@ def player_position_and_look(bot, data: bytes):
     # Answer player position and look.
     bot.to_send_queue.put(
         packet_creator.play.player_position_and_look(
-            bot._game_data.player.position,
-            [bot._game_data.player.look_yaw, bot._game_data.player.look_pitch],
-            bot._game_data.player.on_ground))
+            player.position.get_list(),
+            [player.look_yaw, player.look_pitch],
+            player.on_ground))
 
 
 def use_bed(bot, data: bytes):
@@ -128,22 +131,24 @@ def resource_pack_send(bot, data: bytes):
 
 
 def respawn(bot, data: bytes):
-    bot._game_data.player.dimension, data = utils.extract_int(data)
-    bot._game_data.difficulty = data[0]
-    bot._game_data.player.gamemode = data[1]
-    bot._game_data.level_type = utils.extract_string(data[2:])[0]
+    game_data = bot._game_data
+
+    game_data.player.dimension, data = utils.extract_int(data)
+    game_data.difficulty = data[0]
+    game_data.player.gamemode = data[1]
+    game_data.level_type = utils.extract_string(data[2:])[0]
 
     logger.info(f"Player respawn: "
-                f"gamemode: {bot._game_data.player.gamemode}, "
-                f"dimension: {bot._game_data.player.dimension}, "
-                f"game difficulty: {bot._game_data.difficulty}, "
-                f"game level_type: {bot._game_data.level_type}, "
+                f"gamemode: {game_data.player.gamemode}, "
+                f"dimension: {game_data.player.dimension}, "
+                f"game difficulty: {game_data.difficulty}, "
+                f"game level_type: {game_data.level_type}, "
                 )
 
-    gui.set_labels(("dimension", bot._game_data.player.dimension),
-                   ("game difficulty", bot._game_data.difficulty),
-                   ("gamemode", bot._game_data.player.gamemode),
-                   ("game level_type", bot._game_data.level_type))
+    gui.set_labels(("dimension", game_data.player.dimension),
+                   ("game difficulty", game_data.difficulty),
+                   ("gamemode", game_data.player.gamemode),
+                   ("game level_type", game_data.level_type))
 
 
 def entity_head_look(bot, data: bytes):
@@ -163,10 +168,12 @@ def camera(bot, data: bytes):
 
 
 def held_item_change(bot, data: bytes):
-    bot._game_data.player.active_slot = utils.extract_byte(data)[0]
-    logger.debug(f"Held slot changed to {bot._game_data.player.active_slot}")
+    player = bot._game_data.player
 
-    gui.set_labels(("Held slot", bot._game_data.player.active_slot))
+    player.active_slot = utils.extract_byte(data)[0]
+    logger.debug(f"Held slot changed to {player.active_slot}")
+
+    gui.set_labels(("Held slot", player.active_slot))
 
 
 def display_scoreboard(bot, data: bytes):
@@ -194,19 +201,21 @@ def set_experience(bot, data: bytes):
 
 
 def update_health(bot, data: bytes):
-    bot._game_data.player.health, data = utils.extract_float(data)
-    bot._game_data.player.food, data = utils.unpack_varint(data)
-    bot._game_data.player.food_saturation = utils.extract_float(data)[0]
+    player = bot._game_data.player
 
-    logger.info(f"Updated player. Health: {bot._game_data.player.health} "
-                f"Food: {bot._game_data.player.food} "
-                f"Food_saturation: {bot._game_data.player.food_saturation}")
+    player.health, data = utils.extract_float(data)
+    player.food, data = utils.unpack_varint(data)
+    player.food_saturation = utils.extract_float(data)[0]
 
-    gui.set_labels(("health", bot._game_data.player.health),
-                   ("food", bot._game_data.player.food),
-                   ("food_saturation", bot._game_data.player.food_saturation))
+    logger.info(f"Updated player. Health: {player.health} "
+                f"Food: {player.food} "
+                f"Food_saturation: {player.food_saturation}")
 
-    if not bot._game_data.player.health > 0:
+    gui.set_labels(("health", player.health),
+                   ("food", player.food),
+                   ("food_saturation", player.food_saturation))
+
+    if not player.health > 0:
         bot.on_death()
 
 
@@ -227,10 +236,12 @@ def update_score(bot, data: bytes):
 
 
 def spawn_position(bot, data: bytes):
-    bot._game_data.player.position = utils.extract_position(data)[0]
-    logger.info(f"Changed player spawn position to {bot._game_data.player.position}")
+    position = bot._game_data.player.position
 
-    gui.set_labels(("Spawn position", bot._game_data.player.position))
+    position = utils.extract_position(data)[0]
+    logger.info(f"Changed player spawn position to {position}")
+
+    gui.set_labels(("Spawn position", position))
 
 
 def time_update(bot, data: bytes):
@@ -383,12 +394,15 @@ def update_block_entity(bot, data: bytes):
 
 
 def server_difficulty(bot, data: bytes):
-    bot._game_data.difficulty = utils.extract_unsigned_byte(data)[0]
-    logger.debug(f"Server difficulty: {bot._game_data.difficulty}")
+    difficulty = utils.extract_unsigned_byte(data)[0]
+
+    bot._game_data.difficulty = difficulty
+
+    logger.debug(f"Server difficulty: {difficulty}")
 
     gui.set_labels(("game difficulty",
                    {0: "peaceful", 1: "easy", 2: "normal", 3: "hard"}
-                   .get(bot._game_data.difficulty)))
+                   .get(difficulty)))
 
 
 def boss_bar(bot, data: bytes):
@@ -406,49 +420,50 @@ def block_change(bot, data: bytes):
 def change_game_state(bot, data: bytes):
     value = utils.extract_float(data[1:])[0]
     # reason = data[0]  # reason = utils.extract_unsigned_byte()[0]
+    game_data = bot._game_data
 
     # TODO: Do sth with this:
 
-    def invalid_bed(bot, value: float):
+    def invalid_bed(value: float):
         logger.info("Invalid bed")
         gui.add_to_hotbar("Invalid bed")
 
-    def end_raining(bot, _):
-        bot._game_data.is_raining = False
+    def end_raining(_):
+        game_data.is_raining = False
         logger.info("Stopped raining")
         gui.set_labels(("game: is_raining: ", False))
 
-    def begin_raining(bot, _):
-        bot._game_data.is_raining = True
+    def begin_raining(_):
+        game_data.is_raining = True
         logger.info("Started raining")
         gui.set_labels(("game: is_raining: ", True))
 
-    def change_gamemode(bot, value: float):
-        bot._game_data.player.gamemode = {
+    def change_gamemode(value: float):
+        game_data.player.gamemode = {
             0: "survival",
             1: "creative",
             2: "adventure",
             3: "spectator",
         }.get(round(value))
-        logger.info(f"Updated gamemode: {bot._game_data.player.gamemode}")
-        gui.set_labels((f"gamemode", bot._game_data.player.gamemode))
+        logger.info(f"Updated gamemode: {game_data.player.gamemode}")
+        gui.set_labels((f"gamemode", game_data.player.gamemode))
 
-    def exit_end(bot, value: float):
+    def exit_end(value: float):
         pass
 
-    def demo_message(bot, value: float):
+    def demo_message(value: float):
         pass
 
     def arrow_hitting_player(bot, value: float):
         logger.info("An arrow hit a player")
 
-    def fade_value(bot, value: float):
+    def fade_value(value: float):
         pass
 
-    def fade_time(bot, value: float):
+    def fade_time(value: float):
         pass
 
-    def play_elder_guardian_mob_appearance(bot, value: float):
+    def play_elder_guardian_mob_appearance(value: float):
         pass
 
     {
@@ -462,7 +477,7 @@ def change_game_state(bot, data: bytes):
         7: fade_value,
         8: fade_time,
         10: play_elder_guardian_mob_appearance,
-    }.get(data[0])(bot, value)
+    }.get(data[0])(value)
 
 
 def keep_alive(bot, data: bytes):
@@ -482,22 +497,25 @@ def particle(bot, data: bytes):
 
 
 def join_game(bot, data: bytes):
-    bot._game_data.player.entity_id, data = utils.extract_int(data)
+    game_data = bot._game_data
+    player = game_data.player
+
+    player.entity_id, data = utils.extract_int(data)
 
     gamemode, data = utils.extract_unsigned_byte(data)
 
-    bot._game_data.player.gamemode = {
+    player.gamemode = {
         0: "survival",
         1: "creative",
         2: "adventure",
         3: "spectator",
     }.get(gamemode & 0b00000111)
 
-    bot._game_data.player.is_hardcore = bool(gamemode >> 3)
+    player.is_hardcore = bool(gamemode >> 3)
 
-    bot._game_data.player.dimension, data = utils.extract_int(data)
+    player.dimension, data = utils.extract_int(data)
 
-    bot._game_data.difficulty, data = \
+    game_data.difficulty, data = \
         utils.extract_unsigned_byte(data)
 
     """ 
@@ -508,25 +526,25 @@ def join_game(bot, data: bytes):
     data = data[1:]
 
     # default, flat, largeBiomes, amplified, default_1_1
-    bot._game_data.level_type = utils.extract_string(data)[0]
+    game_data.level_type = utils.extract_string(data)[0]
 
     # Reduced Debug Info
     # bot.player._server_data["RDI"], data = utils.extract_boolean(data)
     logger.info(f"Join game read: "
-                f"player_id: {bot._game_data.player.entity_id}, "
-                f"gamemode: {bot._game_data.player.gamemode}, "
-                f"hardcore: {bot._game_data.player.is_hardcore}, "
-                f"dimension: {bot._game_data.player.dimension}, "
-                f"game difficulty: {bot._game_data.difficulty}, "
-                f"game level_type: {bot._game_data.level_type}, "
+                f"player_id: {player.entity_id}, "
+                f"gamemode: {player.gamemode}, "
+                f"hardcore: {player.is_hardcore}, "
+                f"dimension: {player.dimension}, "
+                f"game difficulty: {game_data.difficulty}, "
+                f"game level_type: {game_data.level_type}, "
                 )
 
-    gui.set_labels(("player_id", bot._game_data.player.entity_id),
-                   ("gamemode", bot._game_data.player.gamemode),
-                   ("is_hardcore", bot._game_data.player.is_hardcore),
-                   ("dimension", bot._game_data.player.dimension),
-                   ("game difficulty", bot._game_data.difficulty),
-                   ("game level_type", bot._game_data.level_type))
+    gui.set_labels(("player_id", player.entity_id),
+                   ("gamemode", player.gamemode),
+                   ("is_hardcore", player.is_hardcore),
+                   ("dimension", player.dimension),
+                   ("game difficulty", game_data.difficulty),
+                   ("game level_type", game_data.level_type))
 
 
 def map(bot, data: bytes):
@@ -562,32 +580,36 @@ def craft_recipe_response(bot, data: bytes):
 
 
 def player_abilities(bot, data: bytes):
+    player = bot._game_data.player
+
     flags, data = utils.extract_byte(data)
-    bot._game_data.player.is_invulnerable = bool(flags & 0x01)
-    bot._game_data.player.is_flying = bool(flags & 0x02)
-    bot._game_data.player.is_allow_flying = bool(flags & 0x04)
-    bot._game_data.player.is_creative_mode = bool(flags & 0x08)
+    player.is_invulnerable = bool(flags & 0x01)
+    player.is_flying = bool(flags & 0x02)
+    player.is_allow_flying = bool(flags & 0x04)
+    player.is_creative_mode = bool(flags & 0x08)
 
-    bot._game_data.player.flying_speed, data = utils.extract_float(data)
+    player.flying_speed, data = utils.extract_float(data)
 
-    bot._game_data.player.fov_modifier = utils.extract_float(data)[0]
+    player.fov_modifier = utils.extract_float(data)[0]
 
     logger.info("Player abilities changed: "
-                f"invulnerable: {bot._game_data.player.is_invulnerable}, "
-                f"flying: {bot._game_data.player.is_flying}, "
-                f"allow_flying: {bot._game_data.player.is_allow_flying}, "
-                f"creative_mode: {bot._game_data.player.is_creative_mode}")
+                f"invulnerable: {player.is_invulnerable}, "
+                f"flying: {player.is_flying}, "
+                f"allow_flying: {player.is_allow_flying}, "
+                f"creative_mode: {player.is_creative_mode}")
 
-    gui.set_labels(("invulnerable", bot._game_data.player.is_invulnerable),
-                   ("flying", bot._game_data.player.is_flying),
-                   ("allow_flying", bot._game_data.player.is_allow_flying),
-                   ("creative_mode", bot._game_data.player.is_creative_mode))
+    gui.set_labels(("invulnerable", player.is_invulnerable),
+                   ("flying", player.is_flying),
+                   ("allow_flying", player.is_allow_flying),
+                   ("creative_mode", player.is_creative_mode))
 
 
 def disconnect(bot, data: bytes) -> NoReturn:
+    player = bot._game_data.player
+
     reason = utils.extract_json_from_chat(data)[0]
     # reason should be dict Chat type.
-    logger.error(f"{bot._game_data.player.username} has been "
+    logger.error(f"{player.username} has been "
                  f"disconnected by server. Reason: '{reason['text']}'")
     raise DisconnectedError("Disconnected by server.")
 

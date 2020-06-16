@@ -70,24 +70,32 @@ def player() -> bytes:
     return packed_packet
 
 
-def player_position(position: Position, on_ground: bool) -> bytes:
+def player_position(position: (float, float, float), on_ground: bool) -> bytes:
+    """
+    :param position: (x, y, z) of destination
+    :param on_ground: determines whether is player on ground
+    """
     return b''.join((play.PLAYER_POSITION,
-                     utils.pack_double(position.x),
-                     utils.pack_double(position.y),
-                     utils.pack_double(position.z),
+                     utils.pack_double(position[0]),
+                     utils.pack_double(position[1]),
+                     utils.pack_double(position[2]),
                      utils.pack_bool(on_ground))
                     )
 
 
-def player_position_and_look(position: Position,
+def player_position_and_look(position: (float, float, float),
                              look: (float, float),
                              on_ground: bool) -> bytes:
-    """ :param look: (yaw, pitch)"""
+    """
+    :param position: (x, y, z) of destination
+    :param look: (yaw, pitch) how to set head
+    :param on_ground: determines whether is player on ground
+    """
 
     return b''.join((play.PLAYER_POSITION_AND_LOOK,
-                     utils.pack_double(position.x),
-                     utils.pack_double(position.y),
-                     utils.pack_double(position.z),
+                     utils.pack_double(position[0]),
+                     utils.pack_double(position[1]),
+                     utils.pack_double(position[2]),
                      utils.pack_float(look[0]),
                      utils.pack_float(look[1]),
                      utils.pack_bool(on_ground))
