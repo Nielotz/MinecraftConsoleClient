@@ -53,7 +53,7 @@ class Connection:
             logger.info(f"Compression is enabled, threshold: {threshold}")
 
     def connect(self, socket_data: (str, int), timeout: int = 5):
-        """"
+        """
         Starts connection using socket_data(ip or hostname, port).
         On error raises standard socket exceptions.
 
