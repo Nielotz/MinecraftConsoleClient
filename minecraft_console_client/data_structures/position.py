@@ -2,13 +2,10 @@ from typing import Union
 
 
 class Position:
-    pos = {'x': 0.0, 'y': 0.0, 'z': 0.0}
 
     def __init__(self, x: float, y: float, z: float):
         """ pos = (x, y, z)"""
-        self.pos['x'] = x
-        self.pos['y'] = y
-        self.pos['z'] = z
+        self.pos = {'x': x, 'y': y, 'z': z}
 
     def get_list(self):
         pos = self.pos
