@@ -242,8 +242,6 @@ def update_score(bot, data: bytes):
 
 
 def spawn_position(bot, data: bytes):
-    position = bot._game_data.player.position
-
     position = utils.extract_position(data)[0]
     logger.info(f"Changed player spawn position to {position}")
 
