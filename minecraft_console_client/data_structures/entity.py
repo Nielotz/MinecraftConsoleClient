@@ -3,7 +3,7 @@ from data_structures.position import Position
 
 class Entity:
     entity_id: int = None
-    position: Position = Position(7.77777, 7.77777, 7.77777)
+    position: Position = None
     look_yaw: float = 0
     look_pitch: float = 0
     health: float = None

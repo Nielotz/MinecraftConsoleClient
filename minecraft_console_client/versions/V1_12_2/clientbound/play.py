@@ -6,6 +6,7 @@ from typing import NoReturn
 from misc import utils
 from versions.V1_12_2.serverbound import packet_creator
 from misc.exceptions import DisconnectedError
+from data_structures.position import Position
 
 from gui.gui import gui
 
@@ -60,32 +61,37 @@ def player_position_and_look(bot, data: bytes):
     flags, teleport_id = utils.extract_byte(data)
 
     player = bot._game_data.player
-    player_pos = player.position.pos
 
-    if flags & 0x01:
-        player_pos["x"] += x
+    if player.position is None:
+        player.position = Position(x, y, z)
+        player_pos = player.position.pos
     else:
-        player_pos["x"] = x
+        player_pos = player.position.pos
 
-    if flags & 0x02:
-        player_pos["y"] += y
-    else:
-        player_pos["y"] = y
+        if flags & 0x01:
+            player_pos["x"] += x
+        else:
+            player_pos["x"] = x
 
-    if flags & 0x04:
-        player_pos["z"] += z
-    else:
-        player_pos["z"] = z
+        if flags & 0x02:
+            player_pos["y"] += y
+        else:
+            player_pos["y"] = y
 
-    if flags & 0x08:
-        player.look_yaw += yaw
-    else:
-        player.look_yaw = yaw
+        if flags & 0x04:
+            player_pos["z"] += z
+        else:
+            player_pos["z"] = z
 
-    if flags & 0x10:
-        player.look_pitch += pitch
-    else:
-        player.look_pitch = pitch
+        if flags & 0x08:
+            player.look_yaw += yaw
+        else:
+            player.look_yaw = yaw
+
+        if flags & 0x10:
+            player.look_pitch += pitch
+        else:
+            player.look_pitch = pitch
 
     logger.debug(f"Player pos: {player_pos} "
                  f"Look: yaw: {player.look_yaw}, "
