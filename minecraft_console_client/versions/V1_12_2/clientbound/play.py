@@ -100,10 +100,10 @@ def player_position_and_look(bot, data: bytes):
                    ("------------------", '------------------'))
 
     # Teleport confirm.
-    bot.to_send_queue.put(packet_creator.play.teleport_confirm(teleport_id))
+    bot.send_queue.put(packet_creator.play.teleport_confirm(teleport_id))
 
     # Answer player position and look.
-    bot.to_send_queue.put(
+    bot.send_queue.put(
         packet_creator.play.player_position_and_look(
             player.position.get_list(),
             [player.look_yaw, player.look_pitch],
@@ -481,7 +481,7 @@ def change_game_state(bot, data: bytes):
 
 
 def keep_alive(bot, data: bytes):
-    bot.to_send_queue.put(packet_creator.play.keep_alive(data))
+    bot.send_queue.put(packet_creator.play.keep_alive(data))
 
 
 def chunk_data(bot, data: bytes):
