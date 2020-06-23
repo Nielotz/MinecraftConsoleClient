@@ -341,7 +341,7 @@ def extract_position(data: bytes) -> (Position, Union[bytes, None]):
     if z >= 0x2000000:  # 2 ** 25
         z -= 0x4000000  # 2 ** 26
 
-    position = Position((x, y, z))
+    position = Position(x, y, z)
 
     if len(data) > 8:
         return position, data[8:]
