@@ -53,6 +53,7 @@ def player_position_and_look(bot, data: bytes):
     """
     Auto-sends teleport confirm, and player_position_and_look (serverbound)
     """
+    _data = data[::]
     x, data = utils.extract_double(data)
     y, data = utils.extract_double(data)
     z, data = utils.extract_double(data)
@@ -93,9 +94,9 @@ def player_position_and_look(bot, data: bytes):
         else:
             player.look_pitch = pitch
 
-    logger.debug(f"Player pos: {player_pos} "
-                 f"Look: yaw: {player.look_yaw}, "
-                 f"pitch: {player.look_pitch}")
+    logger.info(f"Player pos: {player_pos} "
+                f"Look: yaw: {player.look_yaw}, "
+                f"pitch: {player.look_pitch}")
 
     gui.set_labels(("Player position", '------------------'),
                    ("x", player_pos["x"]),
@@ -107,13 +108,9 @@ def player_position_and_look(bot, data: bytes):
 
     # Teleport confirm.
     bot.send_queue.put(packet_creator.play.teleport_confirm(teleport_id))
-
     # Answer player position and look.
     bot.send_queue.put(
-        packet_creator.play.player_position_and_look(
-            player.position.get_list(),
-            [player.look_yaw, player.look_pitch],
-            player.on_ground))
+        packet_creator.play.player_position_and_look_confirmation(_data))
 
 
 def use_bed(bot, data: bytes):
@@ -551,7 +548,7 @@ def join_game(bot, data: bytes):
                    ("game level_type", game_data.level_type))
 
 
-def map(bot, data: bytes):
+def _map(bot, data: bytes):
     pass
 
 

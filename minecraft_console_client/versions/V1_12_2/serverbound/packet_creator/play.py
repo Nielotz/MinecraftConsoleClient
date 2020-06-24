@@ -62,7 +62,7 @@ def use_entity() -> bytes:
 
 
 def keep_alive(keep_alive_id: bytes) -> bytes:
-    return utils.pack_data(play.TELEPORT_CONFIRM, keep_alive_id)
+    return b''.join((play.KEEP_ALIVE, keep_alive_id))
 
 
 def player() -> bytes:
@@ -81,6 +81,16 @@ def player_position(position: (float, float, float), on_ground: bool) -> bytes:
                      utils.pack_double(position[2]),
                      utils.pack_bool(on_ground))
                     )
+
+
+def player_position_and_look_confirmation(data: bytes, on_ground: bool = False):
+    """
+    :param data: received data from server.
+    :param on_ground: determines whether is player on ground
+    """
+    #  2 floats, 3 doubles => 32 bytes
+    return b''.join((
+        play.PLAYER_POSITION_AND_LOOK, data[:32], utils.pack_bool(on_ground)))
 
 
 def player_position_and_look(position: (float, float, float),

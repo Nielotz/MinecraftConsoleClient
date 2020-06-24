@@ -144,13 +144,24 @@ def pack_float(value: float) -> bytes:
 
 def pack_double(value: float) -> bytes:
     """
-    Pack float into 8 bytes and returns them.
+    Packs float into 8 bytes and returns them.
 
     :param value: value to be packed
     :return: bytes of packed float
     :rtype: bytes
     """
     return struct.pack("!d", value)
+
+
+def pack_long(value: float) -> bytes:
+    """
+    Packs long into 8 bytes and returns them.
+
+    :param value: value to be packed
+    :return: bytes of packed long
+    :rtype: bytes
+    """
+    return struct.pack("!q", value)
 
 
 def pack_byte(value) -> bytes:

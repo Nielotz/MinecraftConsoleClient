@@ -30,6 +30,10 @@ def login_success(bot, data: bytes) -> True:
 def disconnect(bot, data: bytes) -> NoReturn:
     reason = utils.extract_json_from_chat(data)[0]
     # reason should be dict Chat type.
-    logger.error(f"{bot._game_data.player.username} has been "
-                 f"disconnected by server. Reason: '{reason['text']}'")
+    try:
+        logger.error(f"{bot._game_data.player.username} has been "
+                     f"disconnected by server. Reason: '{reason['text']}'")
+    except:
+        logger.error(f"{bot._game_data.player.username} has been "
+                     f"disconnected by server. {reason}'")
     raise DisconnectedError("Disconnected by server.")

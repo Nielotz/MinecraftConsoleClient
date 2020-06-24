@@ -4,7 +4,7 @@ from typing import Union
 class Position:
 
     def __init__(self, x: float, y: float, z: float):
-        """ pos = (x, y, z)"""
+        """ pos = (x, y, z) """
         self.pos = {'x': x, 'y': y, 'z': z}
 
     def get_list(self):

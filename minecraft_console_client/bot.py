@@ -1,5 +1,6 @@
 import logging
 from typing import Any
+import queue
 
 logger = logging.getLogger('mainLogger')
 
@@ -8,26 +9,26 @@ from connection import Connection
 from misc import utils
 from data_structures.game_data import GameData
 from data_structures.player import Player
+from data_structures.position import Position
+from action.move_manager import MoveManager
 
 import versions.defaults
-
-import queue
 
 
 class Bot:
     """
     Manages bot behavior. Highest API level
-    Imitate last stage e.g. "game" in system->client->GAME
+    Imitate last stage e.g. "game" in `os->client->GAME`
     """
 
     version_data: Version = None
-    PacketCreator = None
+    login_packet_creator = None  # Module
+    play_packet_creator = None  # Module
     clientbound_action_list: dict = None
 
-    """ Being initialized in start_listening """
     received_queue: queue.Queue = None
-    """ Being initialized in start_sending """
-    to_send_queue: queue.Queue = None
+    send_queue: queue.Queue = None
+    move_manager: MoveManager = None
 
     _game_data: GameData = None
     _conn: Connection = None
@@ -52,7 +53,10 @@ class Bot:
                     "|")
 
         self.version_data: versions.defaults.VersionData = version.value
-        self.PacketCreator = self.version_data.PacketCreator
+
+        self.play_packet_creator = self.version_data.packet_creator.play
+        self.login_packet_creator = self.version_data.packet_creator.login
+
         logger.info("|" +
                     f"Client version: '{self.version_data.release_name}'"
                     .center(58, " ") + "|")
@@ -68,6 +72,13 @@ class Bot:
         logger.info("".center(60, "-"))
 
         self._conn = Connection()
+
+        self.send_queue: queue.Queue = queue.Queue()
+        self.received_queue: queue.Queue = queue.Queue()
+
+        self.move_manager = MoveManager(self.send_queue,
+                                        self.play_packet_creator,
+                                        self._game_data.player)
 
     def __del__(self):
         logger.info("Deleting bot")
@@ -103,22 +114,22 @@ class Bot:
         if not self.switch_action_packets("play"):
             return "Can't assign 'play' action packet."
 
+        self.move_manager.start()
+        self.move_manager.add_target_position(Position(289, 64, -25))
         while True:
             data = self.received_queue.get(timeout=10)
+
             if len(data) == 0:
                 return "Received 0 bytes"
             packet_id, data = utils.unpack_varint(data)
-
             self._interpret_packet(packet_id, data)
 
     def start_sending(self) -> bool:
         """ See Connection.start_sender() """
-        self.to_send_queue: queue.Queue = queue.Queue()
-        return self._conn.start_sender(self.to_send_queue)
+        return self._conn.start_sender(self.send_queue)
 
     def start_listening(self):
         """ See Connection.start_listener() """
-        self.received_queue: queue.Queue = queue.Queue()
         return self._conn.start_listener(self.received_queue)
 
     def exit(self, reason="not defined"):
@@ -140,11 +151,11 @@ class Bot:
         """
         logger.info("Trying to log in in offline mode (non-premium)")
 
-        self.to_send_queue.put(
-            self.version_data.PacketCreator.login.handshake(self.__host))
+        self.send_queue.put(
+            self.login_packet_creator.handshake(self.__host))
 
-        self.to_send_queue.put(
-            self.version_data.PacketCreator.login.login_start(
+        self.send_queue.put(
+            self.login_packet_creator.login_start(
                 self._game_data.player.username))
 
         # Try to log in for 50 sec (10 sec x 5 packets)
@@ -220,5 +231,15 @@ class Bot:
 
     def on_death(self):
         logger.info("Player has dead. Respawning.")
-        self.to_send_queue.put(self.PacketCreator.play.client_status(0))
+        self.send_queue.put(self.play_packet_creator.client_status(0))
+
+    def move_to(self, target_position: Position, speed: float):
+        """ Starts new thread which """
+        self.send_queue.put(self.play_packet_creator.client_status(0))
+
+
+        
+
+
+
 

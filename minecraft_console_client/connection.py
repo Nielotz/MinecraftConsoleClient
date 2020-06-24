@@ -127,7 +127,6 @@ class Connection:
         """
 
         payload_len = len(payload)
-
         # Compression is disabled
         if self._compression_threshold < 0:
             packet = utils.convert_to_varint(payload_len) + payload
@@ -357,7 +356,7 @@ class Connection:
 
         while True:
             packet = buffer.get(block=True)
-            # logger.debug(f'[SEND] size: {len(packet)}')
+            # logger.critical(f'[SEND] size: {len(packet)} {packet}')
             try:
                 self.sendall(packet)
             except ConnectionAbortedError:
