@@ -11,6 +11,7 @@ from data_structures.game_data import GameData
 from data_structures.player import Player
 from data_structures.position import Position
 from action.move_manager import MoveManager
+from action.target import Target
 
 import versions.defaults
 
@@ -80,6 +81,8 @@ class Bot:
                                         self.play_packet_creator,
                                         self._game_data.player)
 
+        self.move_manager.start()
+
     def __del__(self):
         logger.info("Deleting bot")
         self.exit("Shutting down bot")  # Temporally
@@ -104,7 +107,7 @@ class Bot:
         logger.debug("Successfully started listening thread")
 
         if not self.start_sending():
-            return "Cannot start listener"
+            return "Cannot start sender"
         logger.debug("Successfully started sending thread")
 
         if not self.login_non_premium():
@@ -114,8 +117,6 @@ class Bot:
         if not self.switch_action_packets("play"):
             return "Can't assign 'play' action packet."
 
-        self.move_manager.start()
-        self.move_manager.add_target_position(Position(289, 64, -25))
         while True:
             data = self.received_queue.get(timeout=10)
 
@@ -222,7 +223,6 @@ class Bot:
         :param payload: uncompressed data
         :return: whatever action_list[packet_id]() returns
         """
-
         if packet_id in self.clientbound_action_list:
             return self.clientbound_action_list[packet_id](self, payload)
         else:
@@ -233,9 +233,8 @@ class Bot:
         logger.info("Player has dead. Respawning.")
         self.send_queue.put(self.play_packet_creator.client_status(0))
 
-    def move_to(self, target_position: Position, speed: float):
-        """ Starts new thread which """
-        self.send_queue.put(self.play_packet_creator.client_status(0))
+    def goto(self, x: float, y: float, z: float):
+        self.move_manager.add_target(Target(x, y, z))
 
 
         

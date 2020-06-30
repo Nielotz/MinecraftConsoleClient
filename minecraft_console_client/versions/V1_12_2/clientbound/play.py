@@ -66,6 +66,9 @@ def player_position_and_look(bot, data: bytes):
     if player.position is None:
         player.position = Position(x, y, z)
         player_pos = player.position.pos
+        player.look_yaw = yaw
+        player.look_pitch = pitch
+
     else:
         player_pos = player.position.pos
 
@@ -383,6 +386,29 @@ def multi_block_change(bot, data: bytes):
 
 def chat_message(bot, data: bytes):
     json_data, position = utils.extract_json_from_chat(data)
+
+    goto_start = 0
+    while True:  # To make easier to skip some code.
+        str_json_data = str(json_data)
+        goto_start = str_json_data.find("goto:", goto_start)
+        if goto_start != -1:
+            goto_start += len("goto:")
+            for idx in range(goto_start, len(str_json_data)):
+                if str_json_data[idx] == ':':
+                    goto_end = idx
+                    break
+            else:
+                break
+            target = str_json_data[goto_start: goto_end]
+            try:
+                x, y, z = target.split(' ')
+                bot.goto(float(x), float(y), float(z))
+                break
+            except:
+                pass
+        else:
+            break
+
     gui.add_to_chat(f"{position}: {json_data}")
 
 

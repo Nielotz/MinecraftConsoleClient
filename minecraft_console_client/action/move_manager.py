@@ -8,6 +8,7 @@ import time
 
 from data_structures.player import Player
 from data_structures.position import Position
+from action.target import Target
 
 
 class MoveManager:
@@ -42,19 +43,16 @@ class MoveManager:
                                               player),
                                         daemon=True
                                         )
-        self._paused = True
 
     def start(self):
-        """ Starts new daemon that allows complex moving. """
-        if self.__mover.is_alive():
-            raise RuntimeError("handle_moving has been already started")
-
-        if not self._paused:
+        """ Starts new daemon that allows complex moving."""
+        if self.__mover.is_alive() or self._paused is not None:
             raise RuntimeError("handle_moving has been already started")
 
         self._paused = False
         self.__mover.start()
-        self.__started_thread.wait(15)
+        self.__started_thread.wait(15)  # Wait for thread to initialize.
+        logger.info("Started mover.")
 
     def stop(self):
         """ Stops moving thread."""
@@ -70,25 +68,39 @@ class MoveManager:
         """ Resumes moving. """
         self._paused = False
 
-    def add_target_position(self, target: Position):
-        """ Add target position {'x': x, 'y': y, 'z': z} to the goto queue. """
+    def add_target(self, target: Target):
+        """ Adds target position to the goto queue. """
         self.__target_queue.put(target)
-        logger.debug(f"Added new target to the goto queue: {target}")
+        logger.info(f"Added new target to the goto queue: {target}")
 
     def clear_targets(self):
-        """ Clear target queue. Does not stop player. """
+        """
+        Clears target queue. Does not stop player.
+        :raises: RuntimeError when can't empty.
+        """
         logger.debug("Clearing targets")
         self._paused = True
+        stop = False
 
         while not self.__target_queue.empty():
-            self.__target_queue.get(timeout=2)
+            try:
+                if self.__target_queue.get(timeout=5) is None:
+                    stop = True
+            except TimeoutError:
+                break
+
+        if not self.__target_queue.empty():
+            raise RuntimeError("Can't empty target queue.")
+
+        if stop:
+            self.__target_queue.put(None)
 
     def __handle_moving(self,
                         send_queue: queue.Queue,
                         target_queue: queue.Queue,
                         player: Player):
         """
-        Handle moving to targets given in a target_queue.
+        Handles moving to targets given in a target_queue.
         Thread shuts down when:
             put target 'None' into queue e.g. when 'target_queue.get() is None',
             main thread ends (daemon thread)
@@ -128,10 +140,9 @@ class MoveManager:
             target = target_queue.get()
             if target is None:
                 break  # Exit thread loop
-            target_x, target_y, target_z = target.get_list()
-
+            target_x, target_y, target_z = target
             while player.position is None:
-                logger.info("Waiting for player position.")
+                logger.info(f"Waiting for player position.")
                 time.sleep(0.2)  # Wait until server sends player position.
 
             logger.info(f"Actual position: {player.position}")
