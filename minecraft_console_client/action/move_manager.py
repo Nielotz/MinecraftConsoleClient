@@ -180,7 +180,7 @@ class MoveManager:
                 if not (step_x > 0.001 or step_x < -0.001 or
                         step_y > 0.001 or step_y < -0.001 or
                         step_z > 0.00001 or step_z < -0.00001):
-                    logger.info(f"Reached target {target.pos}")
+                    logger.info(f"Reached target {target}")
                     break
 
                 # print(f"step: {step_x, step_y, step_z}")
