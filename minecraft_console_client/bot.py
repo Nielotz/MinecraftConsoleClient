@@ -81,8 +81,6 @@ class Bot:
                                         self.play_packet_creator,
                                         self._game_data.player)
 
-        self.move_manager.start()
-
     def __del__(self):
         logger.info("Deleting bot")
         self.exit("Shutting down bot")  # Temporally
@@ -116,6 +114,9 @@ class Bot:
 
         if not self.switch_action_packets("play"):
             return "Can't assign 'play' action packet."
+
+        if not self.move_manager.start():
+            return "Can't start move manager."
 
         while True:
             data = self.received_queue.get(timeout=10)
@@ -232,13 +233,4 @@ class Bot:
     def on_death(self):
         logger.info("Player has dead. Respawning.")
         self.send_queue.put(self.play_packet_creator.client_status(0))
-
-    def goto(self, x: float, y: float, z: float):
-        self.move_manager.add_target(Target(x, y, z))
-
-
-        
-
-
-
 
