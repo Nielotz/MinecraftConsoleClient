@@ -44,8 +44,12 @@ class MoveManager:
                                         daemon=True
                                         )
 
-    def start(self):
-        """ Starts new daemon that allows complex moving."""
+    def start(self) -> bool:
+        """
+        Starts new daemon that allows complex moving.
+        :returns started successfully
+        :rtype bool
+        """
         if self.__mover.is_alive() or self._paused is not None:
             raise RuntimeError("handle_moving has been already started")
 
@@ -53,6 +57,7 @@ class MoveManager:
         self.__mover.start()
         self.__started_thread.wait(15)  # Wait for thread to initialize.
         logger.info("Started mover.")
+        return self.__mover.is_alive()
 
     def stop(self):
         """ Stops moving thread."""
@@ -60,37 +65,43 @@ class MoveManager:
         self.__target_queue.put(None)
         logger.debug("Stopping move manager")
 
-    def pause(self):
-        """ Pauses moving. """
-        self._paused = True
+    # def pause(self):
+    #     """ Pauses moving. """
+    #     self._paused = True
+#
+    # def resume(self):
+    #     """ Resumes moving. """
+    #     self._paused = False
 
-    def resume(self):
-        """ Resumes moving. """
-        self._paused = False
-
-    def add_target(self, target: Target):
+    def add_target(self,
+                   x: float = None,
+                   y: float = None,
+                   z: float = None,
+                   target: Target = None,
+                   ):
         """ Adds target position to the goto queue. """
+        if target is None:
+            target = Target(x, y, z)
         self.__target_queue.put(target)
         logger.info(f"Added new target to the goto queue: {target}")
 
     def clear_targets(self):
         """
-        Clears target queue. Does not stop player.
-        :raises: RuntimeError when can't empty.
+        Clears target queue.
+        Stops player.
         """
-        logger.debug("Clearing targets")
+        logger.info("Clearing targets")
         self._paused = True
         stop = False
 
         while not self.__target_queue.empty():
             try:
-                if self.__target_queue.get(timeout=5) is None:
+                if self.__target_queue.get(timeout=3) is None:
                     stop = True
             except TimeoutError:
+                stop = True
+                logger.critical("Can't empty targets.")
                 break
-
-        if not self.__target_queue.empty():
-            raise RuntimeError("Can't empty target queue.")
 
         if stop:
             self.__target_queue.put(None)
