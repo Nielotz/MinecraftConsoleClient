@@ -1,11 +1,12 @@
 import logging
+
 logger = logging.getLogger("mainLogger")
 
 from typing import NoReturn
 
 from misc import utils
 from misc.exceptions import DisconnectedError
-from gui.gui import gui
+from versions.V1_12_2.view.view import gui
 
 
 def set_compression(bot, data: bytes):

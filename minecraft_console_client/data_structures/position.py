@@ -1,6 +1,3 @@
-from typing import Union
-
-
 class Position:
 
     def __init__(self, x: float, y: float, z: float):

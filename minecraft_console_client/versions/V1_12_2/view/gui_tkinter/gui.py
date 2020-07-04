@@ -1,8 +1,5 @@
-from typing import Any
-
 import tkinter as tk
-
-gui = None
+from typing import Any
 
 
 class GUI(tk.Tk):
@@ -98,4 +95,3 @@ class GUI(tk.Tk):
         # self.update_idletasks()
         # self.update()
         # self.after(100, self.keep_alive)
-
