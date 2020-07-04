@@ -24,7 +24,7 @@ class MoveManager:
     __target_queue: queue.Queue = None
     __paused: threading.Lock = None
     __skip: bool = None
-    __login_packet_creator = None  # Module for use only.
+    __login_packet_creator = None  # Module, read-only.
 
     __on_pause: [callable, ] = None
 
@@ -153,6 +153,7 @@ class MoveManager:
             put target 'None' into queue e.g. when 'target_queue.get() is None',
             main thread ends (daemon thread)
         """
+        # This function is not the best one.
 
         self.__started_thread.set()
         logger.debug("Started handling moving")
