@@ -7,8 +7,9 @@ Available commands:
 
 """
 
-from commands import chat_commands
 from collections import namedtuple
+
+from commands import chat_commands
 
 Command = namedtuple('Command', 'args_types func')
 """ :param args_types: to which try to convert to """
@@ -36,10 +37,7 @@ GOTO = {
     "xyz": Command((float, float, float), chat_commands.__goto),
 }
 
-
 COMMAND = {
     "goto": GOTO,
 
 }
-
-

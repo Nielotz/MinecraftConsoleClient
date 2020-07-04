@@ -1,4 +1,5 @@
 import logging
+
 logger = logging.getLogger("mainLogger")
 
 from action.move_manager import MoveManager
@@ -14,12 +15,12 @@ def interpret(bot, raw_input: str):
     :param raw_input: str from which to extract command
     """
 
-    raw_input = raw_input.replace("'", "")\
-                         .replace("}", "")\
-                         .replace("{", "")\
-                         .replace("[", "")\
-                         .replace("]", "")\
-                         .replace(",", "")
+    raw_input = raw_input.replace("'", "") \
+        .replace("}", "") \
+        .replace("{", "") \
+        .replace("[", "") \
+        .replace("]", "") \
+        .replace(",", "")
 
     words = raw_input.split()
     for command_name in COMMAND:

@@ -1,9 +1,9 @@
 import logging
-import socket
-import zlib
-import threading
 import queue
+import socket
+import threading
 import time
+import zlib
 
 logger = logging.getLogger('mainLogger')
 
@@ -365,5 +365,3 @@ class Connection:
                 break
 
         logger.info("Exiting sending thread")
-
-

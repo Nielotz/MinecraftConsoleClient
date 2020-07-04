@@ -8,7 +8,6 @@ import time
 from contextlib import contextmanager
 
 from data_structures.player import Player
-from data_structures.position import Position
 from action.target import Target
 
 
@@ -246,10 +245,10 @@ class MoveManager:
                     and extremely slow connection. """
                     # TODO: Add to the connection priority queue.
                     send_packet(
-                       create_step_packet((next_player_pos_x,
-                                           next_player_pos_y,
-                                           next_player_pos_z),
-                                          on_ground=False))
+                        create_step_packet((next_player_pos_x,
+                                            next_player_pos_y,
+                                            next_player_pos_z),
+                                           on_ground=False))
 
                     player.position.pos = {'x': next_player_pos_x,
                                            'y': next_player_pos_y,
@@ -276,4 +275,3 @@ class MoveManager:
                 break
 
         logger.debug("Stopped move manager.")
-

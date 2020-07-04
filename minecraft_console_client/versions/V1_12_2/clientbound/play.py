@@ -1,4 +1,5 @@
 import logging
+
 logger = logging.getLogger("mainLogger")
 
 from typing import NoReturn
@@ -9,7 +10,7 @@ from misc.exceptions import DisconnectedError
 from data_structures.position import Position
 from commands import chat_commands
 
-from gui.gui import gui
+from versions.V1_12_2.view.view import gui
 
 
 def combat_event(bot, data: bytes):
@@ -409,8 +410,8 @@ def server_difficulty(bot, data: bytes):
     logger.debug(f"Server difficulty: {difficulty}")
 
     gui.set_labels(("game difficulty",
-                   {0: "peaceful", 1: "easy", 2: "normal", 3: "hard"}
-                   .get(difficulty)))
+                    {0: "peaceful", 1: "easy", 2: "normal", 3: "hard"}
+                    .get(difficulty)))
 
 
 def boss_bar(bot, data: bytes):
@@ -620,6 +621,3 @@ def disconnect(bot, data: bytes) -> NoReturn:
     logger.error(f"{player.username} has been "
                  f"disconnected by server. Reason: '{reason['text']}'")
     raise DisconnectedError("Disconnected by server.")
-
-
-

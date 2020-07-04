@@ -1,6 +1,6 @@
 import logging
-from typing import Any
 import queue
+from typing import Any
 
 logger = logging.getLogger('mainLogger')
 
@@ -9,9 +9,7 @@ from connection import Connection
 from misc import utils
 from data_structures.game_data import GameData
 from data_structures.player import Player
-from data_structures.position import Position
 from action.move_manager import MoveManager
-from action.target import Target
 
 import versions.defaults
 
@@ -233,4 +231,3 @@ class Bot:
     def on_death(self):
         logger.info("Player has dead. Respawning.")
         self.send_queue.put(self.play_packet_creator.client_status(0))
-

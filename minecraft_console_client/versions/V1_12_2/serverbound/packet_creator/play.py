@@ -1,6 +1,5 @@
 import misc.utils as utils
 from versions.V1_12_2.serverbound.packet_id import play
-from data_structures.position import Position
 
 
 def teleport_confirm(teleport_id: bytes) -> bytes:

@@ -3,8 +3,8 @@ import struct
 import zlib
 from typing import Union, Any
 
-from misc.consts import MAX_INT, MIN_INT, MAX_UINT
 from data_structures.position import Position
+from misc.consts import MAX_INT, MIN_INT, MAX_UINT
 
 
 def convert_to_varint(value: int) -> bytes:
@@ -372,4 +372,3 @@ def extract_long(data: bytes) -> (int, Union[bytes, None]):
     if len(data) > 8:
         return value, data[8:]
     return value, None
-
