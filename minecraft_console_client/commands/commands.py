@@ -29,7 +29,9 @@ Instead use:
 
 """
 GOTO = {
-    #"pause": Command((), chat_commands.),
+    "skip": Command((), chat_commands.__skip),
+    "pause": Command((), chat_commands.__pause),
+    "resume": Command((), chat_commands.__resume),
     "clear": Command((), chat_commands.__goto_clear),
     "xyz": Command((float, float, float), chat_commands.__goto),
 }

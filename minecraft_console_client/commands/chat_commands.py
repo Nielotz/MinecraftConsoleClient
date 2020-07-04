@@ -1,6 +1,7 @@
 import logging
 logger = logging.getLogger("mainLogger")
 
+from action.move_manager import MoveManager
 
 COMMAND = {}  # Needs to be initialized.
 
@@ -53,17 +54,25 @@ def interpret(bot, raw_input: str):
 
 
 def __goto(bot, x: float, y: float, z: float):
-    bot.move_manager.add_target(x, y, z)
+    move_manager: MoveManager = bot.move_manager
+    move_manager.add_target(x, y, z)
 
 
 def __goto_clear(bot):
-    bot.move_manager.clear_targets()
+    move_manager: MoveManager = bot.move_manager
+    move_manager.clear_targets()
 
 
-# def __pause(bot):
-#     bot.move_manager.pause()
-#
-#
-# def __resume(bot):
-#     bot.move_manager.resume()
-#
+def __pause(bot):
+    move_manager: MoveManager = bot.move_manager
+    move_manager.pause()
+
+
+def __resume(bot):
+    move_manager: MoveManager = bot.move_manager
+    move_manager.resume()
+
+
+def __skip(bot):
+    move_manager: MoveManager = bot.move_manager
+    move_manager.skip_actual_target()
