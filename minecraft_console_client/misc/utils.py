@@ -50,7 +50,7 @@ def convert_to_varint(value: int) -> bytes:
     return bytes(varint)
 
 
-def unpack_varint(data: bytes) -> (int, bytes):
+def extract_varint(data: bytes) -> (int, bytes):
     """
     Unpacks varint from uncompressed data and returns unpacked int and leftover.
     If not found end of VarInt raise ValueError.
@@ -69,10 +69,7 @@ def unpack_varint(data: bytes) -> (int, bytes):
     number = 0
 
     for i in range(5):
-        try:
-            byte = data[i]
-        except IndexError:
-            raise ValueError("VarInt is too big!")
+        byte = data[i]
 
         number |= (byte & 0x7F) << 7 * i
 
@@ -98,14 +95,14 @@ def extract_data(data: bytes, compression=False) -> (int, bytes):
     """
 
     if compression:
-        data_length, data = unpack_varint(data)
+        data_length, data = extract_varint(data)
         if data_length:
             data = zlib.decompress(data)
-        packet_id, data = unpack_varint(data)
+        packet_id, data = extract_varint(data)
         return packet_id, data
 
     else:
-        packet_id, data = unpack_varint(data)
+        packet_id, data = extract_varint(data)
         return packet_id, data
 
 
@@ -212,7 +209,7 @@ def extract_string(data: bytes) -> (bytes, Union[bytes, None]):
     :rtype bytes, Union[bytes, None]
     """
 
-    string_len, data = unpack_varint(data)
+    string_len, data = extract_varint(data)
     string = data[:string_len:]
 
     if len(data) > string_len:

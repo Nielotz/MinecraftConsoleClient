@@ -121,7 +121,7 @@ class Bot:
 
             if len(data) == 0:
                 return "Received 0 bytes"
-            packet_id, data = utils.unpack_varint(data)
+            packet_id, data = utils.extract_varint(data)
             self._interpret_packet(packet_id, data)
 
     def start_sending(self) -> bool:
@@ -164,7 +164,7 @@ class Bot:
             if len(data) == 0:
                 logger.error("Received 0 bytes")
                 return False
-            packet_id, data = utils.unpack_varint(data)
+            packet_id, data = utils.extract_varint(data)
 
             if self._interpret_packet(packet_id, data):
                 return True

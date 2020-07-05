@@ -2,7 +2,7 @@ import time
 from random import randint
 from unittest import TestCase
 
-from misc.utils import convert_to_varint, unpack_varint
+from misc.utils import convert_to_varint, extract_varint
 
 
 class Test(TestCase):
@@ -17,7 +17,7 @@ class Test(TestCase):
             with self.subTest(i=i):
                 start = time.time_ns()
                 v1 = convert_to_varint(rand)
-                v2, _ = unpack_varint(v1)
+                v2, _ = extract_varint(v1)
                 self.assertEqual(rand, v2)
                 total_time += time.time_ns() - start
 

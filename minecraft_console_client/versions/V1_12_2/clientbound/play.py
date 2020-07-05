@@ -19,10 +19,10 @@ def combat_event(bot, data: bytes):
     (with enter combat and end combat completely ignored by the Notchain client)'
      """
 
-    event, data = utils.unpack_varint(data)
+    event, data = utils.extract_varint(data)
 
     if event == 2:  # Entity dead
-        player_id, data = utils.unpack_varint(data)
+        player_id, data = utils.extract_varint(data)
         entity_id, data = utils.extract_int(data)
         message = utils.extract_json_from_chat(data)
         """ 
@@ -212,7 +212,7 @@ def update_health(bot, data: bytes):
     player = bot._game_data.player
 
     player.health, data = utils.extract_float(data)
-    player.food, data = utils.unpack_varint(data)
+    player.food, data = utils.extract_varint(data)
     player.food_saturation = utils.extract_float(data)[0]
 
     logger.info(f"Updated player. Health: {player.health} "
