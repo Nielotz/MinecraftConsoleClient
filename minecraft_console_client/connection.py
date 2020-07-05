@@ -178,7 +178,7 @@ class Connection:
             ordinal = recv(1)
             if ordinal == b'':
                 break
-            byte = HEX_BYTES_TO_DEC[ordinal]  # TODO: hashtable? from 0 to 0xFF
+            byte = HEX_BYTES_TO_DEC[ordinal]
             length |= (byte & 0x7F) << 7 * i
 
             if not byte & 0x80:
