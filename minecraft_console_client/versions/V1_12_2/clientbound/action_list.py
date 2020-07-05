@@ -1,7 +1,5 @@
 from versions.V1_12_2.clientbound import login, play
 
-# 60 45 18?
-
 action_list = {
     "login": {
         0: login.disconnect,

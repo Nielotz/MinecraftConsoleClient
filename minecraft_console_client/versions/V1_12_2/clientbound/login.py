@@ -22,9 +22,9 @@ def set_compression(bot, data: bytes):
 
 
 def login_success(bot, data: bytes) -> True:
-    bot._game_data.player.uuid = utils.extract_string(data)[0].decode('utf-8')
+    bot.game_data.player.uuid = utils.extract_string(data)[0].decode('utf-8')
     logger.info(f"Successfully logged to the server, "
-                f"UUID: {bot._game_data.player.uuid}")
+                f"UUID: {bot.game_data.player.uuid}")
     return True
 
 
@@ -32,9 +32,9 @@ def disconnect(bot, data: bytes) -> NoReturn:
     reason = utils.extract_json_from_chat(data)[0]
     # reason should be dict Chat type.
     try:
-        logger.error(f"{bot._game_data.player.username} has been "
+        logger.error(f"{bot.game_data.player.username} has been "
                      f"disconnected by server. Reason: '{reason['text']}'")
     except:
-        logger.error(f"{bot._game_data.player.username} has been "
+        logger.error(f"{bot.game_data.player.username} has been "
                      f"disconnected by server. {reason}'")
     raise DisconnectedError("Disconnected by server.")

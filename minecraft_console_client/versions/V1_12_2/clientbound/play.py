@@ -29,7 +29,7 @@ def combat_event(bot, data: bytes):
         'Entity ID of the player that died (should match the client's entity ID).'
         """
 
-        if entity_id == bot._game_data.player.entity_id:
+        if entity_id == bot.game_data.player.entity_id:
 
             logger.info(f"Player has been killed by: {entity_id}, "
                         f"death message: '{message}' ")
@@ -63,7 +63,7 @@ def player_position_and_look(bot, data: bytes):
     pitch, data = utils.extract_float(data)
     flags, teleport_id = utils.extract_byte(data)
 
-    player = bot._game_data.player
+    player = bot.game_data.player
 
     if player.position is None:
         player.position = Position(x, y, z)
@@ -139,7 +139,7 @@ def resource_pack_send(bot, data: bytes):
 
 
 def respawn(bot, data: bytes):
-    game_data = bot._game_data
+    game_data = bot.game_data
 
     game_data.player.dimension, data = utils.extract_int(data)
     game_data.difficulty = data[0]
@@ -176,7 +176,7 @@ def camera(bot, data: bytes):
 
 
 def held_item_change(bot, data: bytes):
-    player = bot._game_data.player
+    player = bot.game_data.player
 
     player.active_slot = utils.extract_byte(data)[0]
     logger.debug(f"Held slot changed to {player.active_slot}")
@@ -209,7 +209,7 @@ def set_experience(bot, data: bytes):
 
 
 def update_health(bot, data: bytes):
-    player = bot._game_data.player
+    player = bot.game_data.player
 
     player.health, data = utils.extract_float(data)
     player.food, data = utils.extract_varint(data)
@@ -405,7 +405,7 @@ def update_block_entity(bot, data: bytes):
 def server_difficulty(bot, data: bytes):
     difficulty = utils.extract_unsigned_byte(data)[0]
 
-    bot._game_data.difficulty = difficulty
+    bot.game_data.difficulty = difficulty
 
     logger.debug(f"Server difficulty: {difficulty}")
 
@@ -429,7 +429,7 @@ def block_change(bot, data: bytes):
 def change_game_state(bot, data: bytes):
     value = utils.extract_float(data[1:])[0]
     # reason = data[0]  # reason = utils.extract_unsigned_byte()[0]
-    game_data = bot._game_data
+    game_data = bot.game_data
 
     # TODO: Do sth with this:
 
@@ -506,7 +506,7 @@ def particle(bot, data: bytes):
 
 
 def join_game(bot, data: bytes):
-    game_data = bot._game_data
+    game_data = bot.game_data
     player = game_data.player
 
     player.entity_id, data = utils.extract_int(data)
@@ -589,7 +589,7 @@ def craft_recipe_response(bot, data: bytes):
 
 
 def player_abilities(bot, data: bytes):
-    player = bot._game_data.player
+    player = bot.game_data.player
 
     flags, data = utils.extract_byte(data)
     player.is_invulnerable = bool(flags & 0x01)
@@ -614,7 +614,7 @@ def player_abilities(bot, data: bytes):
 
 
 def disconnect(bot, data: bytes) -> NoReturn:
-    player = bot._game_data.player
+    player = bot.game_data.player
 
     reason = utils.extract_json_from_chat(data)[0]
     # reason should be dict Chat type.

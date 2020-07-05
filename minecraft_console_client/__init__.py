@@ -1,5 +1,6 @@
 import logging
 
+# TODO: improve logger.
 logger = logging.getLogger("mainLogger")
 logger.setLevel(logging.DEBUG)
 formatter = logging.Formatter('%(name)-12s: %(levelname)-8s %(message)s')

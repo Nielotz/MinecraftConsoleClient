@@ -8,7 +8,7 @@ import time
 from contextlib import contextmanager
 
 from data_structures.player import Player
-from action.target import Target
+from data_structures.target import Target
 
 
 class MoveManager:

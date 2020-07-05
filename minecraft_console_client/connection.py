@@ -9,7 +9,7 @@ logger = logging.getLogger('mainLogger')
 
 from misc.consts import MAX_INT
 from misc import utils
-from misc.hashtables import HEX_BYTES_TO_DEC
+from misc.hashtables import VARINT_BYTES
 
 
 class Connection:
@@ -60,49 +60,57 @@ class Connection:
         Starts connection using socket_data(ip / hostname, port).
         On error raises standard socket exceptions.
 
-        :param timeout: connection timeout
         :param socket_data: tuple(host, port)
+        :param timeout: connection timeout
         """
 
         self.__connection.settimeout(timeout)
         self.__connection.connect(socket_data)
 
-    def __receive_packet(self) -> (int, bytes):
+    def __receive_packet(self) -> bytes:
         """
         Reads whole packet from connection.
         https://stackoverflow.com/a/17668009
 
-        Returns 0, b'' when connection is broken or sth.
+        Returns b'' when connection is broken or sth.
 
-        :returns length of packet, read bytes
-        :rtype int, bytes
+        :returns read bytes
+        :rtype bytes
         """
+
+        recv = self.__connection.recv
+        read_bytes = 0
+        fragments = []
 
         # Broad try, because when sth went wrong here we are in danger.
         try:
-            read_bytes = 0
-            fragments = []
-
             packet_length = self.__read_packet_length()
 
             while read_bytes < packet_length:
-                packet_part = self.__connection.recv(packet_length - read_bytes)
+                packet_part = recv(packet_length - read_bytes)
 
                 if not packet_part:
-                    return 0, b''
+                    return b''
 
                 fragments.append(packet_part)
                 read_bytes += len(packet_part)
 
         except BrokenPipeError:
             logger.critical("Connection has been broken.")
-            return 0, b''
+
+        except ValueError as e:
+            logger.critical(f"Invalid varint. {e}")
+
+        except OSError as e:
+            logger.critical(f"Probably connection has been shut down: {e}")
 
         except Exception as e:
-            logger.critical(f"Uncaught exception occurred: {e}")
-            return 0, b''
+            logger.critical(f"<connection#2>Uncaught exception "
+                            f"[{e.__class__.__name__}] occurred:  {e} ")
+        else:
+            return b''.join(fragments)
 
-        return packet_length, b''.join(fragments)
+        return b''
 
     def start_listener(self, received_queue: queue.Queue) -> bool:
         """
@@ -126,12 +134,11 @@ class Connection:
         self.__listener = threading.Thread(target=self.__listen,
                                            args=(received_queue,),
                                            daemon=True)
-        try:
+
+        with suppress(Exception):
             self.__listener.start()
-            self.__ready.wait(15)
-        except:
-            return False
-        return True
+            return self.__ready.wait(15)
+        return False
 
     def start_sender(self, to_send: queue.Queue) -> bool:
         """
@@ -154,12 +161,10 @@ class Connection:
                                          args=(to_send,),
                                          daemon=True
                                          )
-        try:
+        with suppress(Exception):
             self.__sender.start()
-            self.__ready.wait(15)
-        except:
-            return False
-        return True
+            return self.__ready.wait(15)
+        return False
 
     def __read_packet_length(self) -> int:
         """
@@ -172,28 +177,30 @@ class Connection:
         :rtype int
         """
 
-        length = 0
+        packet_length = 0
         recv = self.__connection.recv
         for i in range(5):
             ordinal = recv(1)
-            if ordinal == b'':
-                break
-            byte = HEX_BYTES_TO_DEC[ordinal]
-            length |= (byte & 0x7F) << 7 * i
+            value, is_next = VARINT_BYTES[ordinal]
 
-            if not byte & 0x80:
+            if value is None:
+                break
+            packet_length |= value << 7 * i
+
+            if not is_next:
                 break
         else:
             raise ValueError("VarInt is too big!")
-        if length > MAX_INT:
+
+        if packet_length > MAX_INT:
             raise ValueError("VarInt is too big!")
 
-        return length
+        return packet_length
 
     def close(self):
         """
         Tries to close connection, and stop threads in a nice way.
-        Does not ensure that! But gives its full power.
+        Does not ensure that! But gives its best.
         """
         with suppress(Exception):
             """ Shut down one or both halves of the connection. """
@@ -202,20 +209,26 @@ class Connection:
 
         with suppress(Exception):
             """ Close a socket file descriptor. """
-            self.__connection.close()
-            logger.info("Closed socket")
+            if self.__connection.fileno() != -1:
+                self.__connection.close()
+                self.__connection: None = None
+                logger.info("Closed socket")
 
         # Closing connection makes listener exit.
-        logger.debug("Trying to stop listener...")
         with suppress(Exception):
-            self.__listener.join(timeout=20)
-            logger.debug("Stopped listener...")
+            if self.__listener.is_alive():
+                logger.debug("Trying to stop listener...")
+                self.__listener.join(timeout=20)
+                if not self.__listener.is_alive():
+                    logger.debug("Stopped listener")
 
         # When listener exits, sends packet that exits sender.
-        logger.debug("Trying to stop sender...")
         with suppress(Exception):
-            self.__sender.join(timeout=5)
-            logger.debug("Stopped sender...")
+            if self.__sender.is_alive():
+                logger.debug("Trying to stop sender...")
+                self.__sender.join(timeout=10)
+                if not self.__sender.is_alive():
+                    logger.debug("Stopped sender")
 
         logger.info("Closed connection")
 
@@ -249,17 +262,17 @@ class Connection:
         self.__ready.set()
 
         while True:
-            size, packet = self.__receive_packet()
+            packet = self.__receive_packet()
 
-            if size == 0:
-                logger.critical("Packet length equals zero.")
+            if packet == b'':
+                logger.critical("Packet length equals zero. Exiting.")
                 break
 
             # If compression is enabled.
             if not self._compression_threshold < 0:
                 data_length, packet = utils.extract_varint(packet)
 
-                if data_length != 0:
+                if data_length != 0:  # Packet is compressed.
                     packet = zlib.decompress(packet)
 
                     if len(packet) < self._compression_threshold:
@@ -269,7 +282,8 @@ class Connection:
             # End of decompression
 
             received.put(packet)
-        received.put(b'')
+
+        received.put(None)
         logger.info("Exiting listening thread")
 
     def __send(self, to_send: queue.Queue):
@@ -277,6 +291,7 @@ class Connection:
         Similar to __listen.
         Starts waiting for bytes to appear in to_send then sends it to server.
         It is blocking function, so has to be run in a new thread as a daemon.
+        Quits when get b'' from to_send queue.
 
         Job:
             Freezes until packet appear in buffer.
@@ -299,6 +314,10 @@ class Connection:
             # packet: b'VarInt(Packet ID)' + b'VarInt(Data)'
             payload = to_send.get(block=True)
 
+            if payload == b'':
+                logger.critical("Packet to send is empty. Exiting.")
+                break
+
             payload_len = len(payload)
 
             # Compression is disabled
@@ -320,11 +339,21 @@ class Connection:
             try:
                 self.__connection.sendall(packet)
             except ConnectionAbortedError:
-                """ Client closed connection """
-                logger.warning("Connection has been shut down by client. ")
+                """ Client closed connection. """
+                logger.critical("Connection has been shut down by client. ")
+                break
+            except BrokenPipeError:
+                """ Server closed connection or 
+                socket has been shutdown for writing """
+                logger.critical(
+                    "Probably connection has been shut down. Try again.")
+                break
+            except OSError as e:
+                logger.critical(f"Probably connection has been shut down: {e}")
                 break
             except Exception as e:
-                logger.critical(f"Uncaught exception occurred: {e}")
+                logger.critical(f"<connection#1>Uncaught exception "
+                                f"[{e.__class__.__name__}] occurred:  {e} ")
                 break
 
         logger.info("Exiting sending thread")
