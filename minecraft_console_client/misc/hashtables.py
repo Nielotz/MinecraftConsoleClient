@@ -94,3 +94,31 @@ VARINT_BYTES = {
     b'\xf7': (119, True), b'\xf8': (120, True), b'\xf9': (121, True),
     b'\xfa': (122, True), b'\xfb': (123, True), b'\xfc': (124, True),
     b'\xfd': (125, True), b'\xfe': (126, True), b'\xff': (127, True)}
+
+GAME_DIFFICULTY = {
+    0: "peaceful",
+    1: "easy",
+    2: "normal",
+    3: "hard"
+}
+
+GAMEMODE = {
+    0: "survival",
+    1: "creative",
+    2: "adventure",
+    3: "spectator",
+}
+
+# Sth related to change_game_state.
+NOT_SURE_WHAT = {
+    0: "invalid_bed",
+    1: "end_raining",
+    2: "begin_raining",
+    3: "change_gamemode",
+    4: "exit_end",
+    5: "demo_message",
+    6: "arrow_hitting_player",
+    7: "fade_value",
+    8: "fade_time",
+    10: "play_elder_guardian_mob_appearance",
+}

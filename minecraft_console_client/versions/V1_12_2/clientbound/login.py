@@ -29,6 +29,7 @@ def login_success(bot, data: bytes) -> True:
 
 
 def disconnect(bot, data: bytes) -> NoReturn:
+    # TODO: After implementing chat interpreter do sth here.
     reason = utils.extract_json_from_chat(data)[0]
     # reason should be dict Chat type.
     try:

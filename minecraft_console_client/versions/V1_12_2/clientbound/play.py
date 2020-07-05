@@ -4,9 +4,11 @@ logger = logging.getLogger("mainLogger")
 
 from typing import NoReturn
 
-from misc import utils
 from versions.V1_12_2.serverbound import packet_creator
+from misc import utils
 from misc.exceptions import DisconnectedError
+from misc.hashtables import GAME_DIFFICULTY
+from misc.hashtables import GAMEMODE
 from data_structures.position import Position
 from commands import chat_commands
 
@@ -25,26 +27,26 @@ def combat_event(bot, data: bytes):
         player_id, data = utils.extract_varint(data)
         entity_id, data = utils.extract_int(data)
         message = utils.extract_json_from_chat(data)
-        """ 
-        'Entity ID of the player that died (should match the client's entity ID).'
-        """
 
+        """ 'Entity ID of the player that died 
+            (should match the client's entity ID).' """
         if entity_id == bot.game_data.player.entity_id:
 
-            logger.info(f"Player has been killed by: {entity_id}, "
-                        f"death message: '{message}' ")
+            message = f"Player has been killed by: {entity_id}, " \
+                      f"death message: '{message}' "
 
-            gui.add_to_hotbar(f"Player has been killed by: {entity_id}, "
-                              f"death message: '{message}' ")
+            logger.info(message)
+
+            gui.add_to_hotbar(message)
 
             bot.on_death()
         else:
-            logger.info(f"Entity: {player_id} has been killed by: {entity_id}, "
-                        f"death message: '{message}' ")
+            message = f"Entity: {player_id} has been killed by: {entity_id}, " \
+                      f"death message: '{message}' "
 
-            gui.add_to_hotbar(f"Entity: {player_id} has been killed "
-                              f"by: {entity_id}, "
-                              f"death message: '{message}' ")
+            logger.info(message)
+
+            gui.add_to_hotbar(message)
 
 
 def player_list_item(bot, data: bytes):
@@ -53,9 +55,11 @@ def player_list_item(bot, data: bytes):
 
 def player_position_and_look(bot, data: bytes):
     """
-    Auto-sends teleport confirm, and player_position_and_look (serverbound)
+    Auto-sends teleport confirm, and player_position_and_look (serverbound).
     """
+
     _data = data[::]
+
     x, data = utils.extract_double(data)
     y, data = utils.extract_double(data)
     z, data = utils.extract_double(data)
@@ -64,12 +68,12 @@ def player_position_and_look(bot, data: bytes):
     flags, teleport_id = utils.extract_byte(data)
 
     player = bot.game_data.player
-
     if player.position is None:
         player.position = Position(x, y, z)
-        player_pos = player.position.pos
         player.look_yaw = yaw
         player.look_pitch = pitch
+
+        player_pos = player.position.pos
 
     else:
         player_pos = player.position.pos
@@ -113,6 +117,7 @@ def player_position_and_look(bot, data: bytes):
 
     # Teleport confirm.
     bot.send_queue.put(packet_creator.play.teleport_confirm(teleport_id))
+
     # Answer player position and look.
     bot.send_queue.put(
         packet_creator.play.player_position_and_look_confirmation(_data))
@@ -146,15 +151,17 @@ def respawn(bot, data: bytes):
     game_data.player.gamemode = data[1]
     game_data.level_type = utils.extract_string(data[2:])[0]
 
+    difficulty_name = GAME_DIFFICULTY[game_data.difficulty]
+
     logger.info(f"Player respawn: "
                 f"gamemode: {game_data.player.gamemode}, "
                 f"dimension: {game_data.player.dimension}, "
-                f"game difficulty: {game_data.difficulty}, "
+                f"game difficulty: {game_data.difficulty} ({difficulty_name}), "
                 f"game level_type: {game_data.level_type}, "
                 )
 
     gui.set_labels(("dimension", game_data.player.dimension),
-                   ("game difficulty", game_data.difficulty),
+                   ("game difficulty", difficulty_name),
                    ("gamemode", game_data.player.gamemode),
                    ("game level_type", game_data.level_type))
 
@@ -209,6 +216,7 @@ def set_experience(bot, data: bytes):
 
 
 def update_health(bot, data: bytes):
+    """ Auto-respawn bot. """
     player = bot.game_data.player
 
     player.health, data = utils.extract_float(data)
@@ -245,6 +253,7 @@ def update_score(bot, data: bytes):
 
 def spawn_position(bot, data: bytes):
     position = utils.extract_position(data)[0]
+
     logger.info(f"Changed player spawn position to {position}")
 
     gui.set_labels(("Spawn position", position))
@@ -341,9 +350,9 @@ def explosion(bot, data: bytes):
 
 def entity_status(bot, data: bytes):
     entity_id, byte = utils.extract_int(data)
-    entity_status = utils.extract_byte(data)[0]
+    status = utils.extract_byte(data)[0]
     logger.debug(f"Entity with id: {entity_id} "
-                 f"status changed to: {entity_status}")
+                 f"status changed to: {status}")
 
 
 def named_sound_effect(bot, data: bytes):
@@ -404,14 +413,13 @@ def update_block_entity(bot, data: bytes):
 
 def server_difficulty(bot, data: bytes):
     difficulty = utils.extract_unsigned_byte(data)[0]
+    difficulty_name = GAME_DIFFICULTY[difficulty]
 
     bot.game_data.difficulty = difficulty
 
-    logger.debug(f"Server difficulty: {difficulty}")
+    logger.debug(f"Server difficulty: {difficulty} ({difficulty_name})")
 
-    gui.set_labels(("game difficulty",
-                    {0: "peaceful", 1: "easy", 2: "normal", 3: "hard"}
-                    .get(difficulty)))
+    gui.set_labels(("game difficulty", difficulty_name))
 
 
 def boss_bar(bot, data: bytes):
@@ -433,7 +441,7 @@ def change_game_state(bot, data: bytes):
 
     # TODO: Do sth with this:
 
-    def invalid_bed(value: float):
+    def invalid_bed(val: float):
         logger.info("Invalid bed")
         gui.add_to_hotbar("Invalid bed")
 
@@ -447,49 +455,32 @@ def change_game_state(bot, data: bytes):
         logger.info("Started raining")
         gui.set_labels(("game: is_raining: ", True))
 
-    def change_gamemode(value: float):
-        game_data.player.gamemode = {
-            0: "survival",
-            1: "creative",
-            2: "adventure",
-            3: "spectator",
-        }.get(round(value))
+    def change_gamemode(val: float):
+        game_data.player.gamemode = GAMEMODE[round(value)]
         logger.info(f"Updated gamemode: {game_data.player.gamemode}")
         gui.set_labels((f"gamemode", game_data.player.gamemode))
 
-    def exit_end(value: float):
+    def exit_end(val: float):
         pass
 
-    def demo_message(value: float):
+    def demo_message(val: float):
         pass
 
-    def arrow_hitting_player(bot, value: float):
+    def arrow_hitting_player(_bot, val: float):
         logger.info("An arrow hit a player")
 
-    def fade_value(value: float):
+    def fade_value(val: float):
         pass
 
-    def fade_time(value: float):
+    def fade_time(val: float):
         pass
 
-    def play_elder_guardian_mob_appearance(value: float):
+    def play_elder_guardian_mob_appearance(val: float):
         pass
-
-    {
-        0: invalid_bed,
-        1: end_raining,
-        2: begin_raining,
-        3: change_gamemode,
-        4: exit_end,
-        5: demo_message,
-        6: arrow_hitting_player,
-        7: fade_value,
-        8: fade_time,
-        10: play_elder_guardian_mob_appearance,
-    }.get(data[0])(value)
 
 
 def keep_alive(bot, data: bytes):
+    """ Auto-sends keep alive packet. """
     bot.send_queue.put(packet_creator.play.keep_alive(data))
 
 
@@ -513,19 +504,15 @@ def join_game(bot, data: bytes):
 
     gamemode, data = utils.extract_unsigned_byte(data)
 
-    player.gamemode = {
-        0: "survival",
-        1: "creative",
-        2: "adventure",
-        3: "spectator",
-    }.get(gamemode & 0b00000111)
+    player.gamemode = GAMEMODE[gamemode & 0b00000111]
 
-    player.is_hardcore = bool(gamemode >> 3)
+    player.is_hardcore = bool(gamemode & 0b00001000)
 
     player.dimension, data = utils.extract_int(data)
 
     game_data.difficulty, data = \
         utils.extract_unsigned_byte(data)
+    difficulty_name = GAME_DIFFICULTY[game_data.difficulty]
 
     """ 
     Was once used by the client to draw the player list, but now is ignored.
@@ -544,7 +531,7 @@ def join_game(bot, data: bytes):
                 f"gamemode: {player.gamemode}, "
                 f"hardcore: {player.is_hardcore}, "
                 f"dimension: {player.dimension}, "
-                f"game difficulty: {game_data.difficulty}, "
+                f"game difficulty: {game_data.difficulty} ({difficulty_name}), "
                 f"game level_type: {game_data.level_type}, "
                 )
 
@@ -552,7 +539,7 @@ def join_game(bot, data: bytes):
                    ("gamemode", player.gamemode),
                    ("is_hardcore", player.is_hardcore),
                    ("dimension", player.dimension),
-                   ("game difficulty", game_data.difficulty),
+                   ("game difficulty", difficulty_name),
                    ("game level_type", game_data.level_type))
 
 

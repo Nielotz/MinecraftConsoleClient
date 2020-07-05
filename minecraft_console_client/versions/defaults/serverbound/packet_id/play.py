@@ -1,4 +1,4 @@
-# V1_12_2
+# Sample for V1_12_2
 TELEPORT_CONFIRM = b'\x00'
 TABCOMPLETE = b'\x01'
 CHAT_MESSAGE = b'\x02'
