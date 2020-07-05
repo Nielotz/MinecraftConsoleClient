@@ -9,7 +9,6 @@ logger = logging.getLogger('mainLogger')
 
 from misc.consts import MAX_INT
 from misc import utils
-from misc.hashtables import HEX_BYTES_TO_DEC
 
 
 class Connection:
@@ -129,7 +128,7 @@ class Connection:
         try:
             self.__listener.start()
             self.__ready.wait(15)
-        except:
+        except Exception:
             return False
         return True
 
@@ -157,7 +156,7 @@ class Connection:
         try:
             self.__sender.start()
             self.__ready.wait(15)
-        except:
+        except Exception:
             return False
         return True
 
@@ -176,9 +175,10 @@ class Connection:
         recv = self.__connection.recv
         for i in range(5):
             ordinal = recv(1)
-            if ordinal == b'':
+
+            if len(ordinal) == 0:
                 break
-            byte = HEX_BYTES_TO_DEC[ordinal]  # TODO: hashtable? from 0 to 0xFF
+            byte = ord(ordinal)  # TODO: hashtable? 0 to 0xFF
             length |= (byte & 0x7F) << 7 * i
 
             if not byte & 0x80:
@@ -209,13 +209,11 @@ class Connection:
         logger.debug("Trying to stop listener...")
         with suppress(Exception):
             self.__listener.join(timeout=20)
-            logger.debug("Stopped listener...")
 
         # When listener exits, sends packet that exits sender.
         logger.debug("Trying to stop sender...")
         with suppress(Exception):
             self.__sender.join(timeout=5)
-            logger.debug("Stopped sender...")
 
         logger.info("Closed connection")
 
@@ -228,7 +226,7 @@ class Connection:
         Closes when:
             receive packet longer or shorted than declared,
             len(packet) or declared length equals zero.
-        On exit puts b'' into queue.
+        When connection has been interrupted puts b'' into queue.
 
         Job:
             Receives packet awaiting to be received(if needed) - decompresses.
@@ -253,6 +251,7 @@ class Connection:
 
             if size == 0:
                 logger.critical("Packet length equals zero.")
+                received.put(b'')
                 break
 
             # If compression is enabled.
@@ -265,11 +264,12 @@ class Connection:
                     if len(packet) < self._compression_threshold:
                         logger.critical(
                             "Packet length is shorter than compression threshold.")
+                        received.put(b'')
                         break
             # End of decompression
 
             received.put(packet)
-        received.put(b'')
+
         logger.info("Exiting listening thread")
 
     def __send(self, to_send: queue.Queue):
@@ -306,6 +306,8 @@ class Connection:
                 packet = convert_to_varint(payload_len) + payload
 
             else:
+                # TODO: Optimize by hard coding some values.
+
                 # When compression disabled for this packet
                 if payload_len < self._compression_threshold:
                     packet = convert_to_varint(payload_len + 1) + \
