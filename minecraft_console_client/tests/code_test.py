@@ -14,7 +14,6 @@ Requirements:
 """
 
 import os
-import pathlib
 
 from subprocess import Popen, PIPE
 
@@ -87,7 +86,10 @@ def check_file(path: str, tests_: (callable,)):
     return "".join(outputs)
 
 
-def check_files(path: str, tests_: [callable, ]):
+def check_files(path: str,
+                excluded_files: [str, ],
+                tests_: [callable, ],
+                recursively: bool):
     """Check files using tests from tests_."""
     outputs = []
     if os.path.isfile(path=path):
@@ -96,8 +98,13 @@ def check_files(path: str, tests_: [callable, ]):
     for filename in os.listdir(path=path):
         full_file_path = os.path.join(path, filename)
 
+        if full_file_path in excluded_files:
+            continue
+
         if os.path.isdir(full_file_path):
-            check_files(full_file_path, tests_)
+            if recursively:
+                check_files(full_file_path, excluded_files,
+                            tests_, recursively)
             continue
 
         if not os.path.isfile(full_file_path):
@@ -110,24 +117,34 @@ def check_files(path: str, tests_: [callable, ]):
     return "".join(outputs)
 
 
-def run():
+def run(files_: [str, ], excluded_files: [str, ],  recursively: bool = True):
     """Run tests."""
-    path_to_project_folder = pathlib.Path().absolute().parent.absolute()
+    for file in files_:
+        if file in excluded_files:
+            continue
 
-    print(f"\nPath: {path_to_project_folder}\n\n")
+        print(f"\nPath: {file}\n\n")
 
-    tests_ = []
+        tests_ = []
 
-    for test, enabled in check_list.items():
-        if enabled:
-            tests_.append(tests[test])
+        for test, enabled in check_list.items():
+            if enabled:
+                tests_.append(tests[test])
 
-    if len(tests_) == 0:
-        raise RuntimeError("No tests selected!")
+        if len(tests_) == 0:
+            raise RuntimeError("No tests selected!")
 
-    output = check_files(path_to_project_folder, tests_)
-    with open("code_test_log.txt", "w+") as f:
-        f.write(output.replace(chr(13), ''), )  # Remove CR (enters).
+        output = check_files(file, excluded_files, tests_, recursively)
+        with open("code_test_log.txt", "w+") as f:
+            f.write(output.replace(chr(13), ''), )  # Remove CR (enters).
 
 
-run()
+files = [
+    r"D:\SOFTORS\minecraft_console_client\minecraft_console_client"
+]
+
+exclude = [
+    r"D:\SOFTORS\minecraft_console_client\minecraft_console_client\__init__.py"
+
+]
+run(files, exclude,  recursively=False)
