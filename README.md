@@ -2,7 +2,7 @@
 Minecraft Console Client written in Python. </br>
 Based on [Minecraft Modern](https://wiki.vg/Main_Page) documentation page. </br>
 
-Uses code from [Python Code Quality Authority](https://github.com/PyCQA) <3
+Uses [pycodestyle](https://github.com/PyCQA/pycodestyle), [pydocstyle](https://github.com/PyCQA/pydocstyle) and [prospector](https://github.com/PyCQA/prospector) from [Python Code Quality Authority](https://github.com/PyCQA) <3
 
 Thanks to: </br>
   [MaksymilianK](https://github.com/MaksymilianK) for help </br>
