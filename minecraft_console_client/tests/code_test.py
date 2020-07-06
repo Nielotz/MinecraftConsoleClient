@@ -112,10 +112,7 @@ def check_files(path: str, tests_: [callable, ]):
 
 def run():
     """Run tests."""
-    path_to_project_folder = pathlib.Path().absolute()  # .parent.absolute()
-    path_to_project_folder = \
-        r"D:\SOFTORS\minecraft_console_client\m" \
-        r"inecraft_console_client\tests\code_test.py"
+    path_to_project_folder = pathlib.Path().absolute().parent.absolute()
 
     print(f"\nPath: {path_to_project_folder}\n\n")
 
