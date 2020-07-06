@@ -57,8 +57,7 @@ def prospector(path):
     # https://github.com/PyCQA/prospector
 
     # -s medium / high / veryhigh / lite(or sth, check in manual)
-    # --absolute-paths
-    options = "--full-pep8 --with-tool bandit " \
+    options = "--full-pep8 --with-tool bandit --absolute-paths" \
               "-M -D --output-format text"
 
     p = Popen(['prospector', *options.split(), path], stdout=PIPE, stderr=PIPE)
@@ -140,7 +139,7 @@ def run(files_: [str, ], excluded_files: [str, ],  recursively: bool = True):
 
 
 files = [
-    r"D:\SOFTORS\minecraft_console_client\minecraft_console_client"
+    r"D:\SOFTORS\minecraft_console_client\minecraft_console_client\bot.py"
 ]
 
 exclude = [
