@@ -12,7 +12,7 @@ from data_structures.target import Target
 
 
 class MoveManager:
-    """ Starts new thread as daemon which add moving packets into send_queue """
+    """Starts new thread as daemon which add moving packets into send_queue"""
 
     # Returns True / False. Does not indicate whether move_manager has started.
     is_paused: callable = None
@@ -76,19 +76,19 @@ class MoveManager:
         return self.__mover.is_alive()
 
     def stop(self):
-        """ Stops moving thread."""
+        """Stops moving thread."""
         self.clear_targets()
         self.__target_queue.put(None)
 
         logger.info("Stopping move manager...")
 
     def pause(self):
-        """ Pauses moving. When pausing already paused, nothing will happen. """
+        """Pauses moving. When pausing already paused, nothing will happen."""
         if not self.__paused.locked():
             self.__paused.acquire()
 
     def resume(self):
-        """ Resumes moving. When resuming not paused, nothing will happen. """
+        """Resumes moving. When resuming not paused, nothing will happen."""
         if self.__paused.locked():
             self.__paused.release()
 
@@ -101,7 +101,7 @@ class MoveManager:
     def add_target(self,
                    x: float = None, y: float = None, z: float = None,
                    target: Target = None):
-        """ Adds target position to the goto queue. """
+        """Adds target position to the goto queue."""
         if target is None:
             target = Target(x, y, z)
 
@@ -157,17 +157,17 @@ class MoveManager:
         self.__started_thread.set()
         logger.debug("Started handling moving")
 
-        """ Maximal step distance in one step. Max 0.02. """
+        """Maximal step distance in one step. Max 0.02. """
         max_step_x: float = 0.02
         max_step_y: float = 0.02
         max_step_z: float = 0.02
 
-        """ Move speed blocks / second. Default 0.7. """
+        """Move speed blocks / second. Default 0.7. """
         move_speed_x: float = 0.7
         move_speed_y: float = 0.7
         move_speed_z: float = 0.7
 
-        """ Amount of steps(packets) per sec. Max 20. """
+        """Amount of steps(packets) per sec. Max 20. """
         steps_per_second: float = sorted((move_speed_x / max_step_x,
                                           move_speed_y / max_step_y,
                                           move_speed_z / max_step_z),
@@ -177,7 +177,7 @@ class MoveManager:
         if steps_per_second > 20:
             steps_per_second = 20
 
-        """ Minimal delay between movement packets equals 50ms. """
+        """Minimal delay between movement packets equals 50ms. """
         step_delay: float = 1 / steps_per_second
 
         while True:
@@ -241,7 +241,7 @@ class MoveManager:
                     next_player_pos_y = player_pos_y + step_y
                     next_player_pos_z = player_pos_z + step_z
 
-                    """ Packet may be delayed due to full send queue, 
+                    """Packet may be delayed due to full send queue, 
                     and extremely slow connection. """
                     # TODO: Add to the connection priority queue.
                     send_packet(
@@ -253,6 +253,8 @@ class MoveManager:
                     player.position.pos = {'x': next_player_pos_x,
                                            'y': next_player_pos_y,
                                            'z': next_player_pos_z}
+
+
 
                     # print(f"player_pos: {player.position.pos}")
 
