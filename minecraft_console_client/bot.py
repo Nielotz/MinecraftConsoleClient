@@ -1,27 +1,26 @@
+"""Controls bot."""
+
 import logging
 import queue
 from typing import Any, TYPE_CHECKING
 
-logger = logging.getLogger('mainLogger')
-
-from versions.version import Version
-from connection import Connection
-from misc import utils
-from data_structures.game_data import GameData
-from data_structures.player import Player
-from data_structures.host import Host
 from action.move_manager import MoveManager
+from connection import Connection
+from data_structures.game_data import GameData
+from data_structures.host import Host
+from data_structures.player import Player
+from misc import utils
 from misc.exceptions import DisconnectedError
+from versions.version import Version
 
 if TYPE_CHECKING:
     import versions.defaults
 
+logger = logging.getLogger('mainLogger')
+
 
 class Bot:
-    """
-    Manages bot behavior. Highest programmer API level.
-    Imitate last stage e.g. "game" in `os->client->GAME`
-    """
+    """Manage bot behavior. Highest programmer API level."""
 
     version_data: Version = None
     login_packet_creator = None  # Module
@@ -39,11 +38,12 @@ class Bot:
 
     def __init__(self, host: Host, version: Version, username: str):
         """
+        Create bot. Auto create MoveManager.
+
         :param host: host data (Host) to which client connects to
         :param version: Version, tells which version of protocol to use
         :param username: player's username
         """
-
         self.host = host
         self.version_data: versions.defaults.VersionData = version.value
 
@@ -52,13 +52,20 @@ class Bot:
         self.game_data.player.username = username
 
         logger.info(
-            f"\n{'Created bot'.center(80, '-')}\n" +
-            "|" + f"Username: '{username}'".center(78, " ") + "|\n" +
-            "|" + f"Client version: '{self.version_data.release_name}'"
-            .center(78, " ") + "|\n" +
-            "|" + f"Socket data: {self.host.socket_data}"
-            .center(78, " ") + "|\n" +
-            "".center(80, "-"))
+            """
+%s
+| %s |
+| %s |
+| %s |
+%s
+""",
+            "Created bot".center(80, "-"),
+            f"Username: '{username}'".center(78, " "),
+            f"Client version: '{version.value.release_name}'".center(
+                78, " "),
+            f"Socket data: {self.host.socket_data}".center(78, " "),
+            "".center(80, "-")
+        )
 
         if not self.switch_action_packets("login"):
             raise RuntimeError("Not found 'login' in action_packet")
@@ -76,6 +83,7 @@ class Bot:
                                         self.game_data.player)
 
     def __del__(self):
+        """Delete bot, closing connection."""
         logger.info("Deleting bot")
         if self._conn is not None:
             self._conn.__del__()
@@ -83,14 +91,14 @@ class Bot:
 
     def start(self) -> str:
         """
-        Starts bot.
-        Returns error message, or - when everything worked as expected - "".
+        Start bot.
+
+        Returns error message, or - when everything is ok - "".
 
         :return error message
         :rtype str
         """
-
-        logger.info(f"Starting bot: '{self.game_data.player.username}'.")
+        logger.info("Starting bot: %s.", self.game_data.player.username)
 
         if not self.connect_to_server():
             return "Can't connect to the server"
@@ -123,17 +131,17 @@ class Bot:
             self._interpret_packet(packet_id, packet)
 
     def start_sending(self) -> bool:
-        """ See Connection.start_sender(). """
+        """See Connection.start_sender()."""
         return self._conn.start_sender(self.send_queue)
 
     def start_listening(self):
-        """ See Connection.start_listener(). """
+        """See Connection.start_listener()."""
         return self._conn.start_listener(self.received_queue)
 
     def exit(self, reason="not defined"):
-        """ Exits bot stopping stuff and others. """
-        logger.info(f"Stopping bot '{self.game_data.player.username}'. "
-                    f"Reason: {reason}")
+        """Exit bot stopping stuff and others."""
+        logger.info("Stopping bot %s. Reason: %s.",
+                    self.game_data.player.username, reason)
         self._conn.__del__()
         self._conn: None = None
 
@@ -144,7 +152,6 @@ class Bot:
         :return success
         :rtype bool
         """
-
         logger.info("Trying to log in in offline mode (non-premium).")
 
         self.send_queue.put(
@@ -155,7 +162,7 @@ class Bot:
                 self.game_data.player.username))
 
         # Try to log in for 50 sec (10 sec x 5 packets)
-        for i in range(5):
+        for _ in range(5):
             data = self.received_queue.get(timeout=10)
             if data == b'':
                 logger.error("Received 0 bytes")
@@ -168,9 +175,9 @@ class Bot:
             except DisconnectedError:
                 self.send_queue.put(b'')
                 return False
-            except Exception as e:
-                logger.critical(f"<bot#1>Uncaught exception "
-                                f"[{e.__class__.__name__}] occurred:  {e} ")
+            except Exception as err:
+                logger.critical("<bot#1>Uncaught exception [%s] occurred: %s ",
+                                err.__class__.__name__, err)
                 print("FOUND UNEXPECTED EXCEPTION\n" * 20)
                 self.send_queue.put(b'')
                 return False
@@ -179,27 +186,28 @@ class Bot:
 
     def connect_to_server(self, timeout=5) -> bool:
         """
-        Establishes connection with the server.
+        Establish connection with the server.
+
         Not raises exceptions.
 
         :param timeout: connection timeout
         :returns: success
         :rtype: bool
         """
-
         try:
             self._conn.connect(self.host.get_host_data(), timeout)
-        except OSError as e:
-            logger.critical(
-                f"Can't connect to: {self.host.socket_data}, reason: {e}")
+        except OSError as err:
+            logger.critical("Can't connect to: %s, reason: %s",
+                            self.host.socket_data, err)
             return False
 
-        logger.info(f"Established connection with: {self.host.socket_data}")
+        logger.info("Established connection with: %s", self.host.socket_data)
         return True
 
     def switch_action_packets(self, actions_type: str = "login") -> bool:
         """
-        Switches between different action types.
+        Switch between different action types.
+
         To see possible action types see:
             versions.<version>.clientbound.action_list.py
 
@@ -209,28 +217,26 @@ class Bot:
         :return success
         :rtype bool
         """
-
         self.clientbound_action_list = \
             self.version_data.action_list.get(actions_type)
         return self.clientbound_action_list is not None
 
     def _interpret_packet(self, packet_id: int, payload: bytes) -> Any:
         """
-        Interprets given packet and calls function assigned to packet_id
-        in action_list.
+        Interpret given packet and call function assigned \
+        to packet_id in action_list.
 
         :param packet_id: int representing packet id e.g 0,1,2,3,4...
         :param payload: uncompressed data
         :return: whatever action_list[packet_id]() returns
         """
-
         if packet_id in self.clientbound_action_list:
             return self.clientbound_action_list[packet_id](self, payload)
-        else:
-            logger.debug(f"Packet with id: {packet_id} is not implemented yet")
-            return None
+
+        logger.debug("Packet with id: %s is not implemented yet", packet_id)
+        return None
 
     def on_death(self):
-        """ Defines what to do when player died. """
+        """Define what to do when player died."""
         logger.info("Player has dead. Respawning.")
         self.send_queue.put(self.play_packet_creator.client_status(0))
