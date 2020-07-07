@@ -8,7 +8,7 @@ from versions.V1_12_2 import VersionData
 
 
 def handshake(host_data: (str, int)) -> bytes:
-    """ Returns handshake packet ready to send. """
+    """Returns handshake packet ready to send. """
 
     data = [
         VersionData.protocol_version_varint,  # Protocol Version.
@@ -20,6 +20,6 @@ def handshake(host_data: (str, int)) -> bytes:
 
 
 def login_start(username) -> bytes:
-    """ Returns "login start" packet. """
+    """Returns "login start" packet. """
 
     return utils.pack_data(login.LOGIN_START, [username])

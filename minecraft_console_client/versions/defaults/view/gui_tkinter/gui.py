@@ -78,18 +78,18 @@ class GUI(tk.Tk):
         self.update()
 
     def do_nothing(self, *args):
-        """ Does nothing """
+        """Does nothing"""
         pass
 
     def close(self):
-        """ Closes tkinter window, and changes set_labels(() to do_nothing() """
+        """Closes tkinter window, and changes set_labels() to do_nothing()"""
         import types
         self.set_labels = types.MethodType(self.do_nothing, self)
         self.destroy()
         print("Closed gui")
 
     def keep_alive(self):
-        """ Keeps window not frozen. """
+        """Keeps window not frozen."""
         # Not worth worrying. GUI has to be changed anyway to enable buttons.
 
         # self.update_idletasks()

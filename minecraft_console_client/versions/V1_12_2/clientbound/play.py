@@ -17,9 +17,9 @@ from versions.V1_12_2.view.view import gui
 
 def combat_event(bot, data: bytes):
     """
-    'Now only used to display the game over screen
-    (with enter combat and end combat completely ignored by the Notchain client)'
-     """
+    'Now only used to display the game over screen (with enter combat
+    and end combat completely ignored by the Notchain client)'
+    """
 
     event, data = utils.extract_varint(data)
 
@@ -28,8 +28,8 @@ def combat_event(bot, data: bytes):
         entity_id, data = utils.extract_int(data)
         message = utils.extract_json_from_chat(data)
 
-        """ 'Entity ID of the player that died 
-            (should match the client's entity ID).' """
+        """'Entity ID of the player that died
+        (should match the client's entity ID).'"""
         if entity_id == bot.game_data.player.entity_id:
 
             message = f"Player has been killed by: {entity_id}, " \
@@ -41,8 +41,8 @@ def combat_event(bot, data: bytes):
 
             bot.on_death()
         else:
-            message = f"Entity: {player_id} has been killed by: {entity_id}, " \
-                      f"death message: '{message}' "
+            message = f"Entity: {player_id} has been " \
+                      f"killed by: {entity_id}, death message: '{message}' "
 
             logger.info(message)
 
@@ -120,7 +120,7 @@ def player_position_and_look(bot, data: bytes):
 
     # Answer player position and look.
     bot.send_queue.put(
-        packet_creator.play.player_position_and_look_confirmation(_data))
+        packet_creator.play.player_position_and_look_confirm(_data))
 
 
 def use_bed(bot, data: bytes):
@@ -153,17 +153,20 @@ def respawn(bot, data: bytes):
 
     difficulty_name = GAME_DIFFICULTY[game_data.difficulty]
 
-    logger.info(f"Player respawn: "
-                f"gamemode: {game_data.player.gamemode}, "
-                f"dimension: {game_data.player.dimension}, "
-                f"game difficulty: {game_data.difficulty} ({difficulty_name}), "
-                f"game level_type: {game_data.level_type}, "
-                )
+    logger.info(
+        f"Player respawn: "
+        f"gamemode: {game_data.player.gamemode}, "
+        f"dimension: {game_data.player.dimension}, "
+        f"game difficulty: {game_data.difficulty}({difficulty_name}), "
+        f"game level_type: {game_data.level_type}, "
+    )
 
-    gui.set_labels(("dimension", game_data.player.dimension),
-                   ("game difficulty", difficulty_name),
-                   ("gamemode", game_data.player.gamemode),
-                   ("game level_type", game_data.level_type))
+    gui.set_labels(
+        ("dimension", game_data.player.dimension),
+        ("game difficulty", difficulty_name),
+        ("gamemode", game_data.player.gamemode),
+        ("game level_type", game_data.level_type)
+    )
 
 
 def entity_head_look(bot, data: bytes):
@@ -216,7 +219,7 @@ def set_experience(bot, data: bytes):
 
 
 def update_health(bot, data: bytes):
-    """ Auto-respawn bot. """
+    """Auto-respawn bot."""
     player = bot.game_data.player
 
     player.health, data = utils.extract_float(data)
@@ -480,7 +483,7 @@ def change_game_state(bot, data: bytes):
 
 
 def keep_alive(bot, data: bytes):
-    """ Auto-sends keep alive packet. """
+    """Auto-sends keep alive packet. """
     bot.send_queue.put(packet_creator.play.keep_alive(data))
 
 
@@ -514,7 +517,7 @@ def join_game(bot, data: bytes):
         utils.extract_unsigned_byte(data)
     difficulty_name = GAME_DIFFICULTY[game_data.difficulty]
 
-    """ 
+    """
     Was once used by the client to draw the player list, but now is ignored.
     bot.player._server_data["max_players"], data = \
         utils.extract_unsigned_byte(data)
@@ -526,21 +529,24 @@ def join_game(bot, data: bytes):
 
     # Reduced Debug Info
     # bot.player._server_data["RDI"], data = utils.extract_boolean(data)
-    logger.info(f"Join game read: "
-                f"player_id: {player.entity_id}, "
-                f"gamemode: {player.gamemode}, "
-                f"hardcore: {player.is_hardcore}, "
-                f"dimension: {player.dimension}, "
-                f"game difficulty: {game_data.difficulty} ({difficulty_name}), "
-                f"game level_type: {game_data.level_type}, "
-                )
+    logger.info(
+        f"Join game read: "
+        f"player_id: {player.entity_id}, "
+        f"gamemode: {player.gamemode}, "
+        f"hardcore: {player.is_hardcore}, "
+        f"dimension: {player.dimension}, "
+        f"game difficulty: {game_data.difficulty} ({difficulty_name}), "
+        f"game level_type: {game_data.level_type}, "
+    )
 
-    gui.set_labels(("player_id", player.entity_id),
-                   ("gamemode", player.gamemode),
-                   ("is_hardcore", player.is_hardcore),
-                   ("dimension", player.dimension),
-                   ("game difficulty", difficulty_name),
-                   ("game level_type", game_data.level_type))
+    gui.set_labels(
+        ("player_id", player.entity_id),
+        ("gamemode", player.gamemode),
+        ("is_hardcore", player.is_hardcore),
+        ("dimension", player.dimension),
+        ("game difficulty", difficulty_name),
+        ("game level_type", game_data.level_type)
+    )
 
 
 def _map(bot, data: bytes):

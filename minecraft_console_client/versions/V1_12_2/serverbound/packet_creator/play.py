@@ -3,7 +3,7 @@ from versions.V1_12_2.serverbound.packet_id import play
 
 
 def teleport_confirm(teleport_id: bytes) -> bytes:
-    """ Returns packet with confirmation for Player Position And Look. """
+    """Returns packet with confirmation for Player Position And Look."""
 
     return utils.pack_data(play.TELEPORT_CONFIRM, [teleport_id])
 
@@ -87,10 +87,10 @@ def player_position(position: (float, float, float), on_ground: bool) -> bytes:
                     )
 
 
-def player_position_and_look_confirmation(data: bytes, on_ground: bool = False):
+def player_position_and_look_confirm(data: bytes, on_ground: bool = False):
     """
     Confirmation for player_position_and_look sent by server.
-    
+
     :param data: received data from server.
     :param on_ground: determines whether is player on ground
     """

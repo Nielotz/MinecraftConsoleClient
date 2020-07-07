@@ -10,8 +10,9 @@ class VersionData(versions.defaults.VersionData):
     action_list = None
 
 
-import versions.V1_12_2.serverbound.packet_creator as serverbound_packet_creator
-import versions.V1_12_2.clientbound.action_list as clientbound_action_list
+#  Due to a circular import, imports needs to be here.
+import versions.V1_12_2.serverbound.packet_creator as packet_creator
+from versions.V1_12_2.clientbound.action_list import action_list
 
-VersionData.packet_creator = serverbound_packet_creator
-VersionData.action_list = clientbound_action_list.action_list
+VersionData.packet_creator = packet_creator
+VersionData.action_list = action_list
