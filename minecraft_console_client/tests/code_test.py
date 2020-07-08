@@ -23,6 +23,25 @@ check_list = {
     'prospector': True,
 }
 
+# PEPs to ignore.
+excluded_PEPs = [
+    "D203",
+    "D212",
+    "D103",  # Missing docstring in public function
+    "unused-argument",
+    "protected-access",
+    "not-callable",
+
+]
+
+files = [
+    r"D:\SOFTORS\minecraft_console_client\minecraft_console_client\versions/V1_12_2",
+]
+
+exclude = [
+    r"D:\SOFTORS\minecraft_console_client\minecraft_console_client\versions/V1_12_2\view"
+]
+
 
 def code_style_test(path):
     """Execute pycodestyle and returns result."""
@@ -33,10 +52,10 @@ def code_style_test(path):
     p = Popen(['pycodestyle', *options.split(), path],
               stdout=PIPE,
               stderr=PIPE)
-
-    return "".join(("pycodestyle:".center(50, '-'),
-                    "\n",
-                    p.stdout.read().decode("utf-8")))
+    output = p.stdout.read().decode("utf-8")
+    if len(output.strip()) == 0:
+        return ""
+    return "".join(("pycodestyle:".center(50, '-'), "\n", output))
 
 
 def code_doc_test(path):
@@ -46,10 +65,10 @@ def code_doc_test(path):
     options = ""
 
     p = Popen(['pydocstyle', *options.split(), path], stdout=PIPE, stderr=PIPE)
-
-    return "".join(("pydocstyle:".center(50, '-'),
-                    "\n",
-                    p.stdout.read().decode("utf-8")))
+    output = p.stdout.read().decode("utf-8")
+    if len(output.strip()) == 0:
+        return ""
+    return "".join(("pydocstyle:".center(50, '-'), "\n", output))
 
 
 def prospector(path):
@@ -57,31 +76,47 @@ def prospector(path):
     # https://github.com/PyCQA/prospector
 
     # -s medium / high / veryhigh / lite(or sth, check in manual)
-    options = "--full-pep8 --with-tool bandit --absolute-paths" \
+    # --absolute-paths
+    options = "--full-pep8 --with-tool bandit -s veryhigh " \
               "-M -D --output-format text"
 
     p = Popen(['prospector', *options.split(), path], stdout=PIPE, stderr=PIPE)
-
-    return "".join(("prospector:".center(50, '-'),
-                    "\n",
-                    p.stdout.read().decode("utf-8")[22:-8]))
-
-
-tests = {
-    'code_style_test': code_style_test,
-    'code_doc_test': code_doc_test,
-    'prospector': prospector,
-}
+    output = p.stdout.read().decode("utf-8")[22:-8]
+    if len(output.strip()) == 0:
+        return ""
+    return "".join(("prospector:".center(50, '-'), "\n", output))
 
 
 def check_file(path: str, tests_: (callable,)):
     """Check file using tests from tests_."""
-    outputs = []
+    outputs = [f"[FILE]: {path}", "\n"]
     print(f"Checking file: {path}")
     for test in tests_:
         result = test(path)
-        outputs.append(result)
+        remove_idx = []
+        split_result = result.split("\n")
 
+        for idx, row in enumerate(split_result):
+            for excluded in excluded_PEPs:
+                if excluded in row:
+                    remove_idx.append(idx - 1)
+                    remove_idx.append(idx)
+                    remove_idx.append(idx + 1)
+                    break
+        for idx in remove_idx[::-1]:
+            if idx < len(split_result):
+                split_result.pop(idx)
+            if len(split_result) > idx != 0:
+                if split_result[idx] == split_result[idx - 1]:
+                    split_result.pop(idx)
+        if len(split_result) < 2:
+            continue
+
+        if split_result[1] == "":
+            continue
+
+        outputs.append("\n".join(split_result))
+    outputs.append("\n")
     return "".join(outputs)
 
 
@@ -102,8 +137,8 @@ def check_files(path: str,
 
         if os.path.isdir(full_file_path):
             if recursively:
-                check_files(full_file_path, excluded_files,
-                            tests_, recursively)
+                outputs.append(check_files(full_file_path, excluded_files,
+                                           tests_, recursively))
             continue
 
         if not os.path.isfile(full_file_path):
@@ -116,7 +151,7 @@ def check_files(path: str,
     return "".join(outputs)
 
 
-def run(files_: [str, ], excluded_files: [str, ],  recursively: bool = True):
+def run(files_: [str, ], excluded_files: [str, ], recursively: bool = True):
     """Run tests."""
     for file in files_:
         if file in excluded_files:
@@ -134,16 +169,15 @@ def run(files_: [str, ], excluded_files: [str, ],  recursively: bool = True):
             raise RuntimeError("No tests selected!")
 
         output = check_files(file, excluded_files, tests_, recursively)
+
         with open("code_test_log.txt", "w+") as f:
             f.write(output.replace(chr(13), ''), )  # Remove CR (enters).
 
 
-files = [
-    r"D:\SOFTORS\minecraft_console_client\minecraft_console_client\bot.py"
-]
+tests = {
+    'code_style_test': code_style_test,
+    'code_doc_test': code_doc_test,
+    'prospector': prospector,
+}
 
-exclude = [
-    r"D:\SOFTORS\minecraft_console_client\minecraft_console_client\__init__.py"
-
-]
-run(files, exclude,  recursively=False)
+run(files, exclude, recursively=True)
