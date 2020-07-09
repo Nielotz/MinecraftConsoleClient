@@ -1,3 +1,6 @@
+"""Module with functions related to given packet."""
+
+
 from typing import NoReturn
 
 
@@ -281,7 +284,7 @@ def join_game(bot, data: bytes):
     pass
 
 
-def map(bot, data: bytes):
+def _(bot, data: bytes):
     pass
 
 

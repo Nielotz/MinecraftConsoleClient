@@ -8,8 +8,8 @@ from action.move_manager import MoveManager
 from connection import Connection
 from data_structures.game_data import GameData
 from data_structures.host import Host
-from data_structures.player import Player
-from misc import utils
+from data_structures.player_data_holder import PlayerDataHolder
+from misc import converters
 from misc.exceptions import DisconnectedError
 from versions.version import Version
 
@@ -19,7 +19,7 @@ if TYPE_CHECKING:
 logger = logging.getLogger('mainLogger')
 
 
-class Bot:
+class Player:
     """Manage bot behavior. Highest programmer API level."""
 
     version_data: Version = None
@@ -48,8 +48,8 @@ class Bot:
         self.version_data: versions.defaults.VersionData = version.value
 
         self.game_data = GameData()
-        self.game_data.player = Player()
-        self.game_data.player.username = username
+        self.game_data.player_data_holder = PlayerDataHolder()
+        self.game_data.player_data_holder.username = username
 
         logger.info(
             """
@@ -80,7 +80,7 @@ class Bot:
 
         self.move_manager = MoveManager(self.send_queue,
                                         self.play_packet_creator,
-                                        self.game_data.player)
+                                        self.game_data.player_data_holder)
 
     def __del__(self):
         """Delete bot, closing connection."""
@@ -98,7 +98,7 @@ class Bot:
         :return error message
         :rtype str
         """
-        logger.info("Starting bot: %s.", self.game_data.player.username)
+        logger.info("Starting bot: %s.", self.game_data.player_data_holder.username)
 
         if not self.connect_to_server():
             return "Can't connect to the server"
@@ -127,7 +127,7 @@ class Bot:
 
             if len(data) == 0:
                 return "Received 0 bytes"
-            packet_id, packet = utils.extract_varint(data)
+            packet_id, packet = converters.extract_varint(data)
             self._interpret_packet(packet_id, packet)
 
     def start_sending(self) -> bool:
@@ -141,7 +141,7 @@ class Bot:
     def exit(self, reason="not defined"):
         """Exit bot stopping stuff and others."""
         logger.info("Stopping bot %s. Reason: %s.",
-                    self.game_data.player.username, reason)
+                    self.game_data.player_data_holder.username, reason)
         self._conn.__del__()
         self._conn: None = None
 
@@ -159,7 +159,7 @@ class Bot:
 
         self.send_queue.put(
             self.login_packet_creator.login_start(
-                self.game_data.player.username))
+                self.game_data.player_data_holder.username))
 
         # Try to log in for 50 sec (10 sec x 5 packets)
         for _ in range(5):
@@ -167,7 +167,7 @@ class Bot:
             if data == b'':
                 logger.error("Received 0 bytes")
                 return False
-            packet_id, data = utils.extract_varint(data)
+            packet_id, data = converters.extract_varint(data)
 
             try:
                 if self._interpret_packet(packet_id, data):
@@ -211,7 +211,7 @@ class Bot:
         To see possible action types see:
             versions.<version>.clientbound.action_list.py
 
-        Based on V1_12_2:
+        Based on v1_12_2:
             Possible types: login, play, status.
 
         :return success

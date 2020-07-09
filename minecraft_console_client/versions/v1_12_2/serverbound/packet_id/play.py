@@ -1,3 +1,5 @@
+"""Contain packet name translated to its id."""
+
 TELEPORT_CONFIRM = b'\x00'
 # TABCOMPLETE = b'\x01'
 # CHAT_MESSAGE = b'\x02'

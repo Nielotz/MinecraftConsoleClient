@@ -1,10 +1,10 @@
 import logging
 
-logger = logging.getLogger("mainLogger")
-
-from bot import Bot
-from versions.version import Version
+from player import Player
 from data_structures.host import Host
+from versions.version import Version
+
+logger = logging.getLogger("mainLogger")
 
 
 def run():
@@ -14,11 +14,11 @@ def run():
     host: Host = Host("51.83.170.185", 9250)
     # host: Host = Host("nssv.pl", 25565)
 
-    game_version: Version = Version.V1_12_2
+    game_version: Version = Version.v1_12_2
     username = "Bob"
 
     # Create basic objects.
-    bot: Bot = Bot(host=host, version=game_version, username=username)
+    bot: Player = Player(host=host, version=game_version, username=username)
 
     error_message = bot.start()
     bot.exit(error_message or "normal exit")

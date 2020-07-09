@@ -1,1 +1,0 @@
-HANDSHAKE = LOGIN_START = b'\x00'

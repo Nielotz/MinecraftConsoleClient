@@ -1,3 +1,5 @@
+"""Creator and manager of connection to the server."""
+
 import logging
 import queue
 import socket
@@ -5,25 +7,26 @@ import threading
 import zlib
 from contextlib import suppress
 
-logger = logging.getLogger('mainLogger')
-
+from misc import converters
 from misc.consts import MAX_INT
-from misc import utils
 from misc.hashtables import VARINT_BYTES
+
+logger = logging.getLogger('mainLogger')
 
 
 class Connection:
     """
-    Main class that creates and handles TCP connection between server(host) and
-    client.
+    Main class that creates and handles TCP connection between \
+    server(host) and client.
+
     Handles reading(sending) data from(to) the server.
 
     Auto-closes connection when instance being deleted.
 
     """
 
-    """ Positive threshold means number of bytes before start compressing
-    otherwise compression is disabled."""
+    # Positive threshold means number of bytes before start compressing
+    # otherwise compression is disabled."""
     _compression_threshold = -1
     __connection: socket.socket = None
 
@@ -33,51 +36,53 @@ class Connection:
     __ready = threading.Event()
 
     def __init__(self):
+        """Create instance of Connection."""
         self.__connection = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
     def __del__(self):
+        """Close connection."""
         self.close()
 
-    def setblocking(self, is_blocking: bool = True):
-        """ Changes socket behavior. """
+    def set_blocking(self, is_blocking: bool = True):
+        """Change socket behavior."""
         self.__connection.setblocking(is_blocking)
 
     def set_compression(self, threshold: int):
         """
-        Sets compression threshold.
+        Set compression threshold.
+
         Negative threshold means no compression.
         """
-
         self._compression_threshold = threshold
 
         if threshold < 0:
-            logger.info(f"Compression is disabled")
+            logger.info("Compression is disabled")
         else:
-            logger.info(f"Compression is enabled, threshold: {threshold}")
+            logger.info("Compression is enabled, threshold: %i", threshold)
 
     def connect(self, socket_data: (str, int), timeout: int = 5):
         """
-        Starts connection using socket_data(ip / hostname, port).
+        Start connection using socket_data(ip / hostname, port).
+
         On error raises standard socket exceptions.
 
         :param socket_data: tuple(host, port)
         :param timeout: connection timeout
         """
-
         self.__connection.settimeout(timeout)
         self.__connection.connect(socket_data)
 
     def __receive_packet(self) -> bytes:
         """
-        Reads whole packet from connection.
-        https://stackoverflow.com/a/17668009
+        Read whole packet from connection.
+
+        Taken from: https://stackoverflow.com/a/17668009
 
         Returns b'' when connection is broken or sth.
 
         :returns read bytes
         :rtype bytes
         """
-
         recv = self.__connection.recv
         read_bytes = 0
         fragments = []
@@ -98,15 +103,15 @@ class Connection:
         except BrokenPipeError:
             logger.critical("Connection has been broken.")
 
-        except ValueError as e:
-            logger.critical(f"Invalid varint. {e}")
+        except ValueError as err:
+            logger.critical("Invalid varint. %s", err)
 
-        except OSError as e:
-            logger.critical(f"Probably connection has been shut down: {e}")
+        except OSError as err:
+            logger.critical("Probably connection has been shut down: %s", err)
 
-        except Exception as e:
-            logger.critical(f"<connection#2>Uncaught exception "
-                            f"[{e.__class__.__name__}] occurred:  {e} ")
+        except Exception as err:
+            logger.critical("<connection#2>Uncaught exception [{}] "
+                            "occurred: [%s] %s", err.__class__.__name__, err)
         else:
             return b''.join(fragments)
 
@@ -114,18 +119,20 @@ class Connection:
 
     def start_listener(self, received_queue: queue.Queue) -> bool:
         """
+        Start thread that listens packets incoming from the server.
+
         Similar to start_sending.
-        Starts new thread-daemon that listens packets incoming from the server.
+        Thread has to be started as daemon.
         When received packet (if need) - decompresses,
         then inserts it into received_queue.
-        Thread ends when length of a packet or declared length equals zero.
+        Thread ends when length of a packet or
+        declared length equals zero.
         When connection has been interrupted puts b'' into queue.
 
         :param received_queue: where to put received packets
         :returns started successfully
         :rtype bool
         """
-
         if self.__listener is not None and self.__listener.is_alive():
             logger.error("Listener already started")
             return False
@@ -142,15 +149,15 @@ class Connection:
 
     def start_sender(self, to_send: queue.Queue) -> bool:
         """
-        Similar to start_listening.
-        Starts new thread-daemon which waits for packets to appear in
+        Start new thread-daemon which waits for packets to appear in\
         to_send then sends it to the server.
+
+        Similar to start_listening.
 
         :param to_send: queue from where get and send packets
         :returns started successfully
         :rtype bool
         """
-
         if self.__sender is not None and self.__sender.is_alive():
             logger.error("Sender already started")
             return False
@@ -168,15 +175,15 @@ class Connection:
 
     def __read_packet_length(self) -> int:
         """
-        Reads and unpacks unknown length (up to 5 bytes) VarInt.
+        Read and unpack unknown length (up to 5 bytes) VarInt.
+
         If not found end of VarInt raises ValueError.
         Stolen from
-        https://gist.github.com/MarshalX/40861e1d02cbbc6f23acd3eced9db1a0
+        gist.github.com/MarshalX/40861e1d02cbbc6f23acd3eced9db1a0
 
         :returns VarInt: int
         :rtype int
         """
-
         packet_length = 0
         recv = self.__connection.recv
         for i in range(5):
@@ -199,16 +206,17 @@ class Connection:
 
     def close(self):
         """
-        Tries to close connection, and stop threads in a nice way.
+        Try to close connection, and stop threads in a nice way.
+
         Does not ensure that! But gives its best.
         """
+        # Shut down one or both halves of the connection.
         with suppress(Exception):
-            """ Shut down one or both halves of the connection. """
             self.__connection.shutdown(socket.SHUT_RDWR)
             logger.info("Shutdown connection")
 
+        # Close a socket file descriptor.
         with suppress(Exception):
-            """ Close a socket file descriptor. """
             if self.__connection.fileno() != -1:
                 self.__connection.close()
                 self.__connection: None = None
@@ -234,27 +242,19 @@ class Connection:
 
     def __listen(self, received: queue.Queue):
         """
+        Listen for incoming packets, then put into received.
+
         Similar to __sender.
         Starts listening packets incoming from server.
         When received packet inserts it into buffer queue (received).
-        It is blocking function, so has to be run in a new thread as daemon.
+        It is blocking function, so has to be run as a daemon.
         Closes when:
             receive packet longer or shorted than declared,
             len(packet) or declared length equals zero.
         On exit puts b'' into queue.
 
-        Job:
-            Receives packet awaiting to be received(if needed) - decompresses.
-            Appends them to buffer queue (received).
-            If delay_after_packet [seconds] is over 0.001 - sleeps.
-            After every number_of_packets_before_delay packets received sleeps
-            for delay_after_packets [seconds].
-            After every packets_before_full_receive receives all awaiting packets.
-            Repeat.
-
         :param received: queue.Queue (FIFO) where read packets append to
         """
-
         if not threading.current_thread().daemon:
             raise RuntimeError(
                 "Thread running start_listening() has to start as daemon!")
@@ -264,20 +264,20 @@ class Connection:
         while True:
             packet = self.__receive_packet()
 
-            if packet == b'':
-                logger.critical("Packet length equals zero. Exiting.")
+            if not packet:
+                logger.critical("Received empty packet. Exiting.")
                 break
 
             # If compression is enabled.
             if not self._compression_threshold < 0:
-                data_length, packet = utils.extract_varint(packet)
+                data_length, packet = converters.extract_varint(packet)
 
                 if data_length != 0:  # Packet is compressed.
                     packet = zlib.decompress(packet)
 
                     if len(packet) < self._compression_threshold:
-                        logger.critical(
-                            "Packet length is shorter than compression threshold.")
+                        logger.critical("Packet length is shorter "
+                                        "than compression threshold.")
                         break
             # End of decompression
 
@@ -288,72 +288,72 @@ class Connection:
 
     def __send(self, to_send: queue.Queue):
         """
+        Get packet from to_send and send to the server.
+
         Similar to __listen.
-        Starts waiting for bytes to appear in to_send then sends it to server.
-        It is blocking function, so has to be run in a new thread as a daemon.
+        Starts waiting for bytes to appear in to_send queue
+        then sends it to server.
+        It is blocking function, so has to be run in as a daemon.
         Quits when get b'' from to_send queue.
 
         Job:
             Freezes until packet appear in buffer.
-            If compression is enabled and packet exceeds compression_threshold
-            compresses.
+            If compression is enabled and packet exceeds
+            compression_threshold - compresses.
             Sends it to the host.
             Repeat.
 
-        :param to_send: queue.Queue (FIFO) from where to read bytes to send
+        :param to_send: queue.Queue from where to read bytes to send
         """
-
         if not threading.current_thread().daemon:
             raise RuntimeError(
                 "Thread running start_sending() has to be a daemon!")
 
         self.__ready.set()
 
-        convert_to_varint = utils.convert_to_varint
+        to_varint = converters.convert_to_varint
         while True:
             # packet: b'VarInt(Packet ID)' + b'VarInt(Data)'
             payload = to_send.get(block=True)
 
-            if payload == b'':
-                logger.critical("Packet to send is empty. Exiting.")
+            if not payload:
+                logger.critical("Packet is empty.")
                 break
 
             payload_len = len(payload)
 
             # Compression is disabled
             if self._compression_threshold < 0:
-                packet = convert_to_varint(payload_len) + payload
+                packet = to_varint(payload_len) + payload
 
             else:
                 # When compression disabled for this packet
                 if payload_len < self._compression_threshold:
-                    packet = convert_to_varint(payload_len + 1) + \
-                             bytes(b'\x00') + payload
-
+                    payload = b'\x00' + payload
                 else:  # Compression is enabled
-                    compressed_payload = zlib.compress(payload)
-                    payload = convert_to_varint(payload_len) + compressed_payload
-                    packet = convert_to_varint(len(payload)) + payload
+                    payload = to_varint(payload_len) + zlib.compress(payload)
+
+                packet = to_varint(len(payload)) + payload
             # End of compression
 
             try:
                 self.__connection.sendall(packet)
             except ConnectionAbortedError:
-                """ Client closed connection. """
+                # Client closed connection.
                 logger.critical("Connection has been shut down by client. ")
                 break
             except BrokenPipeError:
-                """ Server closed connection or 
-                socket has been shutdown for writing """
+                # Server closed connection or socket has been shutdown.
                 logger.critical(
                     "Probably connection has been shut down. Try again.")
                 break
-            except OSError as e:
-                logger.critical(f"Probably connection has been shut down: {e}")
+            except OSError as err:
+                logger.critical(
+                    "Probably connection has been shut down: %s", err)
                 break
-            except Exception as e:
-                logger.critical(f"<connection#1>Uncaught exception "
-                                f"[{e.__class__.__name__}] occurred:  {e} ")
+            except Exception as err:
+                logger.critical("<connection#1>Uncaught exception [%s] "
+                                "occurred: {%s}", err.__class__.__name__, err)
                 break
 
         logger.info("Exiting sending thread")

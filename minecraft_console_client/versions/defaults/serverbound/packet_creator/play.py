@@ -1,3 +1,6 @@
+"""Provides functions which generate given packet."""
+
+
 def teleport_confirm(teleport_id: bytes) -> bytes:
     packed_packet = b''
     return packed_packet

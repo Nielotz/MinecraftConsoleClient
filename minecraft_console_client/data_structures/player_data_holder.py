@@ -1,8 +1,12 @@
+"""Holder for Player."""
+
 from data_structures.entity import Entity
 from data_structures.position import Position
 
 
-class Player(Entity):
+class PlayerDataHolder(Entity):
+    """Contain data related to the player."""
+
     uuid: str = None
     gamemode: int = None
     is_hardcore: bool = None

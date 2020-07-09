@@ -12,9 +12,9 @@ from collections import namedtuple
 from commands import chat_commands
 
 Command = namedtuple('Command', 'args_types func')
-""" :param args_types: to which try to convert to """
+""":param args_types: to which try to convert to"""
 
-""" 
+"""
 
     Bot object is automatically passed as first parameter.
 

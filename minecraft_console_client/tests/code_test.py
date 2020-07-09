@@ -31,15 +31,16 @@ excluded_PEPs = [
     "unused-argument",
     "protected-access",
     "not-callable",
+    "unused-variable"
 
 ]
 
 files = [
-    r"D:\SOFTORS\minecraft_console_client\minecraft_console_client\versions/V1_12_2",
+    r"D:\SOFTORS\minecraft_console_client\minecraft_console_client\versions/v1_12_2",
 ]
 
 exclude = [
-    r"D:\SOFTORS\minecraft_console_client\minecraft_console_client\versions/V1_12_2\view"
+    r"D:\SOFTORS\minecraft_console_client\minecraft_console_client\versions/v1_12_2\view"
 ]
 
 

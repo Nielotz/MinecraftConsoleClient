@@ -7,7 +7,7 @@ import queue
 import time
 from contextlib import contextmanager
 
-from data_structures.player import Player
+from data_structures.player_data_holder import PlayerDataHolder
 from data_structures.target import Target
 
 
@@ -30,11 +30,11 @@ class MoveManager:
     def __init__(self,
                  send_queue: queue.Queue,
                  play_packet_creator,
-                 player: Player):
+                 player_data_holder: PlayerDataHolder):
         """
         :param send_queue: queue from where packet will be taken and send
         :param play_packet_creator: module containing actions for moving
-        :type player: Player object which will be moved
+        :type player_data_holder: Player object which will be moved
         """
         logger.debug("Starting mover.")
 
@@ -54,7 +54,7 @@ class MoveManager:
         self.__mover = threading.Thread(target=self.__handle_moving,
                                         args=(send_queue,
                                               self.__target_queue,
-                                              player),
+                                              player_data_holder),
                                         daemon=True
                                         )
 
@@ -145,7 +145,7 @@ class MoveManager:
     def __handle_moving(self,
                         send_queue: queue.Queue,
                         target_queue: queue.Queue,
-                        player: Player):
+                        player: PlayerDataHolder):
         """
         Handles moving to targets given in a target_queue.
         Thread shuts down when:

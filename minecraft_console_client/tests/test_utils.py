@@ -2,7 +2,7 @@ import time
 from random import randint
 from unittest import TestCase
 
-from misc.utils import convert_to_varint, extract_varint
+from misc.converters import convert_to_varint, extract_varint
 from misc.consts import MAX_INT
 from misc.consts import MIN_INT
 

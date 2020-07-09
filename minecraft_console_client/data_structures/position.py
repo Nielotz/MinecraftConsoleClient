@@ -1,12 +1,18 @@
+"""Holder for Position."""
+
+
 class Position:
+    """Hold and allow easy manipulation with positional data."""
 
     def __init__(self, x: float, y: float, z: float):
-        """ pos = (x, y, z) """
+        """Create Position(x, y, z) object."""
         self.pos = {'x': x, 'y': y, 'z': z}
 
-    def get_list(self):
+    def get_values(self):
+        """Return tuple(x, y, z)."""
         pos = self.pos
         return pos['x'], pos['y'], pos['z']
 
     def __repr__(self):
-        return f"[x: {self.pos['x']}, y: {self.pos['y']}, z: {self.pos['z']}]"
+        """Return string representation of position dictionary."""
+        return str(self.pos)
