@@ -31,9 +31,9 @@ def combat_event(game_: "game.Game", data: bytes):
         entity_id, data = converters.extract_int(data)
         message = converters.extract_json_from_chat(data)
 
-        """'Entity ID of the player that died
-        (should match the client's entity ID).'"""
-        if entity_id == game_.player_.data.entity_id:
+        # 'Entity ID of the player that died
+        # (should match the client's entity ID).'
+        if entity_id == game_.player.data.entity_id:
 
             message = f"Player has been killed by: {entity_id}, " \
                       f"death message: '{message}' "
@@ -64,7 +64,7 @@ def player_position_and_look(game_: "game.Game", data: bytes):
     flags, teleport_id = converters.extract_byte(data)
 
     game_data = game_.game_data
-    player_data = game_.player_.data
+    player_data = game_.player.data
 
     if player_data.position is None:
         player_data.position = Position(x, y, z)
@@ -113,7 +113,7 @@ def player_position_and_look(game_: "game.Game", data: bytes):
                    ("pitch", player_data.look_pitch),
                    ("------------------", '------------------'))
 
-    add_packet = game_.send_queue.put
+    add_packet = game_.to_send_packets.put
 
     # Teleport confirm.
     add_packet(packet_creator.play.teleport_confirm(teleport_id))
@@ -148,14 +148,14 @@ def respawn(game_: "game.Game", data: bytes):
 
     game_data.dimension, data = converters.extract_int(data)
     game_data.difficulty = data[0]
-    game_.player_.gamemode = data[1]
+    game_.player.gamemode = data[1]
     game_data.level_type = converters.extract_string(data[2:])[0]
 
     difficulty_name = GAME_DIFFICULTY[game_data.difficulty]
 
     logger.info("Player respawn: gamemode: %i, dimension: %i, "
                 "game difficulty: %i(%s), game level_type: %s, ",
-                game_.player_.gamemode,
+                game_.player.gamemode,
                 game_data.dimension,
                 game_data.difficulty, str(difficulty_name),
                 game_data.level_type
@@ -164,7 +164,7 @@ def respawn(game_: "game.Game", data: bytes):
     gui.set_labels(
         ("dimension", game_data.dimension),
         ("game difficulty", difficulty_name),
-        ("gamemode", game_.player_.gamemode),
+        ("gamemode", game_.player.gamemode),
         ("game level_type", game_data.level_type)
     )
 
@@ -186,7 +186,7 @@ def camera(game_: "game.Game", data: bytes):
 
 
 def held_item_change(game_: "game.Game", data: bytes):
-    player = game_.player_.data
+    player = game_.player.data
 
     player.active_slot = converters.extract_byte(data)[0]
     logger.debug("Held slot changed to %i", player.active_slot)
@@ -220,7 +220,7 @@ def set_experience(game_: "game.Game", data: bytes):
 
 def update_health(game_: "game.Game", data: bytes):
     """Auto-respawn player."""
-    player = game_.player_.data
+    player = game_.player.data
 
     player.health, data = converters.extract_float(data)
     player.food, data = converters.extract_varint(data)
@@ -475,7 +475,7 @@ def change_game_state(game_: "game.Game", data: bytes):
 
 def keep_alive(game_: "game.Game", data: bytes):
     """Auto-sends keep alive packet."""
-    game_.send_queue.put(packet_creator.play.keep_alive(data))
+    game_.to_send_packets.put(packet_creator.play.keep_alive(data))
 
 
 def chunk_data(game_: "game.Game", data: bytes):
@@ -492,7 +492,7 @@ def particle(game_: "game.Game", data: bytes):
 
 def join_game(game_: "game.Game", data: bytes):
     game_data = game_.game_data
-    player = game_.player_
+    player = game_.player
 
     player.entity_id, data = converters.extract_int(data)
 
@@ -600,7 +600,7 @@ def player_abilities(game_: "game.Game", data: bytes):
 
 
 def disconnect(game_: "game.Game", data: bytes) -> NoReturn:
-    player = game_.player_.data
+    player = game_.player.data
 
     reason = converters.extract_json_from_chat(data)[0]
     # reason should be dict Chat type.

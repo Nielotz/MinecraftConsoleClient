@@ -1,4 +1,10 @@
-"""Container for game class."""
+"""
+Container for game class.
+
+Everything what is happening, happens here.
+Everything what is controlled, is controlled here.
+"""
+
 import logging
 import queue
 import zlib
@@ -8,8 +14,8 @@ import action.move_manager
 import connection
 import data_structures.game_data
 import data_structures.host
+import data_structures.player
 import misc.converters as converters
-from data_structures import player
 import versions.defaults
 import versions.version
 from misc.exceptions import DisconnectedError
@@ -20,40 +26,45 @@ logger = logging.getLogger("mainLogger")
 
 class Game:
     """Ultimate class for Life, the Universe, and Everything."""
+
     host: data_structures.host.Host = None
     version_data: versions.defaults.VersionData = None
-    player_: player.Player = None
+    player: data_structures.player.Player = None
     game_data: data_structures.game_data.GameData = None
 
     # Serverbound
-    _login_packet_creator = None  # Module
-    _play_packet_creator = None  # Module
+    _login_packet_creator: versions.defaults.VersionData.packet_creator.login \
+        = None  # Module
+    _play_packet_creator: versions.defaults.VersionData.packet_creator.play \
+        = None  # Module
 
     # Clientbound
+    # versions.defaults.VersionData.action_list[stage]
+    # where stage in ("login", "play", "status")
     _action_list: dict = None
 
-    receive_queue: queue.Queue = None
-    send_queue: queue.Queue = None
+    received_packets: queue.Queue = None
+    to_send_packets: queue.Queue = None
 
     _conn: connection.Connection = None
 
     def __init__(self,
                  host: data_structures.host.Host,
-                 player_: player.Player,
+                 player: data_structures.player.Player,
                  game_version: versions.version.Version):
         """
         Create game.
 
         :param host: where to connect to
-        :param player_: to connect as who
+        :param player: to connect as who
         :param game_version: to connect in which game version
         """
         self.host = host
         # TODO: check is server responding / online
-        self.player_ = player_
+        self.player = player
         # TODO: check username
         self.version_data = game_version.value
-
+        # TODO: check is game data valid, then remove other checks
         self.game_data = data_structures.game_data.GameData()
 
         logger.info(
@@ -65,7 +76,7 @@ class Game:
 %s
 """,
             "Created bot".center(80, "-"),
-            f"Username: '{player_.data.username}'".center(78, " "),
+            f"Username: '{player.data.username}'".center(78, " "),
             f"Client version: '{self.version_data.release_name}'".center(
                 78, " "),
             f"Socket data: {self.host.socket_data}".center(78, " "),
@@ -77,6 +88,7 @@ class Game:
             raise RuntimeError("Not found 'play' in action_packet. "
                                f"Game version: {self.version_data}")
 
+        # Switch to login packet type.
         if not self._switch_action_packets("login"):
             raise RuntimeError("Not found 'login' in action_packet. "
                                f"Game version: {self.version_data}")
@@ -86,59 +98,62 @@ class Game:
 
         self._conn = connection.Connection()
 
-        self.send_queue: queue.Queue = queue.Queue()
-        self.receive_queue: queue.Queue = queue.Queue()
+        self.to_send_packets = queue.Queue()
+        self.received_packets = queue.Queue()
+
         self.move_manager = action.move_manager.MoveManager(
-            self.send_queue,
+            self.to_send_packets,
             self.play_packet_creator,
-            self.player_.data)
+            self.player.data)
 
     def start(self) -> Union[str, None]:
         """
         Start game.
 
-        :return: error message
+        :return: error message, otherwise None
         """
-
         if not self._connect_to_server():
             return self.stop("Cannot connect to the server.")
         logger.info("Successfully connected to the server.")
 
-        if not self._conn.start_listener(self.receive_queue):
+        if not self._conn.start_listener(self.received_packets):
             return self.stop("Cannot start listener")
         logger.debug("Successfully started listening thread")
 
-        if not self._conn.start_sender(self.send_queue):
+        if not self._conn.start_sender(self.to_send_packets):
             return self.stop("Cannot start sender")
         logger.debug("Successfully started sending thread")
 
         if not self._log_in():
-            # TODO: improve, add retry, or sth
             return self.stop("Cannot log in.")
+        logger.info("Successfully logged in to server.")
 
         self._switch_action_packets("play")
 
-        # TODO: move this somewhere, or sth.
-        #  For now is only to check is all ok.
         if not self.move_manager.start():
             return self.stop("Can't start move manager.")
 
         # TODO: Add reaction_list, user_action_list, or other shit.
         while True:
-            data = self.receive_queue.get(timeout=10)
+            try:
+                data = self.received_packets.get(timeout=20)
+            except TimeoutError:
+                return self.stop("Server timeout error.")
 
             if not data:
                 return self.stop("Received 0 bytes")
 
-            try:
-                data = self._decompress_packet(data)
-            except InvalidUncompressedPacketError:
-                return self.stop("Received packet with invalid compression.")
+            if not self._conn.compression_threshold < 0:
+                try:
+                    data = self._decompress_packet(data)
+                except InvalidUncompressedPacketError:
+                    return self.stop(
+                        "Received packet with invalid compression.")
 
+            # Decompression needs to be done before this!
             packet_id, packet = converters.extract_varint(data)
 
-            # TODO: Add enum for some interpret returns.
-            if self._interpret_packet(packet_id, packet) == 42:
+            if self._interpret_packet(packet_id, packet) == 5555:
                 break
 
         return None
@@ -147,34 +162,34 @@ class Game:
         """
         Log-in into server.
 
-        Connect to the server, and perform log in.
+        SUPPORT ONLY NON-PREMIUM.
+
+        Establish connection with the server, and perform log in.
+        In this part connection threshold (not necessary) will be set.
 
         :return success
         :rtype bool
         """
-
-        # Change to auto-detect.
+        # TODO: Change to auto-detect.
         if not self._login_non_premium():
             return False
-        logger.info("Successfully logged in to server.")
-
         return True
 
-    def stop(self, message: Any = None) -> Union[str, None]:
+    def stop(self, error_message: Any = None) -> Union[str, None]:
         """
-        Stop everything. Close files, connections. Return message.
+        Stop everything. Close files, connections, etc. Return message.
 
-        :param message: error message, leave None when normal exit
+        :param error_message: error message, leave None when normal exit
         :return passed message, None or error message
         """
 
         logger.info("Stopping bot %s. Reason: %s.",
-                    self.player_.data.username, message)
+                    self.player.data.username, error_message)
 
-        self._conn.__del__()
+        self._conn.close()
         self._conn: None = None
 
-        return message
+        return error_message
 
     def __del__(self):
         if self._conn is not None:
@@ -200,23 +215,23 @@ class Game:
     def _login_non_premium(self) -> bool:
         """
         #TODO: when login_premium done, write what da fuk is dat.
-        #TODO: improve simplify
+        #TODO: improve and simplify
 
         :return success
         :rtype bool
         """
         logger.info("Trying to log in in offline mode (non-premium).")
 
-        self.send_queue.put(
+        self.to_send_packets.put(
             self.login_packet_creator.handshake(self.host.get_host_data()))
 
-        self.send_queue.put(
+        self.to_send_packets.put(
             self.login_packet_creator.login_start(
-                self.player_.data.username))
+                self.player.data.username))
 
         # Try to log in for 50 sec (10 sec x 5 packets)
         for _ in range(5):
-            data = self.receive_queue.get(timeout=10)
+            data = self.received_packets.get(timeout=10)
             if not data:
                 logger.error("Received 0 bytes")
                 return False
@@ -231,19 +246,18 @@ class Game:
             try:
                 result = self._interpret_packet(packet_id, data)
             except DisconnectedError:
-                self.send_queue.put(b'')
+                self.to_send_packets.put(b'')
                 return False
             except Exception as err:
                 logger.critical("<bot#1>Uncaught exception [%s] occurred: %s ",
                                 err.__class__.__name__, err)
                 # print("FOUND UNEXPECTED EXCEPTION\n" * 20)
-                self.send_queue.put(b'')
-                raise err
+                self.to_send_packets.put(b'')
                 return False
 
             if result is True:
                 return True
-            if isinstance(packet_id, int):
+            if isinstance(result, int):
                 self.game_data.compression_threshold = result
                 self._conn.compression_threshold = result
 
@@ -266,15 +280,16 @@ class Game:
                             self.host.socket_data, err)
             return False
 
-        logger.info("Established connection with: %s", self.host.socket_data)
+        logger.debug("Established connection with: %s", self.host.socket_data)
         return True
 
     def _interpret_packet(self, packet_id: int, payload: bytes) -> Any:
         """
         Interpret given packet and call function assigned \
-        to packet_id in action_list.
+        to packet_id in action_list, then return function return.
 
         If compression threshold is not negative - uncompress.
+
         :param packet_id: int representing packet id e.g 0,1,2,3,4...
         :param payload: uncompressed data
         :return: whatever action_list[packet_id]() returns
@@ -287,7 +302,7 @@ class Game:
         return None
 
     def _decompress_packet(self, packet: bytes) -> bytes:
-        """If needed decompress packet, and return it."""
+        """Decompress packet, and return it."""
         threshold = self.game_data.compression_threshold
 
         # If compression is enabled.
@@ -315,4 +330,4 @@ class Game:
     def on_death(self):
         """Define what to do when player died."""
         logger.info("Player has dead. Respawning.")
-        self.send_queue.put(self.play_packet_creator.client_status(0))
+        self.to_send_packets.put(self.play_packet_creator.client_status(0))
