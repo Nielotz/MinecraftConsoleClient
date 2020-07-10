@@ -4,7 +4,6 @@ import logging
 from typing import NoReturn
 from typing import TYPE_CHECKING
 
-
 from commands import chat_commands
 from data_structures.position import Position
 from misc import converters
@@ -48,11 +47,11 @@ def combat_event(game_: "game.Game", data: bytes):
         gui.add_to_hotbar(message)
 
 
-def player_list_item(game_: "game.Game",  data: bytes):
+def player_list_item(game_: "game.Game", data: bytes):
     pass
 
 
-def player_position_and_look(game_: "game.Game",  data: bytes):
+def player_position_and_look(game_: "game.Game", data: bytes):
     """Auto-send teleport confirm, \
     and game_position_and_look (serverbound)."""
     _data = data[::]
@@ -66,7 +65,6 @@ def player_position_and_look(game_: "game.Game",  data: bytes):
 
     game_data = game_.game_data
     player_data = game_.player_.data
-
 
     if player_data.position is None:
         player_data.position = Position(x, y, z)
@@ -125,27 +123,27 @@ def player_position_and_look(game_: "game.Game",  data: bytes):
         packet_creator.play.player_position_and_look_confirm(_data))
 
 
-def use_bed(game_: "game.Game",  data: bytes):
+def use_bed(game_: "game.Game", data: bytes):
     pass
 
 
-def unlock_recipes(game_: "game.Game",  data: bytes):
+def unlock_recipes(game_: "game.Game", data: bytes):
     pass
 
 
-def destroy_entities(game_: "game.Game",  data: bytes):
+def destroy_entities(game_: "game.Game", data: bytes):
     pass
 
 
-def remove_entity_effect(game_: "game.Game",  data: bytes):
+def remove_entity_effect(game_: "game.Game", data: bytes):
     pass
 
 
-def resource_pack_send(game_: "game.Game",  data: bytes):
+def resource_pack_send(game_: "game.Game", data: bytes):
     pass
 
 
-def respawn(game_: "game.Game",  data: bytes):
+def respawn(game_: "game.Game", data: bytes):
     game_data = game_.game_data
 
     game_data.dimension, data = converters.extract_int(data)
@@ -171,23 +169,23 @@ def respawn(game_: "game.Game",  data: bytes):
     )
 
 
-def entity_head_look(game_: "game.Game",  data: bytes):
+def entity_head_look(game_: "game.Game", data: bytes):
     pass
 
 
-def select_advancement_tab(game_: "game.Game",  data: bytes):
+def select_advancement_tab(game_: "game.Game", data: bytes):
     pass
 
 
-def world_border(game_: "game.Game",  data: bytes):
+def world_border(game_: "game.Game", data: bytes):
     pass
 
 
-def camera(game_: "game.Game",  data: bytes):
+def camera(game_: "game.Game", data: bytes):
     pass
 
 
-def held_item_change(game_: "game.Game",  data: bytes):
+def held_item_change(game_: "game.Game", data: bytes):
     player = game_.player_.data
 
     player.active_slot = converters.extract_byte(data)[0]
@@ -196,31 +194,31 @@ def held_item_change(game_: "game.Game",  data: bytes):
     gui.set_labels(("Held slot", player.active_slot))
 
 
-def display_scoreboard(game_: "game.Game",  data: bytes):
+def display_scoreboard(game_: "game.Game", data: bytes):
     pass
 
 
-def entity_metadata(game_: "game.Game",  data: bytes):
+def entity_metadata(game_: "game.Game", data: bytes):
     pass
 
 
-def attach_entity(game_: "game.Game",  data: bytes):
+def attach_entity(game_: "game.Game", data: bytes):
     pass
 
 
-def entity_velocity(game_: "game.Game",  data: bytes):
+def entity_velocity(game_: "game.Game", data: bytes):
     pass
 
 
-def entity_equipment(game_: "game.Game",  data: bytes):
+def entity_equipment(game_: "game.Game", data: bytes):
     pass
 
 
-def set_experience(game_: "game.Game",  data: bytes):
+def set_experience(game_: "game.Game", data: bytes):
     pass
 
 
-def update_health(game_: "game.Game",  data: bytes):
+def update_health(game_: "game.Game", data: bytes):
     """Auto-respawn player."""
     player = game_.player_.data
 
@@ -239,23 +237,23 @@ def update_health(game_: "game.Game",  data: bytes):
         game_.on_death()
 
 
-def scoreboard_objective(game_: "game.Game",  data: bytes):
+def scoreboard_objective(game_: "game.Game", data: bytes):
     pass
 
 
-def set_passengers(game_: "game.Game",  data: bytes):
+def set_passengers(game_: "game.Game", data: bytes):
     pass
 
 
-def teams(game_: "game.Game",  data: bytes):
+def teams(game_: "game.Game", data: bytes):
     pass
 
 
-def update_score(game_: "game.Game",  data: bytes):
+def update_score(game_: "game.Game", data: bytes):
     pass
 
 
-def spawn_position(game_: "game.Game",  data: bytes):
+def spawn_position(game_: "game.Game", data: bytes):
     position = converters.extract_position(data)[0]
 
     logger.info("Changed player spawn position to %s", position)
@@ -263,150 +261,150 @@ def spawn_position(game_: "game.Game",  data: bytes):
     gui.set_labels(("Spawn position", position))
 
 
-def time_update(game_: "game.Game",  data: bytes):
+def time_update(game_: "game.Game", data: bytes):
     pass
 
 
-def title(game_: "game.Game",  data: bytes):
+def title(game_: "game.Game", data: bytes):
     pass
 
 
-def sound_effect(game_: "game.Game",  data: bytes):
+def sound_effect(game_: "game.Game", data: bytes):
     pass
 
 
-def player_list_header_and_footer(game_: "game.Game",  data: bytes):
+def player_list_header_and_footer(game_: "game.Game", data: bytes):
     pass
 
 
-def collect_item(game_: "game.Game",  data: bytes):
+def collect_item(game_: "game.Game", data: bytes):
     pass
 
 
-def entity_teleport(game_: "game.Game",  data: bytes):
+def entity_teleport(game_: "game.Game", data: bytes):
     pass
 
 
-def advancements(game_: "game.Game",  data: bytes):
+def advancements(game_: "game.Game", data: bytes):
     pass
 
 
-def entity_properties(game_: "game.Game",  data: bytes):
+def entity_properties(game_: "game.Game", data: bytes):
     pass
 
 
-def entity_effect(game_: "game.Game",  data: bytes):
+def entity_effect(game_: "game.Game", data: bytes):
     pass
 
 
-def block_break_animation(game_: "game.Game",  data: bytes):
+def block_break_animation(game_: "game.Game", data: bytes):
     pass
 
 
-def statistics(game_: "game.Game",  data: bytes):
+def statistics(game_: "game.Game", data: bytes):
     pass
 
 
-def animation(game_: "game.Game",  data: bytes):
+def animation(game_: "game.Game", data: bytes):
     pass
 
 
-def spawn_player(game_: "game.Game",  data: bytes):
+def spawn_player(game_: "game.Game", data: bytes):
     pass
 
 
-def spawn_painting(game_: "game.Game",  data: bytes):
+def spawn_painting(game_: "game.Game", data: bytes):
     pass
 
 
-def spawn_mob(game_: "game.Game",  data: bytes):
+def spawn_mob(game_: "game.Game", data: bytes):
     pass
 
 
-def spawn_global_entity(game_: "game.Game",  data: bytes):
+def spawn_global_entity(game_: "game.Game", data: bytes):
     pass
 
 
-def spawn_experience_orb(game_: "game.Game",  data: bytes):
+def spawn_experience_orb(game_: "game.Game", data: bytes):
     pass
 
 
-def spawn_object(game_: "game.Game",  data: bytes):
+def spawn_object(game_: "game.Game", data: bytes):
     pass
 
 
-def unload_chunk(game_: "game.Game",  data: bytes):
+def unload_chunk(game_: "game.Game", data: bytes):
     pass
 
 
-def explosion(game_: "game.Game",  data: bytes):
+def explosion(game_: "game.Game", data: bytes):
     pass
 
 
-def entity_status(game_: "game.Game",  data: bytes):
+def entity_status(game_: "game.Game", data: bytes):
     entity_id, byte = converters.extract_int(data)
     status = converters.extract_byte(data)[0]
     logger.debug("Entity with id: %i status changed to: %i",
                  entity_id, status)
 
 
-def named_sound_effect(game_: "game.Game",  data: bytes):
+def named_sound_effect(game_: "game.Game", data: bytes):
     pass
 
 
-def plugin_message(game_: "game.Game",  data: bytes):
+def plugin_message(game_: "game.Game", data: bytes):
     pass
 
 
-def set_cooldown(game_: "game.Game",  data: bytes):
+def set_cooldown(game_: "game.Game", data: bytes):
     pass
 
 
-def set_slot(game_: "game.Game",  data: bytes):
+def set_slot(game_: "game.Game", data: bytes):
     pass
 
 
-def window_property(game_: "game.Game",  data: bytes):
+def window_property(game_: "game.Game", data: bytes):
     pass
 
 
-def window_items(game_: "game.Game",  data: bytes):
+def window_items(game_: "game.Game", data: bytes):
     pass
 
 
-def open_window(game_: "game.Game",  data: bytes):
+def open_window(game_: "game.Game", data: bytes):
     pass
 
 
-def close_window(game_: "game.Game",  data: bytes):
+def close_window(game_: "game.Game", data: bytes):
     pass
 
 
-def confirm_transaction(game_: "game.Game",  data: bytes):
+def confirm_transaction(game_: "game.Game", data: bytes):
     pass
 
 
-def multi_block_change(game_: "game.Game",  data: bytes):
+def multi_block_change(game_: "game.Game", data: bytes):
     pass
 
 
-def chat_message(game_: "game.Game",  data: bytes):
+def chat_message(game_: "game.Game", data: bytes):
     json_data, position = converters.extract_json_from_chat(data)
 
-    chat_commands.interpret(game_,  str(json_data))
+    chat_commands.interpret(game_, str(json_data))
 
     gui.add_to_chat(f"{position}: {json_data}")
 
 
-def tab_complete(game_: "game.Game",  data: bytes):
+def tab_complete(game_: "game.Game", data: bytes):
     pass
 
 
-def update_block_entity(game_: "game.Game",  data: bytes):
+def update_block_entity(game_: "game.Game", data: bytes):
     pass
 
 
-def server_difficulty(game_: "game.Game",  data: bytes):
+def server_difficulty(game_: "game.Game", data: bytes):
     difficulty = converters.extract_unsigned_byte(data)[0]
     difficulty_name = GAME_DIFFICULTY[difficulty]
 
@@ -418,19 +416,19 @@ def server_difficulty(game_: "game.Game",  data: bytes):
     gui.set_labels(("game difficulty", difficulty_name))
 
 
-def boss_bar(game_: "game.Game",  data: bytes):
+def boss_bar(game_: "game.Game", data: bytes):
     pass
 
 
-def block_action(game_: "game.Game",  data: bytes):
+def block_action(game_: "game.Game", data: bytes):
     pass
 
 
-def block_change(game_: "game.Game",  data: bytes):
+def block_change(game_: "game.Game", data: bytes):
     pass
 
 
-def change_game_state(game_: "game.Game",  data: bytes):
+def change_game_state(game_: "game.Game", data: bytes):
     value = converters.extract_float(data[1:])[0]
     # reason = data[0]  # reason = utils.extract_unsigned_byte()[0]
     game_data = game_.game_data
@@ -475,24 +473,24 @@ def change_game_state(game_: "game.Game",  data: bytes):
         pass
 
 
-def keep_alive(game_: "game.Game",  data: bytes):
+def keep_alive(game_: "game.Game", data: bytes):
     """Auto-sends keep alive packet."""
     game_.send_queue.put(packet_creator.play.keep_alive(data))
 
 
-def chunk_data(game_: "game.Game",  data: bytes):
+def chunk_data(game_: "game.Game", data: bytes):
     pass
 
 
-def effect(game_: "game.Game",  data: bytes):
+def effect(game_: "game.Game", data: bytes):
     pass
 
 
-def particle(game_: "game.Game",  data: bytes):
+def particle(game_: "game.Game", data: bytes):
     pass
 
 
-def join_game(game_: "game.Game",  data: bytes):
+def join_game(game_: "game.Game", data: bytes):
     game_data = game_.game_data
     player = game_.player_
 
@@ -542,39 +540,39 @@ def join_game(game_: "game.Game",  data: bytes):
     )
 
 
-def map_(game_: "game.Game",  data: bytes):
+def map_(game_: "game.Game", data: bytes):
     pass
 
 
-def entity(game_: "game.Game",  data: bytes):
+def entity(game_: "game.Game", data: bytes):
     pass
 
 
-def entity_relative_move(game_: "game.Game",  data: bytes):
+def entity_relative_move(game_: "game.Game", data: bytes):
     pass
 
 
-def entity_look_and_relative_move(game_: "game.Game",  data: bytes):
+def entity_look_and_relative_move(game_: "game.Game", data: bytes):
     pass
 
 
-def entity_look(game_: "game.Game",  data: bytes):
+def entity_look(game_: "game.Game", data: bytes):
     pass
 
 
-def vehicle_move(game_: "game.Game",  data: bytes):
+def vehicle_move(game_: "game.Game", data: bytes):
     pass
 
 
-def open_sign_editor(game_: "game.Game",  data: bytes):
+def open_sign_editor(game_: "game.Game", data: bytes):
     pass
 
 
-def craft_recipe_response(game_: "game.Game",  data: bytes):
+def craft_recipe_response(game_: "game.Game", data: bytes):
     pass
 
 
-def player_abilities(game_: "game.Game",  data: bytes):
+def player_abilities(game_: "game.Game", data: bytes):
     player = game_.game_data
 
     flags, data = converters.extract_byte(data)
@@ -601,7 +599,7 @@ def player_abilities(game_: "game.Game",  data: bytes):
                    ("creative_mode", player.is_creative_mode))
 
 
-def disconnect(game_: "game.Game",  data: bytes) -> NoReturn:
+def disconnect(game_: "game.Game", data: bytes) -> NoReturn:
     player = game_.player_.data
 
     reason = converters.extract_json_from_chat(data)[0]

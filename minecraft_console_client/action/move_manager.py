@@ -258,7 +258,7 @@ class MoveManager:
 
                     time.sleep(step_delay -
                                (
-                                           get_perf_time() - last_packet_time) % step_delay)
+                                       get_perf_time() - last_packet_time) % step_delay)
                     last_packet_time: float = get_perf_time()
                 else:
                     logger.info(f"Paused moving: {target}")

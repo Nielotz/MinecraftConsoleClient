@@ -13,7 +13,7 @@ logger.addHandler(ch)
 
 from game import Game
 from data_structures.host import Host
-from player import Player
+from data_structures.player import Player
 from versions.version import Version
 
 if __name__ == "__main__":
@@ -33,4 +33,3 @@ if __name__ == "__main__":
         logger.error("Game has been abruptly stopped. Reason: %r", error)
     else:
         logger.info("Game has been closed.")
-

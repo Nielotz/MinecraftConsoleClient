@@ -1,19 +1,19 @@
 """Container for game class."""
-from typing import Any, Union
 import logging
 import queue
 import zlib
+from typing import Any, Union
 
+import action.move_manager
 import connection
 import data_structures.game_data
 import data_structures.host
-import player
+import misc.converters as converters
+from data_structures import player
 import versions.defaults
 import versions.version
-import action.move_manager
 from misc.exceptions import DisconnectedError
 from misc.exceptions import InvalidUncompressedPacketError
-import misc.converters as converters
 
 logger = logging.getLogger("mainLogger")
 
@@ -227,7 +227,7 @@ class Game:
                 return False
 
             packet_id, data = converters.extract_varint(packet)
-            #print(packet_id, data)
+            # print(packet_id, data)
             try:
                 result = self._interpret_packet(packet_id, data)
             except DisconnectedError:
@@ -236,7 +236,7 @@ class Game:
             except Exception as err:
                 logger.critical("<bot#1>Uncaught exception [%s] occurred: %s ",
                                 err.__class__.__name__, err)
-                #print("FOUND UNEXPECTED EXCEPTION\n" * 20)
+                # print("FOUND UNEXPECTED EXCEPTION\n" * 20)
                 self.send_queue.put(b'')
                 raise err
                 return False
@@ -283,7 +283,7 @@ class Game:
         if packet_id in self._action_list:
             return self._action_list[packet_id](self, payload)
 
-        #logger.debug("Packet with id: %s is not implemented yet", packet_id)
+        # logger.debug("Packet with id: %s is not implemented yet", packet_id)
         return None
 
     def _decompress_packet(self, packet: bytes) -> bytes:

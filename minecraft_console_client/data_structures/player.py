@@ -6,7 +6,8 @@ logger = logging.getLogger("mainLogger")
 
 
 class Player:
-    """Main player """
+    """Main player object ."""
+
     data: PlayerData = None
 
     def __init__(self, username: str = None):

@@ -14,7 +14,7 @@ if TYPE_CHECKING:
 logger = logging.getLogger("mainLogger")
 
 
-def set_compression(game_: "game.Game",  data: bytes) -> None:
+def set_compression(game_: "game.Game", data: bytes) -> None:
     threshold = converters.extract_varint(data)[0]
 
     gui.set_labels(("compression threshold", threshold))
@@ -27,15 +27,15 @@ def set_compression(game_: "game.Game",  data: bytes) -> None:
     return threshold
 
 
-def login_success(game_: "game.Game",  data: bytes) -> True:
-    game_.player_.data.uuid = converters.extract_string(data)[0]\
+def login_success(game_: "game.Game", data: bytes) -> True:
+    game_.player_.data.uuid = converters.extract_string(data)[0] \
         .decode('utf-8')
     logger.info("Successfully logged to the server, "
                 "UUID: %s", game_.player_.data.uuid)
     return True
 
 
-def disconnect(game_: "game.Game",  data: bytes) -> NoReturn:
+def disconnect(game_: "game.Game", data: bytes) -> NoReturn:
     # TODO: After implementing chat interpreter do sth here.
     reason = converters.extract_json_from_chat(data)[0]
     # reason should be dict Chat type.

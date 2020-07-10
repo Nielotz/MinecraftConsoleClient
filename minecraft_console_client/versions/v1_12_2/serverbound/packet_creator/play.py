@@ -1,6 +1,5 @@
 """Provides functions which generate given packet."""
 
-
 from misc import converters
 from versions.v1_12_2.serverbound.packet_id import play
 
