@@ -27,7 +27,7 @@ class Connection:
 
     # Positive threshold means number of bytes before start compressing
     # otherwise compression is disabled."""
-    _compression_threshold = -1
+    compression_threshold = -1
     __connection: socket.socket = None
 
     __listener: threading.Thread = None
@@ -46,19 +46,6 @@ class Connection:
     def set_blocking(self, is_blocking: bool = True):
         """Change socket behavior."""
         self.__connection.setblocking(is_blocking)
-
-    def set_compression(self, threshold: int):
-        """
-        Set compression threshold.
-
-        Negative threshold means no compression.
-        """
-        self._compression_threshold = threshold
-
-        if threshold < 0:
-            logger.info("Compression is disabled")
-        else:
-            logger.info("Compression is enabled, threshold: %i", threshold)
 
     def connect(self, socket_data: (str, int), timeout: int = 5):
         """
@@ -253,6 +240,8 @@ class Connection:
             len(packet) or declared length equals zero.
         On exit puts b'' into queue.
 
+        DOES NOT DECOMPRESS!
+
         :param received: queue.Queue (FIFO) where read packets append to
         """
         if not threading.current_thread().daemon:
@@ -267,20 +256,6 @@ class Connection:
             if not packet:
                 logger.critical("Received empty packet. Exiting.")
                 break
-
-            # If compression is enabled.
-            if not self._compression_threshold < 0:
-                data_length, packet = converters.extract_varint(packet)
-
-                if data_length != 0:  # Packet is compressed.
-                    packet = zlib.decompress(packet)
-
-                    if len(packet) < self._compression_threshold:
-                        logger.critical("Packet length is shorter "
-                                        "than compression threshold.")
-                        break
-            # End of decompression
-
             received.put(packet)
 
         received.put(None)
@@ -323,12 +298,12 @@ class Connection:
             payload_len = len(payload)
 
             # Compression is disabled
-            if self._compression_threshold < 0:
+            if self.compression_threshold < 0:
                 packet = to_varint(payload_len) + payload
 
             else:
                 # When compression disabled for this packet
-                if payload_len < self._compression_threshold:
+                if payload_len < self.compression_threshold:
                     payload = b'\x00' + payload
                 else:  # Compression is enabled
                     payload = to_varint(payload_len) + zlib.compress(payload)

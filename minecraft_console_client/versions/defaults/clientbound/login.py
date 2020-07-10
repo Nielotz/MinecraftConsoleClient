@@ -3,13 +3,13 @@
 from typing import NoReturn
 
 
-def set_compression(bot, data: bytes):
+def set_compression(game_: "game.Game",  data: bytes):
     pass
 
 
-def login_success(bot, data: bytes) -> True:
+def login_success(game_: "game.Game",  data: bytes) -> True:
     pass
 
 
-def disconnect(bot, data: bytes) -> NoReturn:
+def disconnect(game_: "game.Game",  data: bytes) -> NoReturn:
     pass

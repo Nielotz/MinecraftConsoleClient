@@ -4,8 +4,10 @@ from data_structures.entity import Entity
 from data_structures.position import Position
 
 
-class PlayerDataHolder(Entity):
+class PlayerData(Entity):
     """Contain data related to the player."""
+
+    username: str = None
 
     uuid: str = None
     gamemode: int = None
@@ -19,6 +21,5 @@ class PlayerDataHolder(Entity):
     fov_modifier: float = None
     active_slot: int = None
     spawn_position: Position = None
-    username: str = None
     food: int = None
     food_saturation: float = None

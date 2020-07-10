@@ -64,7 +64,6 @@ def extract_varint(data: bytes) -> (int, bytes):
     :rtype int, Union[bytes, None]
     """
     number = 0
-
     for i in range(5):
         byte = data[i]
 
@@ -209,7 +208,6 @@ def extract_json_from_chat(data: bytes) -> (dict, Union[bytes, None]):
     """
     # TODO: return python JSON
     string, leftover = extract_string(data)
-
     return json.loads(string), leftover
 
 

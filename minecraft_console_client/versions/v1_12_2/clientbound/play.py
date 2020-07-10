@@ -2,6 +2,8 @@
 
 import logging
 from typing import NoReturn
+from typing import TYPE_CHECKING
+
 
 from commands import chat_commands
 from data_structures.position import Position
@@ -14,8 +16,11 @@ from versions.v1_12_2.view.view import gui
 
 logger = logging.getLogger("mainLogger")
 
+if TYPE_CHECKING:
+    import game
 
-def combat_event(bot, data: bytes):
+
+def combat_event(game_: "game.Game", data: bytes):
     """
     'Now only used to display the game over screen (with enter combat
     and end combat completely ignored by the Notchain client)'
@@ -29,12 +34,12 @@ def combat_event(bot, data: bytes):
 
         """'Entity ID of the player that died
         (should match the client's entity ID).'"""
-        if entity_id == bot.game_data.player_data_holder.entity_id:
+        if entity_id == game_.player_.data.entity_id:
 
             message = f"Player has been killed by: {entity_id}, " \
                       f"death message: '{message}' "
 
-            bot.on_death()
+            game_.on_death()
         else:
             message = f"Entity: {player_id} has been " \
                       f"killed by: {entity_id}, death message: '{message}' "
@@ -43,13 +48,13 @@ def combat_event(bot, data: bytes):
         gui.add_to_hotbar(message)
 
 
-def player_list_item(bot, data: bytes):
+def player_list_item(game_: "game.Game",  data: bytes):
     pass
 
 
-def player_position_and_look(bot, data: bytes):
+def player_position_and_look(game_: "game.Game",  data: bytes):
     """Auto-send teleport confirm, \
-    and player_position_and_look (serverbound)."""
+    and game_position_and_look (serverbound)."""
     _data = data[::]
 
     x, data = converters.extract_double(data)
@@ -59,16 +64,20 @@ def player_position_and_look(bot, data: bytes):
     pitch, data = converters.extract_float(data)
     flags, teleport_id = converters.extract_byte(data)
 
-    player_data_holder = bot.game_data.player_data_holder
-    if player_data_holder.position is None:
-        player_data_holder.position = Position(x, y, z)
-        player_data_holder.look_yaw = yaw
-        player_data_holder.look_pitch = pitch
+    game_data = game_.game_data
+    player_data = game_.player_.data
 
-        player_pos = player_data_holder.position.pos
+
+    if player_data.position is None:
+        player_data.position = Position(x, y, z)
+
+        player_data.look_yaw = yaw
+        player_data.look_pitch = pitch
+
+        player_pos = player_data.position.pos
 
     else:
-        player_pos = player_data_holder.position.pos
+        player_pos = player_data.position.pos
 
         if flags & 0x01:
             player_pos["x"] += x
@@ -86,98 +95,100 @@ def player_position_and_look(bot, data: bytes):
             player_pos["z"] = z
 
         if flags & 0x08:
-            player_data_holder.look_yaw += yaw
+            player_data.look_yaw += yaw
         else:
-            player_data_holder.look_yaw = yaw
+            player_data.look_yaw = yaw
 
         if flags & 0x10:
-            player_data_holder.look_pitch += pitch
+            player_data.look_pitch += pitch
         else:
-            player_data_holder.look_pitch = pitch
+            player_data.look_pitch = pitch
 
     logger.info("Player pos: %s Look: (yaw: %f, pitch: %f)",
-                player_pos, player_data_holder.look_yaw, player_data_holder.look_pitch)
+                player_pos, player_data.look_yaw, player_data.look_pitch)
 
     gui.set_labels(("Player position", '------------------'),
                    ("x", player_pos["x"]),
                    ("y", player_pos["y"]),
                    ("z", player_pos["z"]),
-                   ("yaw", player_data_holder.look_yaw),
-                   ("pitch", player_data_holder.look_pitch),
+                   ("yaw", player_data.look_yaw),
+                   ("pitch", player_data.look_pitch),
                    ("------------------", '------------------'))
 
+    add_packet = game_.send_queue.put
+
     # Teleport confirm.
-    bot.send_queue.put(packet_creator.play.teleport_confirm(teleport_id))
+    add_packet(packet_creator.play.teleport_confirm(teleport_id))
 
     # Answer player position and look.
-    bot.send_queue.put(
+    add_packet(
         packet_creator.play.player_position_and_look_confirm(_data))
 
 
-def use_bed(bot, data: bytes):
+def use_bed(game_: "game.Game",  data: bytes):
     pass
 
 
-def unlock_recipes(bot, data: bytes):
+def unlock_recipes(game_: "game.Game",  data: bytes):
     pass
 
 
-def destroy_entities(bot, data: bytes):
+def destroy_entities(game_: "game.Game",  data: bytes):
     pass
 
 
-def remove_entity_effect(bot, data: bytes):
+def remove_entity_effect(game_: "game.Game",  data: bytes):
     pass
 
 
-def resource_pack_send(bot, data: bytes):
+def resource_pack_send(game_: "game.Game",  data: bytes):
     pass
 
 
-def respawn(bot, data: bytes):
-    game_data = bot.game_data
+def respawn(game_: "game.Game",  data: bytes):
+    game_data = game_.game_data
 
-    game_data.player_data_holder.dimension, data = converters.extract_int(data)
+    game_data.dimension, data = converters.extract_int(data)
     game_data.difficulty = data[0]
-    game_data.player_data_holder.gamemode = data[1]
+    game_.player_.gamemode = data[1]
     game_data.level_type = converters.extract_string(data[2:])[0]
 
     difficulty_name = GAME_DIFFICULTY[game_data.difficulty]
 
     logger.info("Player respawn: gamemode: %i, dimension: %i, "
                 "game difficulty: %i(%s), game level_type: %s, ",
-                game_data.player_data_holder.gamemode,
-                game_data.player_data_holder.dimension,
+                game_.player_.gamemode,
+                game_data.dimension,
                 game_data.difficulty, str(difficulty_name),
                 game_data.level_type
                 )
 
     gui.set_labels(
-        ("dimension", game_data.player_data_holder.dimension),
+        ("dimension", game_data.dimension),
         ("game difficulty", difficulty_name),
-        ("gamemode", game_data.player_data_holder.gamemode),
+        ("gamemode", game_.player_.gamemode),
         ("game level_type", game_data.level_type)
     )
 
 
-def entity_head_look(bot, data: bytes):
+def entity_head_look(game_: "game.Game",  data: bytes):
     pass
 
 
-def select_advancement_tab(bot, data: bytes):
+def select_advancement_tab(game_: "game.Game",  data: bytes):
     pass
 
 
-def world_border(bot, data: bytes):
+def world_border(game_: "game.Game",  data: bytes):
     pass
 
 
-def camera(bot, data: bytes):
+def camera(game_: "game.Game",  data: bytes):
     pass
 
 
-def held_item_change(bot, data: bytes):
-    player = bot.game_data.player_data_holder
+def held_item_change(game_: "game.Game",  data: bytes):
+    player = game_.player_.data
 
     player.active_slot = converters.extract_byte(data)[0]
     logger.debug("Held slot changed to %i", player.active_slot)
@@ -185,33 +196,33 @@ def held_item_change(bot, data: bytes):
     gui.set_labels(("Held slot", player.active_slot))
 
 
-def display_scoreboard(bot, data: bytes):
+def display_scoreboard(game_: "game.Game",  data: bytes):
     pass
 
 
-def entity_metadata(bot, data: bytes):
+def entity_metadata(game_: "game.Game",  data: bytes):
     pass
 
 
-def attach_entity(bot, data: bytes):
+def attach_entity(game_: "game.Game",  data: bytes):
     pass
 
 
-def entity_velocity(bot, data: bytes):
+def entity_velocity(game_: "game.Game",  data: bytes):
     pass
 
 
-def entity_equipment(bot, data: bytes):
+def entity_equipment(game_: "game.Game",  data: bytes):
     pass
 
 
-def set_experience(bot, data: bytes):
+def set_experience(game_: "game.Game",  data: bytes):
     pass
 
 
-def update_health(bot, data: bytes):
-    """Auto-respawn bot."""
-    player = bot.game_data.player_data_holder
+def update_health(game_: "game.Game",  data: bytes):
+    """Auto-respawn player."""
+    player = game_.player_.data
 
     player.health, data = converters.extract_float(data)
     player.food, data = converters.extract_varint(data)
@@ -225,26 +236,26 @@ def update_health(bot, data: bytes):
                    ("food_saturation", player.food_saturation))
 
     if not player.health > 0:
-        bot.on_death()
+        game_.on_death()
 
 
-def scoreboard_objective(bot, data: bytes):
+def scoreboard_objective(game_: "game.Game",  data: bytes):
     pass
 
 
-def set_passengers(bot, data: bytes):
+def set_passengers(game_: "game.Game",  data: bytes):
     pass
 
 
-def teams(bot, data: bytes):
+def teams(game_: "game.Game",  data: bytes):
     pass
 
 
-def update_score(bot, data: bytes):
+def update_score(game_: "game.Game",  data: bytes):
     pass
 
 
-def spawn_position(bot, data: bytes):
+def spawn_position(game_: "game.Game",  data: bytes):
     position = converters.extract_position(data)[0]
 
     logger.info("Changed player spawn position to %s", position)
@@ -252,154 +263,154 @@ def spawn_position(bot, data: bytes):
     gui.set_labels(("Spawn position", position))
 
 
-def time_update(bot, data: bytes):
+def time_update(game_: "game.Game",  data: bytes):
     pass
 
 
-def title(bot, data: bytes):
+def title(game_: "game.Game",  data: bytes):
     pass
 
 
-def sound_effect(bot, data: bytes):
+def sound_effect(game_: "game.Game",  data: bytes):
     pass
 
 
-def player_list_header_and_footer(bot, data: bytes):
+def player_list_header_and_footer(game_: "game.Game",  data: bytes):
     pass
 
 
-def collect_item(bot, data: bytes):
+def collect_item(game_: "game.Game",  data: bytes):
     pass
 
 
-def entity_teleport(bot, data: bytes):
+def entity_teleport(game_: "game.Game",  data: bytes):
     pass
 
 
-def advancements(bot, data: bytes):
+def advancements(game_: "game.Game",  data: bytes):
     pass
 
 
-def entity_properties(bot, data: bytes):
+def entity_properties(game_: "game.Game",  data: bytes):
     pass
 
 
-def entity_effect(bot, data: bytes):
+def entity_effect(game_: "game.Game",  data: bytes):
     pass
 
 
-def block_break_animation(bot, data: bytes):
+def block_break_animation(game_: "game.Game",  data: bytes):
     pass
 
 
-def statistics(bot, data: bytes):
+def statistics(game_: "game.Game",  data: bytes):
     pass
 
 
-def animation(bot, data: bytes):
+def animation(game_: "game.Game",  data: bytes):
     pass
 
 
-def spawn_player(bot, data: bytes):
+def spawn_player(game_: "game.Game",  data: bytes):
     pass
 
 
-def spawn_painting(bot, data: bytes):
+def spawn_painting(game_: "game.Game",  data: bytes):
     pass
 
 
-def spawn_mob(bot, data: bytes):
+def spawn_mob(game_: "game.Game",  data: bytes):
     pass
 
 
-def spawn_global_entity(bot, data: bytes):
+def spawn_global_entity(game_: "game.Game",  data: bytes):
     pass
 
 
-def spawn_experience_orb(bot, data: bytes):
+def spawn_experience_orb(game_: "game.Game",  data: bytes):
     pass
 
 
-def spawn_object(bot, data: bytes):
+def spawn_object(game_: "game.Game",  data: bytes):
     pass
 
 
-def unload_chunk(bot, data: bytes):
+def unload_chunk(game_: "game.Game",  data: bytes):
     pass
 
 
-def explosion(bot, data: bytes):
+def explosion(game_: "game.Game",  data: bytes):
     pass
 
 
-def entity_status(bot, data: bytes):
+def entity_status(game_: "game.Game",  data: bytes):
     entity_id, byte = converters.extract_int(data)
     status = converters.extract_byte(data)[0]
     logger.debug("Entity with id: %i status changed to: %i",
                  entity_id, status)
 
 
-def named_sound_effect(bot, data: bytes):
+def named_sound_effect(game_: "game.Game",  data: bytes):
     pass
 
 
-def plugin_message(bot, data: bytes):
+def plugin_message(game_: "game.Game",  data: bytes):
     pass
 
 
-def set_cooldown(bot, data: bytes):
+def set_cooldown(game_: "game.Game",  data: bytes):
     pass
 
 
-def set_slot(bot, data: bytes):
+def set_slot(game_: "game.Game",  data: bytes):
     pass
 
 
-def window_property(bot, data: bytes):
+def window_property(game_: "game.Game",  data: bytes):
     pass
 
 
-def window_items(bot, data: bytes):
+def window_items(game_: "game.Game",  data: bytes):
     pass
 
 
-def open_window(bot, data: bytes):
+def open_window(game_: "game.Game",  data: bytes):
     pass
 
 
-def close_window(bot, data: bytes):
+def close_window(game_: "game.Game",  data: bytes):
     pass
 
 
-def confirm_transaction(bot, data: bytes):
+def confirm_transaction(game_: "game.Game",  data: bytes):
     pass
 
 
-def multi_block_change(bot, data: bytes):
+def multi_block_change(game_: "game.Game",  data: bytes):
     pass
 
 
-def chat_message(bot, data: bytes):
+def chat_message(game_: "game.Game",  data: bytes):
     json_data, position = converters.extract_json_from_chat(data)
 
-    chat_commands.interpret(bot, str(json_data))
+    chat_commands.interpret(game_,  str(json_data))
 
     gui.add_to_chat(f"{position}: {json_data}")
 
 
-def tab_complete(bot, data: bytes):
+def tab_complete(game_: "game.Game",  data: bytes):
     pass
 
 
-def update_block_entity(bot, data: bytes):
+def update_block_entity(game_: "game.Game",  data: bytes):
     pass
 
 
-def server_difficulty(bot, data: bytes):
+def server_difficulty(game_: "game.Game",  data: bytes):
     difficulty = converters.extract_unsigned_byte(data)[0]
     difficulty_name = GAME_DIFFICULTY[difficulty]
 
-    bot.game_data.difficulty = difficulty
+    game_.game_data.difficulty = difficulty
 
     logger.debug("Server difficulty: %i(%s)",
                  difficulty, difficulty_name)
@@ -407,22 +418,22 @@ def server_difficulty(bot, data: bytes):
     gui.set_labels(("game difficulty", difficulty_name))
 
 
-def boss_bar(bot, data: bytes):
+def boss_bar(game_: "game.Game",  data: bytes):
     pass
 
 
-def block_action(bot, data: bytes):
+def block_action(game_: "game.Game",  data: bytes):
     pass
 
 
-def block_change(bot, data: bytes):
+def block_change(game_: "game.Game",  data: bytes):
     pass
 
 
-def change_game_state(bot, data: bytes):
+def change_game_state(game_: "game.Game",  data: bytes):
     value = converters.extract_float(data[1:])[0]
     # reason = data[0]  # reason = utils.extract_unsigned_byte()[0]
-    game_data = bot.game_data
+    game_data = game_.game_data
 
     # TODO: Do sth with this:
 
@@ -441,9 +452,9 @@ def change_game_state(bot, data: bytes):
         gui.set_labels(("game: is_raining: ", True))
 
     def change_gamemode(val: float):
-        game_data.player_data_holder.gamemode = GAMEMODE[round(value)]
-        logger.info("Updated gamemode: %i", game_data.player_data_holder.gamemode)
-        gui.set_labels(("gamemode", game_data.player_data_holder.gamemode))
+        data.gamemode = GAMEMODE[round(value)]
+        logger.info("Updated gamemode: %i", data.gamemode)
+        gui.set_labels(("gamemode", data.gamemode))
 
     def exit_end(val: float):
         pass
@@ -451,7 +462,7 @@ def change_game_state(bot, data: bytes):
     def demo_message(val: float):
         pass
 
-    def arrow_hitting_player(_bot, val: float):
+    def arrow_hitting_player(_player, val: float):
         logger.info("An arrow hit a player")
 
     def fade_value(val: float):
@@ -464,26 +475,26 @@ def change_game_state(bot, data: bytes):
         pass
 
 
-def keep_alive(bot, data: bytes):
+def keep_alive(game_: "game.Game",  data: bytes):
     """Auto-sends keep alive packet."""
-    bot.send_queue.put(packet_creator.play.keep_alive(data))
+    game_.send_queue.put(packet_creator.play.keep_alive(data))
 
 
-def chunk_data(bot, data: bytes):
+def chunk_data(game_: "game.Game",  data: bytes):
     pass
 
 
-def effect(bot, data: bytes):
+def effect(game_: "game.Game",  data: bytes):
     pass
 
 
-def particle(bot, data: bytes):
+def particle(game_: "game.Game",  data: bytes):
     pass
 
 
-def join_game(bot, data: bytes):
-    game_data = bot.game_data
-    player = game_data.player_data_holder
+def join_game(game_: "game.Game",  data: bytes):
+    game_data = game_.game_data
+    player = game_.player_
 
     player.entity_id, data = converters.extract_int(data)
 
@@ -501,7 +512,7 @@ def join_game(bot, data: bytes):
 
     # Was once used by the client to draw the player list,
     # but now is ignored.
-    # bot.player._server_data["max_players"], data = \
+    # player.player._server_data["max_players"], data = \
     #     utils.extract_unsigned_byte(data)
 
     data = data[1:]
@@ -510,7 +521,7 @@ def join_game(bot, data: bytes):
     game_data.level_type = converters.extract_string(data)[0]
 
     # Reduced Debug Info
-    # bot.player._server_data["RDI"], data = utils.extract_boolean(data)
+    # player.player._server_data["RDI"], data = utils.extract_boolean(data)
     logger.info("Join game read: player_id: %i, gamemode: %r, hardcore: %r, "
                 "dimension: %r, game difficulty: %r (%r), game level_type: %r",
                 player.entity_id,
@@ -531,40 +542,40 @@ def join_game(bot, data: bytes):
     )
 
 
-def map_(bot, data: bytes):
+def map_(game_: "game.Game",  data: bytes):
     pass
 
 
-def entity(bot, data: bytes):
+def entity(game_: "game.Game",  data: bytes):
     pass
 
 
-def entity_relative_move(bot, data: bytes):
+def entity_relative_move(game_: "game.Game",  data: bytes):
     pass
 
 
-def entity_look_and_relative_move(bot, data: bytes):
+def entity_look_and_relative_move(game_: "game.Game",  data: bytes):
     pass
 
 
-def entity_look(bot, data: bytes):
+def entity_look(game_: "game.Game",  data: bytes):
     pass
 
 
-def vehicle_move(bot, data: bytes):
+def vehicle_move(game_: "game.Game",  data: bytes):
     pass
 
 
-def open_sign_editor(bot, data: bytes):
+def open_sign_editor(game_: "game.Game",  data: bytes):
     pass
 
 
-def craft_recipe_response(bot, data: bytes):
+def craft_recipe_response(game_: "game.Game",  data: bytes):
     pass
 
 
-def player_abilities(bot, data: bytes):
-    player = bot.game_data.player_data_holder
+def player_abilities(game_: "game.Game",  data: bytes):
+    player = game_.game_data
 
     flags, data = converters.extract_byte(data)
     player.is_invulnerable = bool(flags & 0x01)
@@ -590,8 +601,8 @@ def player_abilities(bot, data: bytes):
                    ("creative_mode", player.is_creative_mode))
 
 
-def disconnect(bot, data: bytes) -> NoReturn:
-    player = bot.game_data.player_data_holder
+def disconnect(game_: "game.Game",  data: bytes) -> NoReturn:
+    player = game_.player_.data
 
     reason = converters.extract_json_from_chat(data)[0]
     # reason should be dict Chat type.
