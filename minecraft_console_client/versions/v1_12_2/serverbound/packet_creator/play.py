@@ -1,10 +1,14 @@
-import misc.utils as utils
-from versions.V1_12_2.serverbound.packet_id import play
+"""Provides functions which generate given packet."""
+
+from misc import converters
+from versions.v1_12_2.serverbound.packet_id import play
 
 
 def teleport_confirm(teleport_id: bytes) -> bytes:
-    """ Return packet with confirmation for Player Position And Look. """
-    return utils.pack_data(play.TELEPORT_CONFIRM, [teleport_id])
+    """Return packet with confirmation for Player Position And Look."""
+
+    return b''.join((play.TELEPORT_CONFIRM,
+                     teleport_id))
 
 
 def tabcomplete() -> bytes:
@@ -18,11 +22,10 @@ def chat_message() -> bytes:
 
 
 def client_status(action_id: int) -> bytes:
-    try:
-        ac_id = [b'\x00', b'\x01'][action_id]
-    except IndexError:
-        ac_id = utils.convert_to_varint(action_id)
-    return utils.pack_data(play.CLIENT_STATUS, [ac_id])
+    """Possible action_id: 0 (perform respawn), 1 (request stats)."""
+    # action_id being converted to VarInt
+    return b''.join((play.CLIENT_STATUS,
+                     [b'\x00', b'\x01'][action_id]))
 
 
 def client_settings() -> bytes:
@@ -75,21 +78,23 @@ def player_position(position: (float, float, float), on_ground: bool) -> bytes:
     :param on_ground: determines whether is player on ground
     """
     return b''.join((play.PLAYER_POSITION,
-                     utils.pack_double(position[0]),
-                     utils.pack_double(position[1]),
-                     utils.pack_double(position[2]),
-                     utils.pack_bool(on_ground))
+                     converters.pack_double(position[0]),
+                     converters.pack_double(position[1]),
+                     converters.pack_double(position[2]),
+                     converters.pack_bool(on_ground))
                     )
 
 
-def player_position_and_look_confirmation(data: bytes, on_ground: bool = False):
+def player_position_and_look_confirm(data: bytes, on_ground: bool = False):
     """
+    Confirm for player_position_and_look sent by server.
+
     :param data: received data from server.
     :param on_ground: determines whether is player on ground
     """
-    #  2 floats, 3 doubles => 32 bytes
-    return b''.join((
-        play.PLAYER_POSITION_AND_LOOK, data[:32], utils.pack_bool(on_ground)))
+    return b''.join((play.PLAYER_POSITION_AND_LOOK,
+                     data[:32],  # 2 floats, 3 doubles => 32 bytes
+                     converters.pack_bool(on_ground)))
 
 
 def player_position_and_look(position: (float, float, float),
@@ -100,22 +105,21 @@ def player_position_and_look(position: (float, float, float),
     :param look: (yaw, pitch) how to set head
     :param on_ground: determines whether is player on ground
     """
-
     return b''.join((play.PLAYER_POSITION_AND_LOOK,
-                     utils.pack_double(position[0]),
-                     utils.pack_double(position[1]),
-                     utils.pack_double(position[2]),
-                     utils.pack_float(look[0]),
-                     utils.pack_float(look[1]),
-                     utils.pack_bool(on_ground))
+                     converters.pack_double(position[0]),
+                     converters.pack_double(position[1]),
+                     converters.pack_double(position[2]),
+                     converters.pack_float(look[0]),
+                     converters.pack_float(look[1]),
+                     converters.pack_bool(on_ground))
                     )
 
 
 def player_look(look: (float, float), on_ground: bool) -> bytes:
     return b''.join((play.PLAYER_LOOK,
-                     utils.pack_float(look[0]),
-                     utils.pack_float(look[1]),
-                     utils.pack_bool(on_ground))
+                     converters.pack_float(look[0]),
+                     converters.pack_float(look[1]),
+                     converters.pack_bool(on_ground))
                     )
 
 

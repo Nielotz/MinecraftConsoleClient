@@ -1,3 +1,6 @@
+"""Provides functions which generate given packet."""
+
+
 def handshake(host: (str, int)) -> bytes:
     pass
 

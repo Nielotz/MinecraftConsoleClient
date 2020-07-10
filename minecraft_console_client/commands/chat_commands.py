@@ -1,20 +1,23 @@
 import logging
+from typing import TYPE_CHECKING
 
 logger = logging.getLogger("mainLogger")
 
 from action.move_manager import MoveManager
 
+if TYPE_CHECKING:
+    import game
+
 COMMAND = {}  # Needs to be initialized.
 
 
-def interpret(bot, raw_input: str):
+def interpret(game_: "game.Game", raw_input: str):
     """
-    TODO: Optimize (when chat interpretation will be ready), add comment.
+    TODO: Optimize (when chat interpretation will be ready); add comment.
 
-    :param bot: Bot where apply interpreted stuff
+    :param game_: Main Game object where apply interpreted stuff
     :param raw_input: str from which to extract command
     """
-
     raw_input = raw_input.replace("'", "") \
         .replace("}", "") \
         .replace("{", "") \
@@ -50,30 +53,30 @@ def interpret(bot, raw_input: str):
             print(words[subcommand_idx + offset])
             logger.warning("Invalid arguments")
             break
-        subcommand.func(bot, *args)
+        subcommand.func(game_, *args)
         break
 
 
-def __goto(bot, x: float, y: float, z: float):
-    move_manager: MoveManager = bot.move_manager
+def __goto(game_: "game.Game", x: float, y: float, z: float):
+    move_manager: MoveManager = game_.move_manager
     move_manager.add_target(x, y, z)
 
 
-def __goto_clear(bot):
-    move_manager: MoveManager = bot.move_manager
+def __goto_clear(game_: "game.Game"):
+    move_manager: MoveManager = game_.move_manager
     move_manager.clear_targets()
 
 
-def __pause(bot):
-    move_manager: MoveManager = bot.move_manager
+def __pause(game_: "game.Game"):
+    move_manager: MoveManager = game_.move_manager
     move_manager.pause()
 
 
-def __resume(bot):
-    move_manager: MoveManager = bot.move_manager
+def __resume(game_: "game.Game"):
+    move_manager: MoveManager = game_.move_manager
     move_manager.resume()
 
 
-def __skip(bot):
-    move_manager: MoveManager = bot.move_manager
+def __skip(game_: "game.Game"):
+    move_manager: MoveManager = game_.move_manager
     move_manager.skip_actual_target()

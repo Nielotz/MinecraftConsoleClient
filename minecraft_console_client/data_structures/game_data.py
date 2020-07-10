@@ -1,8 +1,10 @@
-from data_structures.player import Player
+"""Holder for GameData."""
 
 
 class GameData:
+    """Contain data related to the game."""
+
     difficulty = None
     level_type = None
     is_raining: bool = None
-    player: Player = None
+    compression_threshold: int = -1

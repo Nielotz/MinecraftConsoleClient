@@ -1,7 +1,11 @@
+"""Holder for Entity."""
+
 from data_structures.position import Position
 
 
 class Entity:
+    """Contain data related to entity."""
+
     entity_id: int = None
     position: Position = None
     look_yaw: float = None

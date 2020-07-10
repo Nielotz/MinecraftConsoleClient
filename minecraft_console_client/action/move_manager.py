@@ -7,56 +7,56 @@ import queue
 import time
 from contextlib import contextmanager
 
-from data_structures.player import Player
-from action.target import Target
+from data_structures.player_data import PlayerData
+from data_structures.target import Target
 
 
 class MoveManager:
-    """ Starts new thread as daemon which add moving packets into send_queue """
+    """Starts new thread as daemon which add moving packets into send_queue"""
 
     # Returns True / False. Does not indicate whether move_manager has started.
     is_paused: callable = None
     _move_speed: (int, int, int) = None  # (x, y, z)
 
-    __mover: threading.Thread = None
-    __started_thread: threading.Event = None
-    __target_queue: queue.Queue = None
-    __paused: threading.Lock = None
-    __skip: bool = None
+    _mover: threading.Thread = None
+    _started_thread: threading.Event = None
+    _target_queue: queue.Queue = None
+    _paused: threading.Lock = None
+    _skip: bool = None
     __login_packet_creator = None  # Module, read-only.
 
-    __on_pause: [callable, ] = None
+    _on_pause: [callable, ] = None
 
     def __init__(self,
                  send_queue: queue.Queue,
                  play_packet_creator,
-                 player: Player):
+                 player_data_holder: PlayerData):
         """
         :param send_queue: queue from where packet will be taken and send
         :param play_packet_creator: module containing actions for moving
-        :type player: Player object which will be moved
+        :type player_data_holder: Player object which will be moved
         """
         logger.debug("Starting mover.")
 
-        self.__target_queue = queue.Queue()
-        self.__started_thread = threading.Event()
-        self.__play_packet_creator = play_packet_creator
+        self._target_queue = queue.Queue()
+        self._started_thread = threading.Event()
+        self._play_packet_creator = play_packet_creator
 
-        self.__paused = threading.Lock()
-        self.is_paused = self.__paused.locked
-        self.__skip = False
+        self._paused = threading.Lock()
+        self.is_paused = self._paused.locked
+        self._skip = False
 
-        self.__on_pause = []
+        self._on_pause = []
 
         # Started as daemon because of:
         #   1. no need of keeping alive when main ends
         #   2. lack of stop method.
-        self.__mover = threading.Thread(target=self.__handle_moving,
-                                        args=(send_queue,
-                                              self.__target_queue,
-                                              player),
-                                        daemon=True
-                                        )
+        self._mover = threading.Thread(target=self._handle_moving,
+                                       args=(send_queue,
+                                             self._target_queue,
+                                             player_data_holder),
+                                       daemon=True
+                                       )
 
     def start(self) -> bool:
         """
@@ -65,32 +65,32 @@ class MoveManager:
         :returns started successfully
         :rtype bool
         """
-        if self.__mover.is_alive():
+        if self._mover.is_alive():
             raise RuntimeError("handle_moving has been already started")
 
-        self.__mover.start()
-        self.__started_thread.wait(15)  # Wait for thread to initialize.
+        self._mover.start()
+        self._started_thread.wait(15)  # Wait for thread to initialize.
 
         logger.info("Started mover.")
 
-        return self.__mover.is_alive()
+        return self._mover.is_alive()
 
     def stop(self):
-        """ Stops moving thread."""
+        """Stops moving thread."""
         self.clear_targets()
-        self.__target_queue.put(None)
+        self._target_queue.put(None)
 
         logger.info("Stopping move manager...")
 
     def pause(self):
-        """ Pauses moving. When pausing already paused, nothing will happen. """
-        if not self.__paused.locked():
-            self.__paused.acquire()
+        """Pauses moving. When pausing already paused, nothing will happen."""
+        if not self._paused.locked():
+            self._paused.acquire()
 
     def resume(self):
-        """ Resumes moving. When resuming not paused, nothing will happen. """
-        if self.__paused.locked():
-            self.__paused.release()
+        """Resumes moving. When resuming not paused, nothing will happen."""
+        if self._paused.locked():
+            self._paused.release()
 
     @contextmanager
     def __pause_lock(self):
@@ -101,17 +101,17 @@ class MoveManager:
     def add_target(self,
                    x: float = None, y: float = None, z: float = None,
                    target: Target = None):
-        """ Adds target position to the goto queue. """
+        """Adds target position to the goto queue."""
         if target is None:
             target = Target(x, y, z)
 
-        self.__target_queue.put(target)
+        self._target_queue.put(target)
 
         logger.info(f"Added new target to the goto queue: {target}")
 
     def skip_actual_target(self):
-        self.__on_pause.append(self.resume)
-        self.__skip = True
+        self._on_pause.append(self.resume)
+        self._skip = True
         self.pause()
 
     def clear_targets(self):
@@ -126,9 +126,9 @@ class MoveManager:
         with self.__pause_lock():
             stop = False
 
-            while not self.__target_queue.empty():
+            while not self._target_queue.empty():
                 try:
-                    if self.__target_queue.get(timeout=3) is None:
+                    if self._target_queue.get(timeout=3) is None:
                         stop = True
                 except TimeoutError:
                     stop = True
@@ -136,16 +136,16 @@ class MoveManager:
                     break
 
             if stop:
-                self.__target_queue.put(None)
+                self._target_queue.put(None)
 
     def wait_for_resume(self):
-        self.__paused.acquire()
-        self.__paused.release()
+        self._paused.acquire()
+        self._paused.release()
 
-    def __handle_moving(self,
-                        send_queue: queue.Queue,
-                        target_queue: queue.Queue,
-                        player: Player):
+    def _handle_moving(self,
+                       send_queue: queue.Queue,
+                       target_queue: queue.Queue,
+                       player: PlayerData):
         """
         Handles moving to targets given in a target_queue.
         Thread shuts down when:
@@ -154,20 +154,20 @@ class MoveManager:
         """
         # This function is not the best one.
 
-        self.__started_thread.set()
+        self._started_thread.set()
         logger.debug("Started handling moving")
 
-        """ Maximal step distance in one step. Max 0.02. """
+        """Maximal step distance in one step. Max 0.02. """
         max_step_x: float = 0.02
         max_step_y: float = 0.02
         max_step_z: float = 0.02
 
-        """ Move speed blocks / second. Default 0.7. """
+        """Move speed blocks / second. Default 0.7. """
         move_speed_x: float = 0.7
         move_speed_y: float = 0.7
         move_speed_z: float = 0.7
 
-        """ Amount of steps(packets) per sec. Max 20. """
+        """Amount of steps(packets) per sec. Max 20. """
         steps_per_second: float = sorted((move_speed_x / max_step_x,
                                           move_speed_y / max_step_y,
                                           move_speed_z / max_step_z),
@@ -177,7 +177,7 @@ class MoveManager:
         if steps_per_second > 20:
             steps_per_second = 20
 
-        """ Minimal delay between movement packets equals 50ms. """
+        """Minimal delay between movement packets equals 50ms. """
         step_delay: float = 1 / steps_per_second
 
         while True:
@@ -193,10 +193,10 @@ class MoveManager:
             logger.info(f"Going to: {target}")
 
             # Speed is critical.
-            create_step_packet = self.__play_packet_creator.player_position
+            create_step_packet = self._play_packet_creator.player_position
             send_packet = send_queue.put
             get_perf_time = time.perf_counter
-            is_paused = self.__paused.locked
+            is_paused = self._paused.locked
 
             last_packet_time: float = get_perf_time()
 
@@ -241,7 +241,7 @@ class MoveManager:
                     next_player_pos_y = player_pos_y + step_y
                     next_player_pos_z = player_pos_z + step_z
 
-                    """ Packet may be delayed due to full send queue, 
+                    """Packet may be delayed due to full send queue, 
                     and extremely slow connection. """
                     # TODO: Add to the connection priority queue.
                     send_packet(
@@ -257,20 +257,21 @@ class MoveManager:
                     # print(f"player_pos: {player.position.pos}")
 
                     time.sleep(step_delay -
-                               (get_perf_time() - last_packet_time) % step_delay)
+                               (
+                                       get_perf_time() - last_packet_time) % step_delay)
                     last_packet_time: float = get_perf_time()
                 else:
                     logger.info(f"Paused moving: {target}")
 
-                    for func in self.__on_pause:
+                    for func in self._on_pause:
                         func()
 
                     self.wait_for_resume()
 
-                    if not self.__skip:
+                    if not self._skip:
                         logger.info(f"Resumed moving: {target}")
                         continue  # Hit when resumed moving.
-                    self.__skip = False
+                    self._skip = False
                     logger.info(f"Skipped: {target}")
                 break
 

@@ -1,7 +1,9 @@
+"""Holder for value converters."""
+
 import json
 import struct
 import zlib
-from typing import Union, Any
+from typing import Union
 
 from data_structures.position import Position
 from misc.consts import MAX_INT, MIN_INT, MAX_UINT
@@ -9,14 +11,14 @@ from misc.consts import MAX_INT, MIN_INT, MAX_UINT
 
 def convert_to_varint(value: int) -> bytes:
     """
-    Converts int to VarInt.
-    If value not fit into int32 - raises ValueError
+    Convert int to VarInt.
+
+    If value not fit into int32 - raises ValueError.
 
     :raises ValueError when value not fit into int32
     :returns VarInt in hex bytes
     :rtype bytes
     """
-
     if value > MAX_INT:
         raise ValueError(f"value: '{value}' is too big for VarInt")
     if value < MIN_INT:
@@ -25,10 +27,9 @@ def convert_to_varint(value: int) -> bytes:
     if value == 0:
         return bytes(b'\x00')
     if value > 0:
-        """
-        Stolen from
-        https://gist.github.com/MarshalX/40861e1d02cbbc6f23acd3eced9db1a0
-        """
+        # Stolen from
+        # gist.github.com/MarshalX/40861e1d02cbbc6f23acd3eced9db1a0
+
         varint = bytearray()
 
         while value != 0:
@@ -50,29 +51,21 @@ def convert_to_varint(value: int) -> bytes:
     return bytes(varint)
 
 
-def unpack_varint(data: bytes) -> (int, bytes):
+def extract_varint(data: bytes) -> (int, bytes):
     """
-    Unpacks varint from uncompressed data and returns unpacked int and leftover.
-    If not found end of VarInt raise ValueError.
+    Unpack varint from uncompressed data.
 
     VarInt can be made up to 5 bytes.
-
-    Algorithm stolen from
-    https://gist.github.com/MarshalX/40861e1d02cbbc6f23acd3eced9db1a0
+    If not found end of VarInt raises ValueError.
 
     :raise ValueError: when VarInt not fit into int32
     :param data: bytes of data containing VarInt
     :returns value, leftover of data or None
     :rtype int, Union[bytes, None]
     """
-
     number = 0
-
     for i in range(5):
-        try:
-            byte = data[i]
-        except IndexError:
-            raise ValueError("VarInt is too big!")
+        byte = data[i]
 
         number |= (byte & 0x7F) << 7 * i
 
@@ -91,49 +84,25 @@ def unpack_varint(data: bytes) -> (int, bytes):
 
 def extract_data(data: bytes, compression=False) -> (int, bytes):
     """
-    Extracts Packet ID and payload from packet data.
+    Extract packet ID and payload from packet data.
 
     :returns packet_id, leftover of data or None
     :rtype int, Union[bytes, None]
     """
-
     if compression:
-        data_length, data = unpack_varint(data)
+        data_length, data = extract_varint(data)
         if data_length:
             data = zlib.decompress(data)
-        packet_id, data = unpack_varint(data)
-        return packet_id, data
-
+        packet_id, data = extract_varint(data)
     else:
-        packet_id, data = unpack_varint(data)
-        return packet_id, data
+        packet_id, data = extract_varint(data)
 
-
-def _pack_data(data: Any) -> bytes:
-    """
-    Pages the data.
-    Stolen from
-    https://gist.github.com/MarshalX/40861e1d02cbbc6f23acd3eced9db1a0
-
-    :param data: data to pack
-    :returns bytes of paged data
-    :rtype bytes
-    """
-
-    if type(data) is str:
-        data = data.encode('utf8')
-        return convert_to_varint(len(data)) + data
-    elif type(data) is int:
-        return struct.pack('H', data)
-    elif type(data) is float:
-        return struct.pack('q', int(data))
-    else:
-        return data
+    return packet_id, data
 
 
 def pack_float(value: float) -> bytes:
     """
-    Pack float into 4 bytes and returns them.
+    Pack float into 4 bytes and return them.
 
     :param value: value to be packed
     :return: bytes of packed float
@@ -144,7 +113,7 @@ def pack_float(value: float) -> bytes:
 
 def pack_double(value: float) -> bytes:
     """
-    Packs float into 8 bytes and returns them.
+    Pack float into 8 bytes and return them.
 
     :param value: value to be packed
     :return: bytes of packed float
@@ -153,9 +122,20 @@ def pack_double(value: float) -> bytes:
     return struct.pack("!d", value)
 
 
+def pack_unsigned_short(value: int) -> bytes:
+    """
+    Pack unsigned short into 2 bytes and return them.
+
+    :param value: value to be packed
+    :return: bytes of packed value
+    :rtype: bytes
+    """
+    return struct.pack("!H", value)
+
+
 def pack_long(value: float) -> bytes:
     """
-    Packs long into 8 bytes and returns them.
+    Pack long into 8 bytes and return them.
 
     :param value: value to be packed
     :return: bytes of packed long
@@ -166,7 +146,7 @@ def pack_long(value: float) -> bytes:
 
 def pack_byte(value) -> bytes:
     """
-    Pack value into 1 byte and return this.
+    Pack value into 1 byte and return it.
 
     :param value: value to be packed
     :return: bytes of packed float
@@ -177,42 +157,38 @@ def pack_byte(value) -> bytes:
 
 def pack_bool(value: bool) -> bytes:
     """
-    Pack value into 1 byte and return this.
+    Pack value into 1 byte and return it.
 
     :param value: value to be packed
     :return: bytes of packed float
     :rtype: bytes
     """
-
     if value:
         return b'\x01'
     return b'\x00'
 
 
-def pack_data(packet_id: bytes, arr_with_payload) -> bytes:
+def pack_string(value: str) -> bytes:
     """
-    Packs packet_id and data from arr_with_payload into blob of data.
+    Prefix value with its length as varint.
 
-    :returns packed bytes
-    :rtype bytes
+    :param value: value to be packed
+    :return: bytes of packed string
+    :rtype: bytes
     """
-    data = bytearray(packet_id)
-
-    for arg in arr_with_payload:
-        data.extend(_pack_data(arg))
-    return bytes(data)
+    value = value.encode("utf-8")
+    return b''.join((convert_to_varint(len(value)), value))
 
 
 def extract_string(data: bytes) -> (bytes, Union[bytes, None]):
     """
-    Extracts string from given bytes.
+    Extract string from given bytes.
 
     :param data: decompressed array of bytes
-    :return bytes of string(unicode(pure bytes)), leftover of data or None
+    :return bytes of unicode string, leftover of data or None
     :rtype bytes, Union[bytes, None]
     """
-
-    string_len, data = unpack_varint(data)
+    string_len, data = extract_varint(data)
     string = data[:string_len:]
 
     if len(data) > string_len:
@@ -223,14 +199,21 @@ def extract_string(data: bytes) -> (bytes, Union[bytes, None]):
 
 
 def extract_json_from_chat(data: bytes) -> (dict, Union[bytes, None]):
-    string, leftover = extract_string(data)
+    """
+    Extract json from the chat.
 
+    :param data: bytes from which to extract json
+    :return extracted json, leftover of data or None
+    :rtype int, Union[bytes, None]
+    """
+    # TODO: return python JSON
+    string, leftover = extract_string(data)
     return json.loads(string), leftover
 
 
 def extract_int(data: bytes) -> (int, Union[bytes, None]):
     """
-    Extracts int from bytes.
+    Extract int from bytes.
 
     :param data: bytes from which extract int
     :return extracted int, leftover of data or None
@@ -245,13 +228,12 @@ def extract_int(data: bytes) -> (int, Union[bytes, None]):
 
 def extract_unsigned_byte(data: bytes) -> (int, Union[bytes, None]):
     """
-    Extracts unsigned byte from bytes.
+    Extract unsigned byte from bytes.
 
     :param data: bytes from which extract int
     :return extracted unsigned byte, leftover of data or None
     :rtype int, Union[bytes, None]
     """
-
     if len(data) > 1:
         return data[0], data[1:]
     return data[0], None
@@ -259,13 +241,12 @@ def extract_unsigned_byte(data: bytes) -> (int, Union[bytes, None]):
 
 def extract_boolean(data: bytes) -> (bool, Union[bytes, None]):
     """
-    Extracts boolean from bytes.
+    Extract boolean from bytes.
 
     :param data: bytes from which extract
     :return True or False, leftover of data or None
     :rtype bool, Union[bytes, None]
     """
-
     if len(data) > 1:
         return data[0] and True, data[1:]
     return data[0] and True, None
@@ -273,45 +254,28 @@ def extract_boolean(data: bytes) -> (bool, Union[bytes, None]):
 
 def extract_byte(data: bytes) -> (int, Union[bytes, None]):
     """
-    Extracts byte from bytes.
+    Extract byte from bytes.
 
     :param data: bytes from which extract
     :return byte, leftover of data or None
     :rtype byte, Union[bytes, None]
     """
-    value = int.from_bytes(data[:1:], byteorder="big", signed=True)
+    # previous
+    # int.from_bytes(data[:1:], byteorder="big", signed=True)
 
     if len(data) > 1:
-        return value, data[1:]
-    return value, None
-
-
-# def extract_slot(data: bytes) -> (Item, bytes):
-#     """
-#     Extracts slot item from given bytes.
-#     Slot:
-#         Boolean  True if there is an item in this position; false if it is empty.
-#         VarInt    The item ID. Omitted if present is false
-#         Item Count Optional Byte
-#         NBT        If 0, there is no NBT data, and no further data follows.
-#
-#     :param data: bytes from which extract int
-#
-#     :return item containing item data, leftover
-#     :rtype Item, bytes
-#     """
-#     return Item(data)
+        return data[0], data[1:]
+    return data[0], None
 
 
 def extract_float(data: bytes) -> (float, Union[bytes, None]):
     """
-    Extracts float from bytes.
+    Extract float from bytes.
 
     :param data: bytes from which extract float
     :return extracted float, leftover of data or None
     :rtype float, Union[bytes, None]
     """
-
     value: float = struct.unpack('>f', data[:4:])[0]
     if len(data) > 4:
         return value, data[4:]
@@ -320,13 +284,12 @@ def extract_float(data: bytes) -> (float, Union[bytes, None]):
 
 def extract_double(data: bytes) -> (float, Union[bytes, None]):
     """
-    Extracts double from bytes.
+    Extract double from bytes.
 
     :param data: bytes from which extract double
     :return extracted double, leftover of data or None
     :rtype float, Union[bytes, None]
     """
-
     value: float = struct.unpack('>d', data[:8:])[0]
     if len(data) > 8:
         return value, data[8:]
@@ -335,19 +298,18 @@ def extract_double(data: bytes) -> (float, Union[bytes, None]):
 
 def extract_position(data: bytes) -> (Position, Union[bytes, None]):
     """
-    Extracts Position(x, y, z) from data.
+    Extract Position(x, y, z) from data.
 
     :returns extracted position, leftover or None when no data left
     :rtype Position, Union[bytes, None]
     """
-
+    # TODO: replace from_bytes with struct.. or another way.
     val = int.from_bytes(data[:8], byteorder="big", signed=True)
 
     z = val & 0x3ffffff
     val >>= 26
     y = val & 0xfff
-    val >>= 12
-    x = val
+    x = val >> 12
 
     if z >= 0x2000000:  # 2 ** 25
         z -= 0x4000000  # 2 ** 26
@@ -361,7 +323,7 @@ def extract_position(data: bytes) -> (Position, Union[bytes, None]):
 
 def extract_long(data: bytes) -> (int, Union[bytes, None]):
     """
-    Extracts long from bytes.
+    Extract long from bytes.
 
     :param data: bytes from which extract int
     :return extracted int, leftover of data or None
