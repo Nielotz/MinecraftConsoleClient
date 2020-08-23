@@ -67,7 +67,7 @@ class Game:
         # TODO: check username
         self.version_data = game_version.value
         # TODO: check is game data valid, then remove other checks
-        self.game_data = versions.defaults.data_structures.game_data.GameData()
+        self.game_data = self.version_data.game_data
 
         logger.info(
             """
