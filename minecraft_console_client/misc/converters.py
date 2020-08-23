@@ -260,12 +260,12 @@ def extract_byte(data: bytes) -> (int, Union[bytes, None]):
     :return byte, leftover of data or None
     :rtype byte, Union[bytes, None]
     """
-    # previous
     # int.from_bytes(data[:1:], byteorder="big", signed=True)
 
+    # If negative subtract 256
     if len(data) > 1:
-        return data[0], data[1:]
-    return data[0], None
+        return data[0] - ((data[0] & 0x80) << 1), data[1:]
+    return data[0] - ((data[0] & 0x80) << 1), None
 
 
 def extract_float(data: bytes) -> (float, Union[bytes, None]):
