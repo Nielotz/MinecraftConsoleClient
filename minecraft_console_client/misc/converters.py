@@ -6,37 +6,34 @@ import zlib
 from typing import Union
 
 from data_structures.position import Position
-from misc.consts import MAX_INT, MIN_INT, MAX_UINT
+from misc.consts import MAX_INT, MAX_UINT
 
 
 def convert_to_varint(value: int) -> bytes:
     """
     Convert int to VarInt.
 
-    If value not fit into int32 - raises ValueError.
-
     :raises ValueError when value not fit into int32
     :returns VarInt in hex bytes
     :rtype bytes
     """
-    if value > MAX_INT:
-        raise ValueError(f"value: '{value}' is too big for VarInt")
-    if value < MIN_INT:
-        raise ValueError(f"value: '{value}' is too small for VarInt")
 
+    # Ifs always return.
     if value == 0:
         return bytes(b'\x00')
     if value > 0:
-        # Stolen from
-        # gist.github.com/MarshalX/40861e1d02cbbc6f23acd3eced9db1a0
+        # Modified version of stolen code from
+        # https://gist.github.com/MarshalX/40861e1d02cbbc6f23acd3eced9db1a0
 
         varint = bytearray()
 
-        while value != 0:
+        while True:
             byte = value & 0x7F
             value >>= 7
-            varint.extend(struct.pack('B', byte | (0x80 if value != 0 else 0)))
-        return bytes(varint)
+            if value == 0:
+                varint.extend(struct.pack('B', byte))
+                return bytes(varint)
+            varint.extend(struct.pack('B', byte | 0x80))
 
     # When value is negative
     # Negative varint always has 5 bytes
@@ -215,7 +212,7 @@ def extract_int(data: bytes) -> (int, Union[bytes, None]):
     """
     Extract int from bytes.
 
-    :param data: bytes from which extract int
+    :param data: at least 4 bytes from which extract int
     :return extracted int, leftover of data or None
     :rtype int, Union[bytes, None]
     """
@@ -230,7 +227,7 @@ def extract_unsigned_byte(data: bytes) -> (int, Union[bytes, None]):
     """
     Extract unsigned byte from bytes.
 
-    :param data: bytes from which extract int
+    :param data: at least 1 byte from which extract byte
     :return extracted unsigned byte, leftover of data or None
     :rtype int, Union[bytes, None]
     """
@@ -243,7 +240,7 @@ def extract_boolean(data: bytes) -> (bool, Union[bytes, None]):
     """
     Extract boolean from bytes.
 
-    :param data: bytes from which extract
+    :param data: at least 1 byte from which extract
     :return True or False, leftover of data or None
     :rtype bool, Union[bytes, None]
     """
@@ -256,7 +253,7 @@ def extract_byte(data: bytes) -> (int, Union[bytes, None]):
     """
     Extract byte from bytes.
 
-    :param data: bytes from which extract
+    :param data: at least 1 byte from which extract
     :return byte, leftover of data or None
     :rtype byte, Union[bytes, None]
     """
@@ -272,7 +269,7 @@ def extract_float(data: bytes) -> (float, Union[bytes, None]):
     """
     Extract float from bytes.
 
-    :param data: bytes from which extract float
+    :param data: at least 4 bytes from which extract float
     :return extracted float, leftover of data or None
     :rtype float, Union[bytes, None]
     """
@@ -286,7 +283,7 @@ def extract_double(data: bytes) -> (float, Union[bytes, None]):
     """
     Extract double from bytes.
 
-    :param data: bytes from which extract double
+    :param data: at least 8 bytes from which extract double
     :return extracted double, leftover of data or None
     :rtype float, Union[bytes, None]
     """
@@ -300,6 +297,7 @@ def extract_position(data: bytes) -> (Position, Union[bytes, None]):
     """
     Extract Position(x, y, z) from data.
 
+    :param data: at least 8 bytes from which extract position
     :returns extracted position, leftover or None when no data left
     :rtype Position, Union[bytes, None]
     """
@@ -325,7 +323,7 @@ def extract_long(data: bytes) -> (int, Union[bytes, None]):
     """
     Extract long from bytes.
 
-    :param data: bytes from which extract int
+    :param data: at least 8 bytes from which extract int
     :return extracted int, leftover of data or None
     :rtype int, Union[bytes, None]
     """
