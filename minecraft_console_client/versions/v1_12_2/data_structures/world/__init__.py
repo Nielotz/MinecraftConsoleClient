@@ -1,1 +1,0 @@
-"""Contain world related stuff."""
