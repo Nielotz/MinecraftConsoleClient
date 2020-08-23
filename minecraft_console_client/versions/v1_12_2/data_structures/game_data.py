@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING
 from versions.defaults.data_structures.game_data\
     import GameData as BaseGameData
 
-from versions.v1_12_2.data_structures.world import World
+from versions.v1_12_2.data_structures.world.world import World
 
 
 class GameData(BaseGameData):
