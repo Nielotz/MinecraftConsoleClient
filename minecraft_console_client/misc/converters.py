@@ -50,7 +50,8 @@ def convert_to_varint(value: int) -> bytes:
 
 def extract_varint(data: bytes) -> (int, bytes):
     """
-    Unpack varint from uncompressed data.
+    Extract varint from uncompressed data and returns it as int.
+
 
     VarInt can be made up to 5 bytes.
     If not found end of VarInt raises ValueError.
@@ -79,7 +80,7 @@ def extract_varint(data: bytes) -> (int, bytes):
     return number, None
 
 
-def extract_data(data: bytes, compression=False) -> (int, bytes):
+def extract_packet_data(data: bytes, compression=False) -> (int, bytes):
     """
     Extract packet ID and payload from packet data.
 
@@ -90,9 +91,7 @@ def extract_data(data: bytes, compression=False) -> (int, bytes):
         data_length, data = extract_varint(data)
         if data_length:
             data = zlib.decompress(data)
-        packet_id, data = extract_varint(data)
-    else:
-        packet_id, data = extract_varint(data)
+    packet_id, data = extract_varint(data)
 
     return packet_id, data
 
