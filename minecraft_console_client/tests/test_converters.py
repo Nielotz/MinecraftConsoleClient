@@ -55,7 +55,7 @@ class Test(TestCase):
                 -1, -254, -255, -265, -2**16+1, -2**16, -2**16-1,
                 MAX_INT-1, MAX_INT, MIN_INT + 1, MIN_INT,
                 ]
-        self._test(convert_to_varint, extract_varint, numbers + edge,
+        self._test(convert_to_varint, extract_varint_as_int, numbers + edge,
                    "Converters - varint")
         # self._test(_, extract_int, numbers,
         #                    "Converters - varint")

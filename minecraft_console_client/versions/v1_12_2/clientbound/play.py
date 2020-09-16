@@ -24,10 +24,10 @@ def combat_event(game_: "game.Game", data: bytes):
     'Now only used to display the game over screen (with enter combat
     and end combat completely ignored by the Notchain client)'
     """
-    event, data = converters.extract_varint(data)
+    event, data = converters.extract_varint_as_int(data)
 
     if event == 2:  # Entity dead
-        player_id, data = converters.extract_varint(data)
+        player_id, data = converters.extract_varint_as_int(data)
         entity_id, data = converters.extract_int(data)
         message = converters.extract_json_from_chat(data)
 
@@ -223,7 +223,7 @@ def update_health(game_: "game.Game", data: bytes):
     player = game_.player.data
 
     player.health, data = converters.extract_float(data)
-    player.food, data = converters.extract_varint(data)
+    player.food, data = converters.extract_varint_as_int(data)
     player.food_saturation = converters.extract_float(data)[0]
 
     logger.info("Updated player. Health: %f, Food: %i, Food_saturation: %f",
@@ -425,7 +425,17 @@ def block_action(game_: "game.Game", data: bytes):
 
 
 def block_change(game_: "game.Game", data: bytes):
-    pass
+    pos, data = converters.extract_position(data)
+    block_id, _ = converters.extract_varint_as_int(data)
+
+    # For debug purposes.
+    from versions.defaults.data_structures.world.palette.palette import get_state_from_global_palette
+    from versions.defaults.consts import BLOCK_AND_ITEM_BY_ID as ID_
+    id1, id2 = get_state_from_global_palette(block_id)
+    try:
+        print(f"{pos} is now {ID_[id1][id2]['name']}({id1}:{id2})")
+    except KeyError:
+        print(f"{pos} is unsupported({id1}:{id2})")
 
 
 def change_game_state(game_: "game.Game", data: bytes):
@@ -479,7 +489,8 @@ def keep_alive(game_: "game.Game", data: bytes):
 
 
 def chunk_data(game_: "game.Game", data: bytes):
-    pass
+    parse_chunk = game_.game_data.world.parse_chunk
+    parse_chunk(data)
 
 
 def effect(game_: "game.Game", data: bytes):

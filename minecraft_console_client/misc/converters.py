@@ -48,7 +48,7 @@ def convert_to_varint(value: int) -> bytes:
     return bytes(varint)
 
 
-def extract_varint(data: bytes) -> (int, bytes):
+def extract_varint_as_int(data: bytes) -> (int, bytes):
     """
     Extract varint from uncompressed data and returns it as int.
 
@@ -88,10 +88,10 @@ def extract_packet_data(data: bytes, compression=False) -> (int, bytes):
     :rtype int, Union[bytes, None]
     """
     if compression:
-        data_length, data = extract_varint(data)
+        data_length, data = extract_varint_as_int(data)
         if data_length:
             data = zlib.decompress(data)
-    packet_id, data = extract_varint(data)
+    packet_id, data = extract_varint_as_int(data)
 
     return packet_id, data
 
@@ -184,7 +184,7 @@ def extract_string(data: bytes) -> (bytes, Union[bytes, None]):
     :return bytes of unicode string, leftover of data or None
     :rtype bytes, Union[bytes, None]
     """
-    string_len, data = extract_varint(data)
+    string_len, data = extract_varint_as_int(data)
     string = data[:string_len:]
 
     if len(data) > string_len:

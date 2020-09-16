@@ -153,7 +153,7 @@ class Game:
                         "Received packet with invalid compression.")
 
             # Decompression needs to be done before this!
-            packet_id, packet = converters.extract_varint(data)
+            packet_id, packet = converters.extract_varint_as_int(data)
 
             if self._interpret_packet(packet_id, packet) == 5555:
                 break
@@ -243,7 +243,7 @@ class Game:
             except InvalidUncompressedPacketError:
                 return False
 
-            packet_id, data = converters.extract_varint(packet)
+            packet_id, data = converters.extract_varint_as_int(packet)
             # print(packet_id, data)
             try:
                 result = self._interpret_packet(packet_id, data)
@@ -311,7 +311,7 @@ class Game:
         if threshold < 0:
             return packet
 
-        data_length, packet = converters.extract_varint(packet)
+        data_length, packet = converters.extract_varint_as_int(packet)
 
         if data_length == 0:  # Packet is not compressed.
             return packet
