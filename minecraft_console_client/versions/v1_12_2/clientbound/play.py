@@ -429,9 +429,9 @@ def block_change(game_: "game.Game", data: bytes):
     block_id, _ = converters.extract_varint_as_int(data)
 
     # For debug purposes.
-    from versions.defaults.data_structures.world.palette.palette import get_state_from_global_palette
+    from versions.defaults.data_structures.world.palette.palette import extract_block_data_from_compacted_array
     from versions.defaults.consts import BLOCK_AND_ITEM_BY_ID as ID_
-    id1, id2 = get_state_from_global_palette(block_id)
+    id1, id2 = extract_block_data_from_compacted_array(block_id)
     try:
         print(f"{pos} is now {ID_[id1][id2]['name']}({id1}:{id2})")
     except KeyError:
