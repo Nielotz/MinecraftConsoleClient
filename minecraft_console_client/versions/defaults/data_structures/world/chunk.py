@@ -10,11 +10,12 @@ from versions.defaults.data_structures.world.palette.palette import GlobalPalett
 class ChunkSection:
     """Chunk section data container and parser."""
 
-    slices: [] = None
+    #slices: [] = None
     palette: Palette = None
 
     def __init__(self):
-        self.slices = []
+        #self.slices = []
+        pass
 
     @staticmethod
     def parse(data: bytes) -> Union['ChunkSection()', bytes]:
@@ -43,8 +44,8 @@ class ChunkSection:
         Parse data from chunk section.
         Docs: https://wiki.vg/index.php?title=Chunk_Format&oldid=14135#Chunk_Section_structure
 
-        To use this self.palette needs to be set correctly
-        (manually or by self._parse_palette).
+        To use this, self.palette needs to be set correctly
+        (by self._parse_palette or manually).
         """
         data_array_length, data = converters.extract_varint_as_int(data)
 
@@ -58,7 +59,7 @@ class ChunkSection:
             # TODO: Optimize (create: extract_longs(n_of_longs, data))
             long_id, data = extract_long(data)
             array_of_longs.append(long_id)
-        GlobalPalette.parse_block_data(array_of_longs)
+        parsed_blocks = GlobalPalette.parse_block_data(array_of_longs)
 
     def _read_bits_of_data(self, number_of_bits: int):
         pass
@@ -67,11 +68,11 @@ class ChunkSection:
 class Chunk:
     """Chunk data container and parser. (column 16x256x16)"""
 
-    sections: [[None] * 16] * 16 = None
+    sections: [[ChunkSection] * 16] * 16 = None
     biomes: bytes = None
 
     def __init__(self):
-        self.sections = [[None] * 16] * 16
+        self.sections = [[ChunkSection] * 16] * 16
 
     @staticmethod
     def new(section_data: bytes, mask: bytes) -> 'Chunk()':
