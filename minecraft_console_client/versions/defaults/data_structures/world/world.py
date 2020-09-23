@@ -42,7 +42,7 @@ class World:
         # Size of chunk data in bytes.
         size, data = converters.extract_varint_as_int(data)
 
-        # print("╔" + f" chunk_x: {chunk_x}, chunk_y: {chunk_y}, ground_up_continuous: {ground_up_continuous} ".center(150, "═") + "╗")
+        print("╔" + f" chunk_x: {chunk_x}, chunk_y: {chunk_y}, ground_up_continuous: {ground_up_continuous} ".center(150, "═") + "╗")
 
         chunk_key = " ".join((str(chunk_x), str(chunk_y)))
         if ground_up_continuous:

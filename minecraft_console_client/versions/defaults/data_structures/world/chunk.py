@@ -10,12 +10,11 @@ from versions.defaults.data_structures.world.palette.palette import GlobalPalett
 class ChunkSection:
     """Chunk section data container and parser."""
 
-    #slices: [] = None
+    blocks: [(int, int), ] = None  # [(id, metadata),]
     palette: Palette = None
 
     def __init__(self):
-        #self.slices = []
-        pass
+        self.blocks = []
 
     @staticmethod
     def parse(data: bytes) -> Union['ChunkSection()', bytes]:
@@ -30,14 +29,16 @@ class ChunkSection:
 
         bits_per_block, data = converters.extract_unsigned_byte(data)
 
-        chunk_section._parse_palette(bits_per_block, data)
+        data = chunk_section._parse_palette(bits_per_block, data)
         chunk_section._parse_block_data(bits_per_block, data)
         # print(f"data_array_length: {data_array_length} {data}")
 
         return chunk_section, data
 
-    def _parse_palette(self, bits_per_block: int, data: bytes):
-        self.palette = read_palette(bits_per_block, data)
+    def _parse_palette(self, bits_per_block: int, data: bytes) -> bytes:
+        """Return leftover bytes."""
+        self.palette, data = read_palette(bits_per_block, data)
+        return data
 
     def _parse_block_data(self, bits_per_block: int, data: bytes):
         """
@@ -47,19 +48,26 @@ class ChunkSection:
         To use this, self.palette needs to be set correctly
         (by self._parse_palette or manually).
         """
+        # 4096 indices are coded into data_array_length longs.
+        # Number of longs in the following array.
         data_array_length, data = converters.extract_varint_as_int(data)
 
-        # The data array stores several entries within a single long,
-        # and sometimes overlaps one entry between multiple longs.
-        # Data Array of Longs:
         # Compacted list of 4096 indices pointing to state IDs in the Palette
-        extract_long = converters.extract_long
         array_of_longs = []
+        extract_long = converters.extract_long
         for _ in range(data_array_length):
             # TODO: Optimize (create: extract_longs(n_of_longs, data))
             long_id, data = extract_long(data)
             array_of_longs.append(long_id)
-        parsed_blocks = GlobalPalette.parse_block_data(array_of_longs)
+
+        # The number of longs needed for the data array can be
+        # calculated as (blocks * bits_per_block) /  bits per long
+        #           ((16×16×16) * bits_per_block) / 64
+        # so bits_per_block = number_of_longs / 64
+        bits_per_block = len(array_of_longs) // 64
+
+        self.blocks = GlobalPalette.parse_block_data(array_of_longs)
+        # print(self.blocks)
 
     def _read_bits_of_data(self, number_of_bits: int):
         pass
@@ -111,7 +119,7 @@ class Chunk:
             while not bit_of_section & 0x100:  # Mask range: <0x00:0xFF>
                 # If section has been sent.
                 if mask_byte & bit_of_section:
-                    # print("║" + f" SECTION: {int(math.log(bit_of_section, 2))} PRESENT ".center(150, "═") + "║")
+                    print("║" + f" SECTION: {int(math.log(bit_of_section, 2))} ".center(150, "═") + "║")
 
                     self.sections[row], section_data\
                         = ChunkSection.parse(section_data)
@@ -127,7 +135,7 @@ class Chunk:
         else:
             self.parse_entities_data(section_data)
 
-        #print("╚" + f"".center(150, "═") + "╝")
+        print("╚" + f"".center(150, "═") + "╝")
 
     def parse_entities_data(self, entitles_data: bytes):
         pass

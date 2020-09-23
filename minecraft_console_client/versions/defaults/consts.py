@@ -1,6 +1,6 @@
 """Data container for in game blocks and items."""
 # Probably 1.8 version.
-BLOCK_AND_ITEM_BY_ID = {
+BLOCK = {
     0: {0: {'name': 'Air', 'properties': {}}},
     1: {0: {'name': 'Stone', 'properties': {}},
         1: {'name': 'Granite', 'properties': {}},

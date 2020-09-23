@@ -1,28 +1,45 @@
 from typing import Union
 from misc.converters import extract_varint_as_int
+from versions.defaults.consts import BLOCK
+
 
 """     PALETTE MAY DIFFER VERSION TO VERSION!    """
 
 
-def read_palette(bits_per_block: int, data: bytes) \
-        -> Union['DirectPalette', 'IndirectPalette']:
-    """Parse chunk section palette."""
-    # print("bits_per_block:", bits_per_block)
+def decode_blocks(bits_per_block: int, data: bytes) -> (BLOCK,) * 4096:
+    """Decodes block """
     if bits_per_block < 5:
         palette = IndirectPalette(4)
+        print(f"IndirectPalette(4)")
     elif bits_per_block < 9:
         palette = IndirectPalette(bits_per_block)
+        print(f"IndirectPalette({bits_per_block})")
     else:
         palette = DirectPalette()
+        print(f"DirectPalette({bits_per_block})")
 
-    palette.load_palette_data(data)
-    return palette
+
+def read_palette(bits_per_block: int, data: bytes) \
+        -> (Union['DirectPalette', 'IndirectPalette'], bytes):
+    """Parse chunk section palette."""
+    if bits_per_block < 5:
+        palette = IndirectPalette(4)
+        print(f"IndirectPalette(4)")
+    elif bits_per_block < 9:
+        palette = IndirectPalette(bits_per_block)
+        print(f"IndirectPalette({bits_per_block})")
+    else:
+        palette = DirectPalette()
+        print(f"DirectPalette({bits_per_block})")
+
+    leftover_data = palette.load_palette_data(data)
+    return palette, leftover_data
 
 
 class Palette:
     def load_palette_data(self, data: bytes):
         """Load palette data using given data."""
-        pass
+        return data
 
 
 class GlobalPalette(Palette):
@@ -86,7 +103,15 @@ class DirectPalette(Palette):
     For the V1.12.2 release, this is 13 bits per block.
     """
     def __init__(self):
-        raise RuntimeError("DirectPalette not done yet!")
+        # import time
+        # time.sleep(13)
+        pass
+
+    def load_palette_data(self, data: bytes) -> bytes:
+        # Should always be 0. Only exists to mirror the format used elsewhere.
+        dummy_palette_length, data = extract_varint_as_int(data)
+        if dummy_palette_length != 0: print(f"dummy_palette_length equal {dummy_palette_length}")
+        return data
 
 
 class IndirectPalette(Palette):
@@ -106,6 +131,7 @@ class IndirectPalette(Palette):
         for i in range(palette_length):
             pal, data = extract_varint_as_int(data)
             self.palette.append(pal)
-        #print("║" + f" PALETTE: {[hex(i) for i in self.palette]} ".center(150, "═") + "║")
+        print(f"PALETTE: {[hex(i) for i in self.palette]}")
+        return data
 
         #print([f"{i}({hex(i)})" for i in self.palette])

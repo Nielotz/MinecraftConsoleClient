@@ -430,7 +430,7 @@ def block_change(game_: "game.Game", data: bytes):
 
     # For debug purposes.
     from versions.defaults.data_structures.world.palette.palette import extract_block_data_from_compacted_array
-    from versions.defaults.consts import BLOCK_AND_ITEM_BY_ID as ID_
+    from versions.defaults.consts import BLOCK as ID_
     id1, id2 = extract_block_data_from_compacted_array(block_id)
     try:
         print(f"{pos} is now {ID_[id1][id2]['name']}({id1}:{id2})")
