@@ -1,0 +1,14 @@
+[FILE]: D:\SOFTORS\minecraft_console_client\minecraft_console_client\connection.py
+-------------------prospector:--------------------
+..\connection.py:
+    L290:- Connection.__send: mccabe - MC0001
+    Connection.__send is too complex (11)
+
+minecraft_console_client.connection (..\connection.py):
+    L112:15 Connection.__receive_packet: pylint - broad-except
+    Catching too general exception Exception
+
+minecraft_console_client.connection (..\connection.py):
+    L355:19 Connection.__send: pylint - broad-except
+    Catching too general exception Exception
+

@@ -18,8 +18,10 @@ from versions.version import Version
 
 if __name__ == "__main__":
 
+    host: Host = Host("127.0.0.1", 25565)
     # host: Host = Host("188.68.236.16", 25565)
-    host: Host = Host("51.83.170.185", 9250)
+    # host: Host = Host("89.22.210.172", 25565) konrad
+    # host: Host = Host("185.243.53.224", 25577)
     # host: Host = Host("nssv.pl", 25565)
 
     player: Player = Player(username="Bob")
