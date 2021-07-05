@@ -425,17 +425,17 @@ def block_action(game_: "game.Game", data: bytes):
 
 
 def block_change(game_: "game.Game", data: bytes):
-    pos, data = converters.extract_position(data)
+    position, data = converters.extract_position(data)
     block_id, _ = converters.extract_varint_as_int(data)
 
     # For debug purposes.
-    from versions.defaults.data_structures.world.palette.palette import extract_block_data_from_compacted_array
     from versions.defaults.consts import BLOCK as ID_
-    id1, id2 = extract_block_data_from_compacted_array(block_id)
+    block_type, metadata = block_id >> 4, block_id & 15
     try:
-        print(f"{pos} is now {ID_[id1][id2]['name']}({id1}:{id2})")
+        print(f"{position} is now "
+              f"{ID_[block_type][metadata]['name']}({block_type}:{metadata})")
     except KeyError:
-        print(f"{pos} is unsupported({id1}:{id2})")
+        print(f"{position} is unsupported({block_type}:{metadata})")
 
 
 def change_game_state(game_: "game.Game", data: bytes):
