@@ -68,7 +68,6 @@ class Connection:
         Returns b'' when connection is broken or sth.
 
         :returns read bytes
-        :rtype bytes
         """
         recv = self.__connection.recv
         read_bytes = 0
@@ -118,7 +117,6 @@ class Connection:
 
         :param received_queue: where to put received packets
         :returns started successfully
-        :rtype bool
         """
         if self.__listener is not None and self.__listener.is_alive():
             logger.error("Listener already started")
@@ -143,7 +141,6 @@ class Connection:
 
         :param to_send: queue from where get and send packets
         :returns started successfully
-        :rtype bool
         """
         if self.__sender is not None and self.__sender.is_alive():
             logger.error("Sender already started")
@@ -169,7 +166,6 @@ class Connection:
         gist.github.com/MarshalX/40861e1d02cbbc6f23acd3eced9db1a0
 
         :returns VarInt: int
-        :rtype int
         """
         packet_length = 0
         recv = self.__connection.recv

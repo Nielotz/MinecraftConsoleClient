@@ -63,7 +63,6 @@ class MoveManager:
         Starts new daemon that allows complex moving.
 
         :returns started successfully
-        :rtype bool
         """
         if self._mover.is_alive():
             raise RuntimeError("handle_moving has been already started")
