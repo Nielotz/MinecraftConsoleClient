@@ -7,36 +7,33 @@ from versions.defaults.data_structures.entities import Entity
 class World:
     """Hold and manages world data, eg. chunks, etc."""
 
-    # Keys are generated like this: "chunk_x chunk_y"
-    chunks: {str: Chunk, } = None
-    entities: {str: Entity} = None
-
     def __init__(self):
+        # Keys are generated like this: "chunk_x chunk_y"
         self.chunks: {str: Chunk, } = {}
+        self.entities: {str: Entity, } = {}
 
     def parse_chunk(self, data: bytes):
         """Parse data as chunk data."""
 
-        # Chunk position, any in-chunk block // 16
+        # Chunk coordinates (block coordinate divided by 16, rounded down)
         chunk_x, data = converters.extract_int(data)
         chunk_y, data = converters.extract_int(data)
 
-        # When ground-up continuous is set, the chunk data packet
-        # is used to create a new chunk. This includes biome* data,
-        # and all (non-empty) sections in the chunk.
-        # Sections not specified in the primary bit mask are empty.
-        #
-        # When ground-up continuous is not set, then the chunk data
-        # packet acts as a large Multi Block Change packet,
-        # changing all of the blocks in the given section at once.
-        # Sections not specified in the primary bit mask are
-        # not changed and should be left as-is.
+        """When ground-up continuous is set - create a new chunk. 
+        This includes biome data and all (non-empty) sections in the chunk.
+        Sections not specified in the primary bit mask are empty.
+        
+        When ground-up continuous is not set, then the chunk data
+        packet acts as a large Multi Block Change packet,
+        changing all of the blocks in the given section at once.
+        Sections not specified in the primary bit mask are
+        not changed and should be left as-is."""
         ground_up_continuous, data = converters.extract_boolean(data)
 
-        # Bitmask with bits set to 1 for every 16×16×16 chunk section
-        # whose data is included in Data.
-        # The least significant bit represents the chunk section
-        # at the bottom of the chunk column (from y=0 to y=15).
+        """Bitmask with bits set to 1 for every 16×16×16 chunk section
+        whose data is included in Data.
+        The least significant bit represents the chunk section
+        at the bottom of the chunk column (from y=0 to y=15)."""
         mask, data = converters.extract_varint_as_int(data)
 
         # Size of chunk data in bytes.
@@ -50,7 +47,9 @@ class World:
             self.chunks[chunk_key] = Chunk.new(data[:size], mask)
         else:
             # Alter old one.
-            self.chunks[chunk_key].alter(data[:size], mask)
+            self.chunks[chunk_key].update(data[:size], mask)
+
+        # TODO: Entities.
 
         # Parse entities.
         entities_data = data[size:]
