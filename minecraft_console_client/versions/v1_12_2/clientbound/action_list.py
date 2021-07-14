@@ -25,7 +25,7 @@ action_list = {
         0x0B: play.block_change,
         # 0x0C: play.boss_bar,
         0x0D: play.server_difficulty,
-        # 0x0E: Clientbound.tab_complete,
+        # 0x0E: play.tab_complete,
         0x0F: play.chat_message,  # TODO: improve or sth
         # 0x10: play.multi_block_change,
         # 0x11: play.confirm_transaction,
