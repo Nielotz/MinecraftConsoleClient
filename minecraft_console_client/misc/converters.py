@@ -204,6 +204,21 @@ def extract_long(data: bytes) -> (int, Optional[bytes]):
     return value, None
 
 
+# Not tested.
+def extract_unsigned_long(data: bytes) -> (int, Optional[bytes]):
+    """
+    Extract long from bytes.
+
+    :param data: at least 8 bytes from which extract int
+    :return extracted long, leftover of data or None
+    """
+    value = int.from_bytes(data[:8:], byteorder="big", signed=False)
+
+    if len(data) > 8:
+        return value, data[8:]
+    return value, None
+
+
 def extract_float(data: bytes) -> (float, Optional[bytes]):
     """
     Extract float from bytes.
