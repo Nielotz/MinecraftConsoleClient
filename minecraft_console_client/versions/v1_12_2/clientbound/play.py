@@ -489,7 +489,7 @@ def keep_alive(game_: "game.Game", data: bytes):
 
 
 def chunk_data(game_: "game.Game", data: bytes):
-    game_.game_data.world.parse_chunk(data)
+    game_.game_data.world.parse_chunk_packet(data)
 
 
 def effect(game_: "game.Game", data: bytes):
