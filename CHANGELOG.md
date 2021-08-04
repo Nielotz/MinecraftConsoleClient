@@ -8,7 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - This CHANGELOG
 
-## [0.0.2] 
+## [0.0.3] 
 ### Changed
 - Handling of block change - now it works with indirect, and direct palette 
 
@@ -21,7 +21,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - Typos in some files
 
-## [0.0.3] - Next release
+## [0.0.4] - Next release
 ### Changed
 - [ ] Organize files
 - [ ] Organize "versions" folder
