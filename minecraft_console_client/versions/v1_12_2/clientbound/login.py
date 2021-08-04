@@ -15,7 +15,7 @@ logger = logging.getLogger("mainLogger")
 
 
 def set_compression(game_: "game.Game", data: bytes) -> None:
-    threshold = converters.extract_varint(data)[0]
+    threshold = converters.extract_varint_as_int(data)[0]
 
     gui.set_labels(("compression threshold", threshold))
 

@@ -8,11 +8,10 @@ Everything what is controlled, is controlled here.
 import logging
 import queue
 import zlib
-from typing import Any, Union
+from typing import Any, Union, TYPE_CHECKING
 
 import action.move_manager
 import connection
-import data_structures.game_data
 import data_structures.host
 import data_structures.player
 import misc.converters as converters
@@ -20,6 +19,9 @@ import versions.defaults
 import versions.version
 from misc.exceptions import DisconnectedError
 from misc.exceptions import InvalidUncompressedPacketError
+
+if TYPE_CHECKING:
+    import versions.defaults.data_structures.game_data
 
 logger = logging.getLogger("mainLogger")
 
@@ -30,7 +32,7 @@ class Game:
     host: data_structures.host.Host = None
     version_data: versions.defaults.VersionData = None
     player: data_structures.player.Player = None
-    game_data: data_structures.game_data.GameData = None
+    game_data: versions.defaults.data_structures.game_data.GameData = None
 
     # Serverbound
     _login_packet_creator: versions.defaults.VersionData.packet_creator.login \
@@ -65,7 +67,7 @@ class Game:
         # TODO: check username
         self.version_data = game_version.value
         # TODO: check is game data valid, then remove other checks
-        self.game_data = data_structures.game_data.GameData()
+        self.game_data = self.version_data.game_data
 
         logger.info(
             """
@@ -151,7 +153,7 @@ class Game:
                         "Received packet with invalid compression.")
 
             # Decompression needs to be done before this!
-            packet_id, packet = converters.extract_varint(data)
+            packet_id, packet = converters.extract_varint_as_int(data)
 
             if self._interpret_packet(packet_id, packet) == 5555:
                 break
@@ -241,7 +243,7 @@ class Game:
             except InvalidUncompressedPacketError:
                 return False
 
-            packet_id, data = converters.extract_varint(packet)
+            packet_id, data = converters.extract_varint_as_int(packet)
             # print(packet_id, data)
             try:
                 result = self._interpret_packet(packet_id, data)
@@ -309,7 +311,7 @@ class Game:
         if threshold < 0:
             return packet
 
-        data_length, packet = converters.extract_varint(packet)
+        data_length, packet = converters.extract_varint_as_int(packet)
 
         if data_length == 0:  # Packet is not compressed.
             return packet

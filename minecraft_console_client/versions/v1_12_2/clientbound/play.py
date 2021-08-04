@@ -24,10 +24,10 @@ def combat_event(game_: "game.Game", data: bytes):
     'Now only used to display the game over screen (with enter combat
     and end combat completely ignored by the Notchain client)'
     """
-    event, data = converters.extract_varint(data)
+    event, data = converters.extract_varint_as_int(data)
 
     if event == 2:  # Entity dead
-        player_id, data = converters.extract_varint(data)
+        player_id, data = converters.extract_varint_as_int(data)
         entity_id, data = converters.extract_int(data)
         message = converters.extract_json_from_chat(data)
 
@@ -223,7 +223,7 @@ def update_health(game_: "game.Game", data: bytes):
     player = game_.player.data
 
     player.health, data = converters.extract_float(data)
-    player.food, data = converters.extract_varint(data)
+    player.food, data = converters.extract_varint_as_int(data)
     player.food_saturation = converters.extract_float(data)[0]
 
     logger.info("Updated player. Health: %f, Food: %i, Food_saturation: %f",
@@ -425,7 +425,17 @@ def block_action(game_: "game.Game", data: bytes):
 
 
 def block_change(game_: "game.Game", data: bytes):
-    pass
+    position, data = converters.extract_position(data)
+    block_id, _ = converters.extract_varint_as_int(data)
+
+    # For debug purposes.
+    from versions.defaults.consts import BLOCK as ID_
+    block_type, metadata = block_id >> 4, block_id & 15
+    try:
+        print(f"{position} is now "
+              f"{ID_[block_type][metadata]['name']}({block_type}:{metadata})")
+    except KeyError:
+        print(f"{position} is unsupported({block_type}:{metadata})")
 
 
 def change_game_state(game_: "game.Game", data: bytes):
@@ -479,7 +489,7 @@ def keep_alive(game_: "game.Game", data: bytes):
 
 
 def chunk_data(game_: "game.Game", data: bytes):
-    pass
+    game_.game_data.world.parse_chunk_packet(data)
 
 
 def effect(game_: "game.Game", data: bytes):
