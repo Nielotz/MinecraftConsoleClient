@@ -1,13 +1,12 @@
-import time
-from random import randint, uniform
 import random
 import string
+import time
+from fractions import Fraction
+from random import randint, uniform
 from unittest import TestCase
 
-from misc.consts import *
-from misc.converters import *
-
-from fractions import Fraction
+from MinecraftConsoleClient.misc.consts import *
+from MinecraftConsoleClient.misc.converters import *
 
 
 def to_fraction(data):
