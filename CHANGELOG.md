@@ -24,7 +24,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.0.4] - Next release
 ### Changed
 - [X] Organize files
-- [ ] Organize "versions" folder
 - [ ] Architecture
   - [ ] Create Architecture draft
   - [ ] Implement Architecture
+
+
+## [NET]
+### Changed
+- [ ] Organize "versions" folder
