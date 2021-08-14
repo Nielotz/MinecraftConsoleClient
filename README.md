@@ -10,7 +10,7 @@ Thanks to: </br>
 
 Available versions:
 - 1.12.2:
-  - **[Supported packets:](https://github.com/Nielotz/MinecraftConsoleClient/blob/development/FEATURES/1.12.2.md)**
+  - **[Supported packets:](/MinecraftConsoleClient/versions/v1_12_2/FEATURES.md)**
     - Send packets [8 / 34]
     - Receive packets [17 / 117]
   - Other:
