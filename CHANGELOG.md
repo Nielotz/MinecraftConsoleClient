@@ -26,7 +26,7 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html) after release of
 
 - ✅ Barely working moving system
 - ✅ Parsing basic packets for
-  1.12.2. [Features.](/MinecraftConsoleClient/versions/v1_12_2/FEATURES.md)
+  1.12.2. [Full list.](/MinecraftConsoleClient/versions/v1_12_2/FEATURES.md)
 - 🔲 Support for "Call before packet handle"
 - 🔲 Support for "Call after packet handle"
 - 🔲 Basic docs
