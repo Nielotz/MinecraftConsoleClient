@@ -2,43 +2,54 @@
 
 All notable changes to this project will be documented in this file.
 
-The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project will adhere
-to [Semantic Versioning](https://semver.org/spec/v2.0.0.html) after release of 1.0.0 version.
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
+and this project will adhere
+to [Semantic Versioning](https://semver.org/spec/v2.0.0.html) after release of
+1.0.0 version.
 
 ## [FUTURE]
 
 ### Changed
 
-- 🔲 Optimize reading packet using Packet class and memoryview
+- 🔲 Optimized parsing packet using memoryview
 
 ### Added
 
 - 🔲 Performance analyze system
+- 🔲 Logging managing system
+- 🔲 Moooore logging
+- 🔲 Tests for packet parsers
 
 ## [1.0.0] - FUTURE - first release
 
 ### Features
 
 - ✅ Barely working moving system
-- ✅ Parsing basic packets for 1.12.2. [Features.](/MinecraftConsoleClient/versions/v1_12_2/FEATURES.md)
+- ✅ Parsing basic packets for
+  1.12.2. [Features.](/MinecraftConsoleClient/versions/v1_12_2/FEATURES.md)
 - 🔲 Support for "Call before packet handle"
 - 🔲 Support for "Call after packet handle"
 - 🔲 Basic docs
--
 
 ## [0.X.0] - Future before release of 1.0.0
 
 - 🔲 Organize "versions" folder
-- 🔲 Refactor all code but packet handlers - they will be rewritten after implementing Packet
+- 🔲 Refactor all code but packet handlers - they will be rewritten after
+  implementing Packet
 - 🔲 Basic docs
+
+## [0.5.1] - Future
+
+### Changed
+
+- 🔲 Support for "Call before packet handle"
+- 🔲 Support for "Call after packet handle"
 
 ## [0.5.0] - Future
 
 ### Added
-- 🔲 Support for "Call before packet handle"
-- 🔲 Support for "Call after packet handle"
 
-
+- 🔲 Split packet actions to: parse_packet, and react_to_packet
 
 ## [0.4.0] - Next release
 
