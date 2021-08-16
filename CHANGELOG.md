@@ -57,7 +57,7 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html) after release of
 
 - ✅ Organize project files
 - 🔲 Architecture
-    - 🔲 Create Architecture draft
+    - ✅ Create Architecture draft
     - 🔲 Implement Architecture
 
 ## [0.3.0] - 2021-08-04

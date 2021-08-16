@@ -1,5 +1,5 @@
 # MinecraftConsoleClient
-Minecraft Console Client written in Python. </br>
+#### Minecraft Console Client written in Python. </br>
 Based on [Minecraft Modern](https://wiki.vg/Main_Page) documentation page. </br>
 
 Uses [pycodestyle](https://github.com/PyCQA/pycodestyle), [pydocstyle](https://github.com/PyCQA/pydocstyle) and [prospector](https://github.com/PyCQA/prospector) from [Python Code Quality Authority](https://github.com/PyCQA) <3
@@ -15,3 +15,6 @@ Available versions:
     - Receive packets [17 / 117]
   - Other:
     - Bad moving system
+
+Architecture:
+![architecture](architecture.svg)
