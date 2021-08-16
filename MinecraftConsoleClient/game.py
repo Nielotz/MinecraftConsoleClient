@@ -29,27 +29,6 @@ logger = logging.getLogger("mainLogger")
 class Game:
     """Ultimate class for Life, the Universe, and Everything."""
 
-    host: data_structures.host.Host = None
-    version_data: versions.defaults.VersionData = None
-    player: data_structures.player.Player = None
-    game_data: versions.defaults.data_structures.game_data.GameData = None
-
-    # Serverbound
-    _login_packet_creator: versions.defaults.VersionData.packet_creator.login \
-        = None  # Module
-    _play_packet_creator: versions.defaults.VersionData.packet_creator.play \
-        = None  # Module
-
-    # Clientbound
-    # versions.defaults.VersionData.action_list[stage]
-    # where stage in ("login", "play", "status")
-    _action_list: dict = None
-
-    received_packets: queue.Queue = None
-    to_send_packets: queue.Queue = None
-
-    _conn: connection.Connection = None
-
     def __init__(self,
                  host: data_structures.host.Host,
                  player: data_structures.player.Player,
@@ -61,13 +40,13 @@ class Game:
         :param player: to connect as who
         :param game_version: to connect in which game version
         """
-        self.host = host
+        self.host: data_structures.host.Host = host
         # TODO: check is server responding / online
-        self.player = player
+        self.player: data_structures.player.Player = player
         # TODO: check username
-        self.version_data = game_version.value
+        self.version_data: versions.defaults.VersionData = game_version.value
         # TODO: check is game data valid, then remove other checks
-        self.game_data = self.version_data.game_data
+        self.game_data: versions.defaults.data_structures.game_data.GameData = self.version_data.game_data
 
         logger.info(
             """
@@ -95,13 +74,15 @@ class Game:
             raise RuntimeError("Not found 'login' in action_packet. "
                                f"Game version: {self.version_data}")
 
-        self.play_packet_creator = self.version_data.packet_creator.play
-        self.login_packet_creator = self.version_data.packet_creator.login
+        self.play_packet_creator: versions.defaults.VersionData.packet_creator.play \
+            = self.version_data.packet_creator.play
+        self.login_packet_creator: versions.defaults.VersionData.packet_creator.login \
+             = self.version_data.packet_creator.login
 
-        self._conn = connection.Connection()
+        self._conn: connection.Connection = connection.Connection()
 
-        self.to_send_packets = queue.Queue()
-        self.received_packets = queue.Queue()
+        self.to_send_packets: queue.Queue = queue.Queue()
+        self.received_packets: queue.Queue = queue.Queue()
 
         self.move_manager = action.move_manager.MoveManager(
             self.to_send_packets,
@@ -210,8 +191,7 @@ class Game:
         :return success
         :rtype bool
         """
-        self._action_list = \
-            self.version_data.action_list.get(actions_type)
+        self._action_list: dict = self.version_data.action_list.get(actions_type)
         return self._action_list is not None
 
     def _login_non_premium(self) -> bool:
