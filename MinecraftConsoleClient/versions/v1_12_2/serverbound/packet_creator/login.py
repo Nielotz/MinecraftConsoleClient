@@ -3,7 +3,7 @@
 import logging
 
 from misc import converters
-from versions.v1_12_2 import VersionData
+
 from versions.v1_12_2.serverbound.packet_id import login
 
 logger = logging.getLogger("mainLogger")
@@ -11,6 +11,8 @@ logger = logging.getLogger("mainLogger")
 
 def handshake(host_data: (str, int)) -> bytes:
     """Return handshake packet ready to send."""
+
+    from versions.v1_12_2 import VersionData
     data = [
         login.HANDSHAKE,
         VersionData.protocol_version_varint,  # Protocol Version.
