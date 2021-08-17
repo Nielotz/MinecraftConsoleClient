@@ -119,8 +119,7 @@ def player_position_and_look(game_: "game.Game", data: bytes):
     add_packet(packet_creator.play.teleport_confirm(teleport_id))
 
     # Answer player position and look.
-    add_packet(
-        packet_creator.play.player_position_and_look_confirm(_data))
+    add_packet(packet_creator.play.player_position_and_look_confirm(_data))
 
 
 def use_bed(game_: "game.Game", data: bytes):
@@ -485,7 +484,7 @@ def change_game_state(game_: "game.Game", data: bytes):
 
 def keep_alive(game_: "game.Game", data: bytes):
     """Auto-sends keep alive packet."""
-    game_.data.to_send_packets.put(packet_creator.play.keep_alive(data))
+    game_.to_send_packets.put(packet_creator.play.keep_alive(data))
 
 
 def chunk_data(game_: "game.Game", data: bytes):
