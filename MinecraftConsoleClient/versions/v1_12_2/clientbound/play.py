@@ -33,7 +33,7 @@ def combat_event(game_: "game.Game", data: bytes):
 
         # 'Entity ID of the player that died
         # (should match the client's entity ID).'
-        if entity_id == game_.player.data.entity_id:
+        if entity_id == game_.data.player.data.entity_id:
 
             message = f"Player has been killed by: {entity_id}, " \
                       f"death message: '{message}' "
@@ -63,8 +63,8 @@ def player_position_and_look(game_: "game.Game", data: bytes):
     pitch, data = converters.extract_float(data)
     flags, teleport_id = converters.extract_byte(data)
 
-    world_data = game_.world_data
-    player_data = game_.player.data
+    world_data = game_.data.world_data
+    player_data = game_.data.player.data
 
     if player_data.position is None:
         player_data.position = Position(x, y, z)
@@ -144,18 +144,18 @@ def resource_pack_send(game_: "game.Game", data: bytes):
 
 
 def respawn(game_: "game.Game", data: bytes):
-    world_data = game_.world_data
+    world_data = game_.data.world_data
 
     world_data.dimension, data = converters.extract_int(data)
     world_data.difficulty = data[0]
-    game_.player.gamemode = data[1]
+    game_.data.player.gamemode = data[1]
     world_data.level_type = converters.extract_string(data[2:])[0]
 
     difficulty_name = GAME_DIFFICULTY[world_data.difficulty]
 
     logger.info("Player respawn: gamemode: %i, dimension: %i, "
                 "game difficulty: %i(%s), game level_type: %s, ",
-                game_.player.gamemode,
+                game_.data.player.gamemode,
                 world_data.dimension,
                 world_data.difficulty, str(difficulty_name),
                 world_data.level_type
@@ -164,7 +164,7 @@ def respawn(game_: "game.Game", data: bytes):
     gui.set_labels(
         ("dimension", world_data.dimension),
         ("game difficulty", difficulty_name),
-        ("gamemode", game_.player.gamemode),
+        ("gamemode", game_.data.player.gamemode),
         ("game level_type", world_data.level_type)
     )
 
@@ -186,7 +186,7 @@ def camera(game_: "game.Game", data: bytes):
 
 
 def held_item_change(game_: "game.Game", data: bytes):
-    player = game_.player.data
+    player = game_.data.player.data
 
     player.active_slot = converters.extract_byte(data)[0]
     logger.debug("Held slot changed to %i", player.active_slot)
@@ -220,7 +220,7 @@ def set_experience(game_: "game.Game", data: bytes):
 
 def update_health(game_: "game.Game", data: bytes):
     """Auto-respawn player."""
-    player = game_.player.data
+    player = game_.data.player.data
 
     player.health, data = converters.extract_float(data)
     player.food, data = converters.extract_varint_as_int(data)
@@ -408,7 +408,7 @@ def server_difficulty(game_: "game.Game", data: bytes):
     difficulty = converters.extract_unsigned_byte(data)[0]
     difficulty_name = GAME_DIFFICULTY[difficulty]
 
-    game_.world_data.difficulty = difficulty
+    game_.data.world_data.difficulty = difficulty
 
     logger.debug("Server difficulty: %i(%s)",
                  difficulty, difficulty_name)
@@ -441,7 +441,7 @@ def block_change(game_: "game.Game", data: bytes):
 def change_game_state(game_: "game.Game", data: bytes):
     value = converters.extract_float(data[1:])[0]
     # reason = data[0]  # reason = utils.extract_unsigned_byte()[0]
-    world_data = game_.world_data
+    world_data = game_.data.world_data
 
     # TODO: Do sth with this:
 
@@ -485,11 +485,11 @@ def change_game_state(game_: "game.Game", data: bytes):
 
 def keep_alive(game_: "game.Game", data: bytes):
     """Auto-sends keep alive packet."""
-    game_.to_send_packets.put(packet_creator.play.keep_alive(data))
+    game_.data.to_send_packets.put(packet_creator.play.keep_alive(data))
 
 
 def chunk_data(game_: "game.Game", data: bytes):
-    game_.world_data.world.parse_chunk_packet(data)
+    game_.data.world_data.world.parse_chunk_packet(data)
 
 
 def effect(game_: "game.Game", data: bytes):
@@ -501,8 +501,8 @@ def particle(game_: "game.Game", data: bytes):
 
 
 def join_game(game_: "game.Game", data: bytes):
-    world_data = game_.world_data
-    player = game_.player
+    world_data = game_.data.world_data
+    player = game_.data.player
 
     player.entity_id, data = converters.extract_int(data)
 
@@ -583,7 +583,7 @@ def craft_recipe_response(game_: "game.Game", data: bytes):
 
 
 def player_abilities(game_: "game.Game", data: bytes):
-    player = game_.world_data
+    player = game_.data.world_data
 
     flags, data = converters.extract_byte(data)
     player.is_invulnerable = bool(flags & 0x01)
@@ -610,7 +610,7 @@ def player_abilities(game_: "game.Game", data: bytes):
 
 
 def disconnect(game_: "game.Game", data: bytes) -> NoReturn:
-    player = game_.player.data
+    player = game_.data.player.data
 
     reason = converters.extract_json_from_chat(data)[0]
     # reason should be dict Chat type.

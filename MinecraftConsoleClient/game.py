@@ -17,11 +17,11 @@ import data_structures.player
 import misc.converters as converters
 import versions.defaults
 import versions.version
-from misc.exceptions import DisconnectedError
-from misc.exceptions import InvalidUncompressedPacketError
+from data_structures.game_data import GameData
+from misc.exceptions import DisconnectedByServerException, InvalidUncompressedPacketError
 
 if TYPE_CHECKING:
-    import versions.defaults.data_structures.game_data
+    import versions.defaults.data_structures.world_data
 
 logger = logging.getLogger("mainLogger")
 
@@ -40,44 +40,12 @@ class Game:
         :param player: to connect as who
         :param game_version: to connect in which game version
         """
-        self.host: data_structures.host.Host = host
-        # TODO: check is server responding / online
-        self.player: data_structures.player.Player = player
-        # TODO: check username
-        self.version_data: versions.defaults.VersionData = game_version.value
-        # TODO: check is game data valid, then remove other checks
-        self.game_data: versions.defaults.data_structures.game_data.GameData = self.version_data.game_data
-
-        logger.info(
-            """
-%s
-| %s |
-| %s |
-| %s |
-%s
-""",
-            "Created bot".center(80, "-"),
-            f"Username: '{player.data.username}'".center(78, " "),
-            f"Client version: '{self.version_data.release_name}'".center(
-                78, " "),
-            f"Socket data: {self.host.socket_data}".center(78, " "),
-            "".center(80, "-")
-        )
-
-        # Check does play exist in action_packet.
-        if not self._switch_action_packets("play"):
-            raise RuntimeError("Not found 'play' in action_packet. "
-                               f"Game version: {self.version_data}")
-
-        # Switch to login packet type.
-        if not self._switch_action_packets("login"):
-            raise RuntimeError("Not found 'login' in action_packet. "
-                               f"Game version: {self.version_data}")
+        self.data: GameData = GameData(host=host, player=player, game_version=game_version, )
 
         self.play_packet_creator: versions.defaults.VersionData.packet_creator.play \
-            = self.version_data.packet_creator.play
+            = self.data.version_data.packet_creator.play
         self.login_packet_creator: versions.defaults.VersionData.packet_creator.login \
-             = self.version_data.packet_creator.login
+            = self.data.version_data.packet_creator.login
 
         self._conn: connection.Connection = connection.Connection()
 
@@ -87,7 +55,7 @@ class Game:
         self.move_manager = action.move_manager.MoveManager(
             self.to_send_packets,
             self.play_packet_creator,
-            self.player.data)
+            self.data.player.data)
 
     def start(self) -> Union[str, None]:
         """
@@ -111,12 +79,10 @@ class Game:
             return self.stop("Cannot log in.")
         logger.info("Successfully logged in to server.")
 
-        self._switch_action_packets("play")
-
         if not self.move_manager.start():
             return self.stop("Can't start move manager.")
 
-        # TODO: Add reaction_list, user_action_list, or other shit.
+        action_list_play = self.data.version_data.action_list["play"]
         while True:
             try:
                 data = self.received_packets.get(timeout=20)
@@ -130,13 +96,9 @@ class Game:
                 try:
                     data = self._decompress_packet(data)
                 except InvalidUncompressedPacketError:
-                    return self.stop(
-                        "Received packet with invalid compression.")
+                    return self.stop("Received packet with invalid compression.")
 
-            # Decompression needs to be done before this!
-            packet_id, packet = converters.extract_varint_as_int(data)
-
-            if self._interpret_packet(packet_id, packet) == 5555:
+            if self.interpret_packet(packet_data=data, action_list=action_list_play) == 5555:
                 break
 
         return None
@@ -167,7 +129,7 @@ class Game:
         """
 
         logger.info("Stopping bot %s. Reason: %s.",
-                    self.player.data.username, error_message)
+                    self.data.player.data.username, error_message)
 
         self._conn.close()
         self._conn: None = None
@@ -191,13 +153,13 @@ class Game:
         :return success
         :rtype bool
         """
-        self._action_list: dict = self.version_data.action_list.get(actions_type)
+        self._action_list: dict = self.data.version_data.action_list.get(actions_type)
         return self._action_list is not None
 
     def _login_non_premium(self) -> bool:
         """
-        #TODO: when login_premium done, write what da fuk is dat.
-        #TODO: improve and simplify
+        # TODO: when login_premium done, write what da fuk is dat.
+        # TODO: improve and simplify
 
         :return success
         :rtype bool
@@ -205,12 +167,13 @@ class Game:
         logger.info("Trying to log in in offline mode (non-premium).")
 
         self.to_send_packets.put(
-            self.login_packet_creator.handshake(self.host.get_host_data()))
+            self.login_packet_creator.handshake(self.data.host.get_host_data()))
 
         self.to_send_packets.put(
             self.login_packet_creator.login_start(
-                self.player.data.username))
+                self.data.player.data.username))
 
+        action_list_login = self.data.version_data.action_list["login"]
         # Try to log in for 50 sec (10 sec x 5 packets)
         for _ in range(5):
             data = self.received_packets.get(timeout=10)
@@ -219,15 +182,13 @@ class Game:
                 return False
 
             try:
-                packet = self._decompress_packet(data)
+                decompressed_data = self._decompress_packet(data)
             except InvalidUncompressedPacketError:
                 return False
 
-            packet_id, data = converters.extract_varint_as_int(packet)
-            # print(packet_id, data)
             try:
-                result = self._interpret_packet(packet_id, data)
-            except DisconnectedError:
+                result = self.interpret_packet(packet_data=decompressed_data, action_list=action_list_login)
+            except DisconnectedByServerException:
                 self.to_send_packets.put(b'')
                 return False
             except Exception as err:
@@ -240,7 +201,7 @@ class Game:
             if result is True:
                 return True
             if isinstance(result, int):
-                self.game_data.compression_threshold = result
+                self.data.world_data.compression_threshold = result
                 self._conn.compression_threshold = result
 
         return False
@@ -256,36 +217,31 @@ class Game:
         :rtype: bool
         """
         try:
-            self._conn.connect(self.host.get_host_data(), timeout)
+            self._conn.connect(self.data.host.get_host_data(), timeout)
         except OSError as err:
             logger.critical("Can't connect to: %s, reason: %s",
-                            self.host.socket_data, err)
+                            self.data.host.socket_data, err)
             return False
 
-        logger.debug("Established connection with: %s", self.host.socket_data)
+        logger.debug("Established connection with: %s", self.data.host.socket_data)
         return True
 
-    def _interpret_packet(self, packet_id: int, payload: bytes) -> Any:
+    def interpret_packet(self, packet_data: bytes, action_list: dict) -> Any:
         """
-        Interpret given packet and call function assigned \
-        to packet_id in action_list, then return function return.
+        Interpret packet data using list of actions.
 
-        If compression threshold is not negative - uncompress.
-
-        :param packet_id: int representing packet id e.g 0,1,2,3,4...
-        :param payload: uncompressed data
-        :return: whatever action_list[packet_id]() returns
+        :param packet_data: blob of uncompressed bytes
+        :param action_list: list of actions used to parse given packet
         """
-
-        if packet_id in self._action_list:
-            return self._action_list[packet_id](self, payload)
-
-        # logger.debug("Packet with id: %s is not implemented yet", packet_id)
+        packet_id, payload = converters.extract_varint_as_int(packet_data)
+        if packet_id in action_list:
+            return action_list[packet_id](self, payload)
         return None
 
     def _decompress_packet(self, packet: bytes) -> bytes:
         """Decompress packet, and return it."""
-        threshold = self.game_data.compression_threshold
+
+        threshold = self.data.world_data.compression_threshold
 
         # If compression is enabled.
         if threshold < 0:
@@ -302,7 +258,7 @@ class Game:
             logger.critical("Received invalid packet.")
             # TODO: to improve performance:
             #   change try except to if
-            #   move extraction into _interpret_packet
+            #   move extraction into interpret_packet
             raise InvalidUncompressedPacketError("Received invalid packet.")
 
         return packet

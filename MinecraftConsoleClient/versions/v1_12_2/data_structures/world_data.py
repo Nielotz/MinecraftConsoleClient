@@ -1,7 +1,4 @@
 """Holder for GameData."""
-
-from typing import TYPE_CHECKING
-
 from versions.defaults.data_structures.world_data import WorldData as BaseWorldData
 
 from versions.v1_12_2.data_structures.world.world import World
