@@ -42,12 +42,12 @@ class Game:
         """
         self.data: GameData = GameData(host=host, player=player, game_version=game_version, )
 
+        self._connection: connection.Connection = connection.Connection()
+
         self.play_packet_creator: versions.defaults.VersionData.packet_creator.play \
             = self.data.version_data.packet_creator.play
         self.login_packet_creator: versions.defaults.VersionData.packet_creator.login \
             = self.data.version_data.packet_creator.login
-
-        self._conn: connection.Connection = connection.Connection()
 
         self.to_send_packets: queue.Queue = queue.Queue()
         self.received_packets: queue.Queue = queue.Queue()
@@ -67,11 +67,11 @@ class Game:
             return self.stop("Cannot connect to the server.")
         logger.info("Successfully connected to the server.")
 
-        if not self._conn.start_listener(self.received_packets):
+        if not self._connection.start_listener(self.received_packets):
             return self.stop("Cannot start listener")
         logger.debug("Successfully started listening thread")
 
-        if not self._conn.start_sender(self.to_send_packets):
+        if not self._connection.start_sender(self.to_send_packets):
             return self.stop("Cannot start sender")
         logger.debug("Successfully started sending thread")
 
@@ -92,7 +92,7 @@ class Game:
             if not data:
                 return self.stop("Received 0 bytes")
 
-            if not self._conn.compression_threshold < 0:
+            if not self._connection.compression_threshold < 0:
                 try:
                     data = self._decompress_packet(data)
                 except InvalidUncompressedPacketError:
@@ -131,13 +131,13 @@ class Game:
         logger.info("Stopping bot %s. Reason: %s.",
                     self.data.player.data.username, error_message)
 
-        self._conn.close()
-        self._conn: None = None
+        self._connection.close()
+        self._connection: None = None
 
         return error_message
 
     def __del__(self):
-        if self._conn is not None:
+        if self._connection is not None:
             self.stop()
 
     def _switch_action_packets(self, actions_type: str = "login") -> bool:
@@ -202,7 +202,7 @@ class Game:
                 return True
             if isinstance(result, int):
                 self.data.world_data.compression_threshold = result
-                self._conn.compression_threshold = result
+                self._connection.compression_threshold = result
 
         return False
 
@@ -217,7 +217,7 @@ class Game:
         :rtype: bool
         """
         try:
-            self._conn.connect(self.data.host.get_host_data(), timeout)
+            self._connection.connect(self.data.host.get_host_data(), timeout)
         except OSError as err:
             logger.critical("Can't connect to: %s, reason: %s",
                             self.data.host.socket_data, err)
