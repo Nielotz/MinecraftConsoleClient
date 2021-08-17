@@ -5,7 +5,7 @@ from typing import NoReturn
 from typing import TYPE_CHECKING
 
 from misc import converters
-from misc.exceptions import DisconnectedError
+from misc.exceptions import DisconnectedByServerException
 from versions.v1_12_2.view.view import gui
 
 if TYPE_CHECKING:
@@ -45,4 +45,4 @@ def disconnect(game_: "game.Game", data: bytes) -> NoReturn:
     except Exception:
         logger.error("%s has been disconnected by server. Reason: '%s'",
                      game_.player.data.username, reason)
-    raise DisconnectedError("Disconnected by server.")
+    raise DisconnectedByServerException("Disconnected by server.")
