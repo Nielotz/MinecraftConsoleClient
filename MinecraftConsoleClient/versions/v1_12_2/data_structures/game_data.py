@@ -2,13 +2,12 @@
 
 from typing import TYPE_CHECKING
 
-from versions.defaults.data_structures.game_data\
-    import GameData as BaseGameData
+from versions.defaults.data_structures.world_data import WorldData as BaseWorldData
 
 from versions.v1_12_2.data_structures.world.world import World
 
 
-class GameData(BaseGameData):
+class WorldData(BaseWorldData):
     """Contain data related to the game."""
     world: World = None
 

@@ -2,7 +2,7 @@
 from versions.defaults.data_structures.world.world import World
 
 
-class GameData:
+class WorldData:
     """Contain data related to the game."""
 
     difficulty = None

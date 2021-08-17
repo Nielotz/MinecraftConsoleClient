@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING
 from commands import chat_commands
 from data_structures.position import Position
 from misc import converters
-from misc.exceptions import DisconnectedError
+from misc.exceptions import DisconnectedByServerException
 from misc.hashtables import GAMEMODE
 from misc.hashtables import GAME_DIFFICULTY
 from versions.v1_12_2.serverbound import packet_creator
@@ -63,7 +63,7 @@ def player_position_and_look(game_: "game.Game", data: bytes):
     pitch, data = converters.extract_float(data)
     flags, teleport_id = converters.extract_byte(data)
 
-    game_data = game_.game_data
+    world_data = game_.world_data
     player_data = game_.player.data
 
     if player_data.position is None:
@@ -144,28 +144,28 @@ def resource_pack_send(game_: "game.Game", data: bytes):
 
 
 def respawn(game_: "game.Game", data: bytes):
-    game_data = game_.game_data
+    world_data = game_.world_data
 
-    game_data.dimension, data = converters.extract_int(data)
-    game_data.difficulty = data[0]
+    world_data.dimension, data = converters.extract_int(data)
+    world_data.difficulty = data[0]
     game_.player.gamemode = data[1]
-    game_data.level_type = converters.extract_string(data[2:])[0]
+    world_data.level_type = converters.extract_string(data[2:])[0]
 
-    difficulty_name = GAME_DIFFICULTY[game_data.difficulty]
+    difficulty_name = GAME_DIFFICULTY[world_data.difficulty]
 
     logger.info("Player respawn: gamemode: %i, dimension: %i, "
                 "game difficulty: %i(%s), game level_type: %s, ",
                 game_.player.gamemode,
-                game_data.dimension,
-                game_data.difficulty, str(difficulty_name),
-                game_data.level_type
+                world_data.dimension,
+                world_data.difficulty, str(difficulty_name),
+                world_data.level_type
                 )
 
     gui.set_labels(
-        ("dimension", game_data.dimension),
+        ("dimension", world_data.dimension),
         ("game difficulty", difficulty_name),
         ("gamemode", game_.player.gamemode),
-        ("game level_type", game_data.level_type)
+        ("game level_type", world_data.level_type)
     )
 
 
@@ -408,7 +408,7 @@ def server_difficulty(game_: "game.Game", data: bytes):
     difficulty = converters.extract_unsigned_byte(data)[0]
     difficulty_name = GAME_DIFFICULTY[difficulty]
 
-    game_.game_data.difficulty = difficulty
+    game_.world_data.difficulty = difficulty
 
     logger.debug("Server difficulty: %i(%s)",
                  difficulty, difficulty_name)
@@ -441,7 +441,7 @@ def block_change(game_: "game.Game", data: bytes):
 def change_game_state(game_: "game.Game", data: bytes):
     value = converters.extract_float(data[1:])[0]
     # reason = data[0]  # reason = utils.extract_unsigned_byte()[0]
-    game_data = game_.game_data
+    world_data = game_.world_data
 
     # TODO: Do sth with this:
 
@@ -450,12 +450,12 @@ def change_game_state(game_: "game.Game", data: bytes):
         gui.add_to_hotbar("Invalid bed")
 
     def end_raining(_):
-        game_data.is_raining = False
+        world_data.is_raining = False
         logger.info("Stopped raining")
         gui.set_labels(("game: is_raining: ", False))
 
     def begin_raining(_):
-        game_data.is_raining = True
+        world_data.is_raining = True
         logger.info("Started raining")
         gui.set_labels(("game: is_raining: ", True))
 
@@ -489,7 +489,7 @@ def keep_alive(game_: "game.Game", data: bytes):
 
 
 def chunk_data(game_: "game.Game", data: bytes):
-    game_.game_data.world.parse_chunk_packet(data)
+    game_.world_data.world.parse_chunk_packet(data)
 
 
 def effect(game_: "game.Game", data: bytes):
@@ -501,7 +501,7 @@ def particle(game_: "game.Game", data: bytes):
 
 
 def join_game(game_: "game.Game", data: bytes):
-    game_data = game_.game_data
+    world_data = game_.world_data
     player = game_.player
 
     player.entity_id, data = converters.extract_int(data)
@@ -514,9 +514,9 @@ def join_game(game_: "game.Game", data: bytes):
 
     player.dimension, data = converters.extract_int(data)
 
-    game_data.difficulty, data = \
+    world_data.difficulty, data = \
         converters.extract_unsigned_byte(data)
-    difficulty_name = GAME_DIFFICULTY[game_data.difficulty]
+    difficulty_name = GAME_DIFFICULTY[world_data.difficulty]
 
     # Was once used by the client to draw the player list,
     # but now is ignored.
@@ -526,7 +526,7 @@ def join_game(game_: "game.Game", data: bytes):
     data = data[1:]
 
     # default, flat, largeBiomes, amplified, default_1_1
-    game_data.level_type = converters.extract_string(data)[0]
+    world_data.level_type = converters.extract_string(data)[0]
 
     # Reduced Debug Info
     # player.player._server_data["RDI"], data = utils.extract_boolean(data)
@@ -536,8 +536,8 @@ def join_game(game_: "game.Game", data: bytes):
                 player.gamemode,
                 player.is_hardcore,
                 player.dimension,
-                game_data.difficulty, difficulty_name,
-                game_data.level_type
+                world_data.difficulty, difficulty_name,
+                world_data.level_type
                 )
 
     gui.set_labels(
@@ -546,7 +546,7 @@ def join_game(game_: "game.Game", data: bytes):
         ("is_hardcore", player.is_hardcore),
         ("dimension", player.dimension),
         ("game difficulty", difficulty_name),
-        ("game level_type", game_data.level_type)
+        ("game level_type", world_data.level_type)
     )
 
 
@@ -583,7 +583,7 @@ def craft_recipe_response(game_: "game.Game", data: bytes):
 
 
 def player_abilities(game_: "game.Game", data: bytes):
-    player = game_.game_data
+    player = game_.world_data
 
     flags, data = converters.extract_byte(data)
     player.is_invulnerable = bool(flags & 0x01)
@@ -616,4 +616,4 @@ def disconnect(game_: "game.Game", data: bytes) -> NoReturn:
     # reason should be dict Chat type.
     logger.error("% has been disconnected by server. Reason: '%r'",
                  player.username, reason['text'])
-    raise DisconnectedError("Disconnected by server.")
+    raise DisconnectedByServerException("Disconnected by server.")

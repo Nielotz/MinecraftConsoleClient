@@ -12,8 +12,8 @@ class VersionData(versions.defaults.VersionData):
     protocol_version_number: int = 340
     protocol_version_varint: bytes = convert_to_varint(340)  # b'\xd4\x02'
 
-    from versions.v1_12_2.data_structures.game_data import GameData
-    game_data: GameData = GameData()
+    from versions.v1_12_2.data_structures.world_data import WorldData
+    world_data: WorldData = WorldData()
 
     packet_creator: types.ModuleType
     import versions.v1_12_2.serverbound.packet_creator as packet_creator
