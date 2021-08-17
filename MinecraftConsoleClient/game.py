@@ -29,8 +29,7 @@ logger = logging.getLogger("mainLogger")
 class Game:
     """Ultimate class for Life, the Universe, and Everything."""
 
-    def __init__(self,
-                 host: data_structures.host.Host,
+    def __init__(self, host: data_structures.host.Host,
                  player: data_structures.player.Player,
                  game_version: versions.version.Version):
         """
@@ -42,20 +41,20 @@ class Game:
         """
         self.data: GameData = GameData(host=host, player=player, game_version=game_version, )
 
-        self._connection: connection.Connection = connection.Connection()
+        self.to_send_packets: queue.Queue = queue.Queue()
+        self.received_packets: queue.Queue = queue.Queue()
 
+        # TODO: Move mover to Hero.
         self.play_packet_creator: versions.defaults.VersionData.packet_creator.play \
             = self.data.version_data.packet_creator.play
         self.login_packet_creator: versions.defaults.VersionData.packet_creator.login \
             = self.data.version_data.packet_creator.login
 
-        self.to_send_packets: queue.Queue = queue.Queue()
-        self.received_packets: queue.Queue = queue.Queue()
+        self.move_manager = action.move_manager.MoveManager(self.to_send_packets,
+                                                            self.play_packet_creator,
+                                                            self.data.player.data)
 
-        self.move_manager = action.move_manager.MoveManager(
-            self.to_send_packets,
-            self.play_packet_creator,
-            self.data.player.data)
+        self._connection: connection.Connection = connection.Connection()
 
     def start(self) -> Union[str, None]:
         """
