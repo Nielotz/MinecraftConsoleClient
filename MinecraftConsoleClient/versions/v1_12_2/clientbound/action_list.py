@@ -1,5 +1,4 @@
-"""Provide action_list with references to functions to run when \
-received given packet ID."""
+"""Provide action_list with references to functions to run when received given packet ID."""
 
 from versions.v1_12_2.clientbound import login, play
 

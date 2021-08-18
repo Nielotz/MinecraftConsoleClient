@@ -16,28 +16,26 @@ logger = logging.getLogger('mainLogger')
 
 class Connection:
     """
-    Main class that creates and handles TCP connection between \
-    server(host) and client.
+    Main class that creates and handles TCP connection between server(host) and client.
 
-    Handles reading(sending) data from(to) the server.
+    Handles reading (sending) data from (to) the server.
 
     Auto-closes connection when instance being deleted.
 
     """
 
-    # Positive threshold means number of bytes before start compressing
-    # otherwise compression is disabled."""
+    # Positive threshold means number of bytes before start compressing otherwise compression is disabled.
     compression_threshold = -1
-    __connection: socket.socket = None
+    _connection: socket.socket = None
 
-    __listener: threading.Thread = None
-    __sender: threading.Thread = None
+    _listener: threading.Thread = None
+    _sender: threading.Thread = None
 
-    __ready = threading.Event()
+    _ready = threading.Event()
 
     def __init__(self):
         """Create instance of Connection."""
-        self.__connection = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self._connection = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
     def __del__(self):
         """Close connection."""
@@ -45,7 +43,7 @@ class Connection:
 
     def set_blocking(self, is_blocking: bool = True):
         """Change socket behavior."""
-        self.__connection.setblocking(is_blocking)
+        self._connection.setblocking(is_blocking)
 
     def connect(self, socket_data: (str, int), timeout: int = 5):
         """
@@ -56,10 +54,10 @@ class Connection:
         :param socket_data: tuple(host, port)
         :param timeout: connection timeout
         """
-        self.__connection.settimeout(timeout)
-        self.__connection.connect(socket_data)
+        self._connection.settimeout(timeout)
+        self._connection.connect(socket_data)
 
-    def __receive_packet(self) -> bytes:
+    def _receive_packet(self) -> bytes:
         """
         Read whole packet from connection.
 
@@ -69,13 +67,13 @@ class Connection:
 
         :returns read bytes
         """
-        recv = self.__connection.recv
+        recv = self._connection.recv
         read_bytes = 0
         fragments = []
 
         # Broad try, because when sth went wrong here we are in danger.
         try:
-            packet_length = self.__read_packet_length()
+            packet_length = self._read_packet_length()
 
             while read_bytes < packet_length:
                 packet_part = recv(packet_length - read_bytes)
@@ -118,18 +116,19 @@ class Connection:
         :param received_queue: where to put received packets
         :returns started successfully
         """
-        if self.__listener is not None and self.__listener.is_alive():
+        if self._listener is not None and self._listener.is_alive():
             logger.error("Listener already started")
             return False
 
-        self.__ready = threading.Event()
-        self.__listener = threading.Thread(target=self.__listen,
-                                           args=(received_queue,),
-                                           daemon=True)
+        self._ready = threading.Event()
+        self._listener = threading.Thread(target=self._listen,
+                                          args=(received_queue,),
+                                          daemon=True)
 
+        # TODO: Tight exceptions.
         with suppress(Exception):
-            self.__listener.start()
-            return self.__ready.wait(15)
+            self._listener.start()
+            return self._ready.wait(15)
         return False
 
     def start_sender(self, to_send: queue.Queue) -> bool:
@@ -142,22 +141,22 @@ class Connection:
         :param to_send: queue from where get and send packets
         :returns started successfully
         """
-        if self.__sender is not None and self.__sender.is_alive():
+        if self._sender is not None and self._sender.is_alive():
             logger.error("Sender already started")
             return False
 
-        self.__ready = threading.Event()
+        self._ready = threading.Event()
 
-        self.__sender = threading.Thread(target=self.__send,
-                                         args=(to_send,),
-                                         daemon=True
-                                         )
+        self._sender = threading.Thread(target=self._send,
+                                        args=(to_send,),
+                                        daemon=True
+                                        )
         with suppress(Exception):
-            self.__sender.start()
-            return self.__ready.wait(15)
+            self._sender.start()
+            return self._ready.wait(15)
         return False
 
-    def __read_packet_length(self) -> int:
+    def _read_packet_length(self) -> int:
         """
         Read and unpack unknown length (up to 5 bytes) VarInt.
 
@@ -168,7 +167,7 @@ class Connection:
         :returns VarInt: int
         """
         packet_length = 0
-        recv = self.__connection.recv
+        recv = self._connection.recv
         for i in range(5):
             ordinal = recv(1)
             value, is_next = VARINT_BYTES[ordinal]
@@ -195,39 +194,39 @@ class Connection:
         """
         # Shut down one or both halves of the connection.
         with suppress(Exception):
-            self.__connection.shutdown(socket.SHUT_RDWR)
+            self._connection.shutdown(socket.SHUT_RDWR)
             logger.info("Shutdown connection")
 
         # Close a socket file descriptor.
         with suppress(Exception):
-            if self.__connection.fileno() != -1:
-                self.__connection.close()
-                self.__connection: None = None
+            if self._connection.fileno() != -1:
+                self._connection.close()
+                self._connection: None = None
                 logger.info("Closed socket")
 
         # Closing connection makes listener exit.
         with suppress(Exception):
-            if self.__listener.is_alive():
+            if self._listener.is_alive():
                 logger.debug("Trying to stop listener...")
-                self.__listener.join(timeout=20)
-                if not self.__listener.is_alive():
+                self._listener.join(timeout=20)
+                if not self._listener.is_alive():
                     logger.debug("Stopped listener")
 
         # When listener exits, sends packet that exits sender.
         with suppress(Exception):
-            if self.__sender.is_alive():
+            if self._sender.is_alive():
                 logger.debug("Trying to stop sender...")
-                self.__sender.join(timeout=10)
-                if not self.__sender.is_alive():
+                self._sender.join(timeout=10)
+                if not self._sender.is_alive():
                     logger.debug("Stopped sender")
 
         logger.info("Closed connection")
 
-    def __listen(self, received: queue.Queue):
+    def _listen(self, received: queue.Queue):
         """
         Listen for incoming packets, then put into received.
 
-        Similar to __sender.
+        Similar to _sender.
         Starts listening packets incoming from server.
         When received packet inserts it into buffer queue (received).
         It is blocking function, so has to be run as a daemon.
@@ -244,10 +243,10 @@ class Connection:
             raise RuntimeError(
                 "Thread running start_listening() has to start as daemon!")
 
-        self.__ready.set()
+        self._ready.set()
 
         while True:
-            packet = self.__receive_packet()
+            packet = self._receive_packet()
 
             if not packet:
                 logger.critical("Received empty packet. Exiting.")
@@ -257,11 +256,11 @@ class Connection:
         received.put(None)
         logger.info("Exiting listening thread")
 
-    def __send(self, to_send: queue.Queue):
+    def _send(self, to_send: queue.Queue):
         """
         Get packet from to_send and send to the server.
 
-        Similar to __listen.
+        Similar to _listen.
         Starts waiting for bytes to appear in to_send queue
         then sends it to server.
         It is blocking function, so has to be run in as a daemon.
@@ -280,7 +279,7 @@ class Connection:
             raise RuntimeError(
                 "Thread running start_sending() has to be a daemon!")
 
-        self.__ready.set()
+        self._ready.set()
 
         to_varint = converters.convert_to_varint
         while True:
@@ -308,7 +307,7 @@ class Connection:
             # End of compression
 
             try:
-                self.__connection.sendall(packet)
+                self._connection.sendall(packet)
             except ConnectionAbortedError:
                 # Client closed connection.
                 logger.critical("Connection has been shut down by client. ")

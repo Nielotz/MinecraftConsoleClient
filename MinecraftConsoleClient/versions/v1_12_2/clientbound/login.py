@@ -5,7 +5,7 @@ from typing import NoReturn
 from typing import TYPE_CHECKING
 
 from misc import converters
-from misc.exceptions import DisconnectedError
+from misc.exceptions import DisconnectedByServerException
 from versions.v1_12_2.view.view import gui
 
 if TYPE_CHECKING:
@@ -28,10 +28,10 @@ def set_compression(game_: "game.Game", data: bytes) -> None:
 
 
 def login_success(game_: "game.Game", data: bytes) -> True:
-    game_.player.data.uuid = converters.extract_string(data)[0] \
+    game_.data.player.data.uuid = converters.extract_string(data)[0] \
         .decode('utf-8')
     logger.info("Successfully logged to the server, "
-                "UUID: %s", game_.player.data.uuid)
+                "UUID: %s", game_.data.player.data.uuid)
     return True
 
 
@@ -41,8 +41,8 @@ def disconnect(game_: "game.Game", data: bytes) -> NoReturn:
     # reason should be dict Chat type.
     try:
         logger.error("%s has been disconnected by server. Reason: '%s'",
-                     game_.player.data.username, reason['text'])
+                     game_.data.player.data.username, reason['text'])
     except Exception:
         logger.error("%s has been disconnected by server. Reason: '%s'",
-                     game_.player.data.username, reason)
-    raise DisconnectedError("Disconnected by server.")
+                     game_.data.player.data.username, reason)
+    raise DisconnectedByServerException("Disconnected by server.")
