@@ -125,6 +125,7 @@ class Connection:
                                           args=(received_queue,),
                                           daemon=True)
 
+        # TODO: Tight exceptions.
         with suppress(Exception):
             self._listener.start()
             return self._ready.wait(15)
