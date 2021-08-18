@@ -30,6 +30,7 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html) after release of
 - 🔲 Support for "Call before packet handle"
 - 🔲 Support for "Call after packet handle"
 - 🔲 Basic docs
+- 🔲 Implement Architecture
 
 ## [0.X.0] - Future before release of 1.0.0
 
@@ -56,9 +57,10 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html) after release of
 ### Changed
 
 - ✅ Organize project files
-- 🔲 Architecture
-    - ✅ Create Architecture draft
-    - 🔲 Implement Architecture
+
+### ADDED
+
+- ✅ Create Architecture draft
 
 ## [0.3.0] - 2021-08-04
 
