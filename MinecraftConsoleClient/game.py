@@ -62,6 +62,7 @@ class Game:
 
         :return: error message, otherwise None
         """
+        # TODO: Change to try except custom exceptions.
         if not self._connect_to_server():
             return self.stop("Cannot connect to the server.")
         logger.info("Successfully connected to the server.")
