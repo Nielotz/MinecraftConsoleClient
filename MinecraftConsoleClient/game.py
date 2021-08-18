@@ -131,29 +131,13 @@ class Game:
                     self.data.player.data.username, error_message)
 
         self._connection.close()
-        self._connection: None = None
+        self._connection = None
 
         return error_message
 
     def __del__(self):
         if self._connection is not None:
             self.stop()
-
-    def _switch_action_packets(self, actions_type: str = "login") -> bool:
-        """
-        Switch between different action types.
-
-        To see possible action types see:
-            versions.<version>.clientbound.action_list.py
-
-        Based on v1_12_2:
-            Possible types: login, play, status.
-
-        :return success
-        :rtype bool
-        """
-        self._action_list: dict = self.data.version_data.action_list.get(actions_type)
-        return self._action_list is not None
 
     def _login_non_premium(self) -> bool:
         """
