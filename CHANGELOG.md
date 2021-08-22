@@ -15,6 +15,7 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html) after release of
 
 ### Added
 
+- 🔲 Logging managing system
 - 🔲 Tests for packet parsers
 
 ## [1.0.0] - FUTURE - first release
@@ -51,10 +52,8 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html) after release of
 
 ## [0.4.1] - Next release
 
-- 🔲 Performance analyze system
-- 🔲 Logging managing system
 - 🔲 Moooore logging
-
+- 🔲 Performance analyze system
 
 ## [0.4.0] - 2021-08-19
 
