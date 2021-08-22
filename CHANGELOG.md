@@ -55,11 +55,14 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html) after release of
 
 ## Added
 
-- 🔲 Basic performance analyze system
-
 ## Changed
-- 🔲 Optimized parsing packet using memoryview
 
+- 🔲 Optimized parsing packet
+
+## [0.4.1] - 2021-08-22
+
+## Added
+- ✅ Basic performance analyze system
 
 ## [0.4.0] - 2021-08-19
 

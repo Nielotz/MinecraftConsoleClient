@@ -1,3 +1,6 @@
+from pyinstrument import Profiler
+profiler = Profiler()
+profiler.start()
 import logging
 
 # TODO: improve logger.
@@ -18,7 +21,7 @@ from versions.version import Version
 
 if __name__ == "__main__":
 
-    host: Host = Host("127.0.0.1", 25565)
+    host: Host = Host("192.168.56.1", 25565)
     # host: Host = Host("188.68.236.16", 25565)
     # host: Host = Host("89.22.210.172", 25565) konrad
     # host: Host = Host("185.243.53.224", 25577)
@@ -29,9 +32,10 @@ if __name__ == "__main__":
     game_version: Version = Version.v1_12_2
 
     game = Game(host, player, game_version)
-    error = game.start()
+    try:
+        game.start()
+    except Exception:
+        pass
+profiler.stop()
 
-    if error is not None:
-        logger.error("Game has been abruptly stopped. Reason: %r", error)
-    else:
-        logger.info("Game has been closed.")
+profiler.print()
