@@ -16,5 +16,5 @@ Uses [pycodestyle](https://github.com/PyCQA/pycodestyle), [pydocstyle](https://g
   - Other:
     - Bad moving system
 
-## Architecture:
+## Architecture (will be implemented since 1.0.0):
 ![architecture](architecture.svg)
