@@ -11,8 +11,6 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html) after release of
 
 ### Changed
 
-- 🔲 Optimized parsing packet using memoryview
-
 ### Added
 
 - 🔲 Logging managing system
@@ -28,40 +26,50 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html) after release of
 - 🔲 Support for "Call before packet handle"
 - 🔲 Support for "Call after packet handle"
 - 🔲 Basic docs
+- 🔲 Fully adopted Architecture
 
 ## [0.X.0] - Future before release of 1.0.0
 
 - 🔲 Organize "versions" folder
+
+- 🔲 Moooore logging
 - 🔲 Refactor all code but packet handlers - they will be rewritten after
   implementing Packet
+
 - 🔲 Basic docs
 
-## [0.5.1] - Future
+## [0.6.1] - Future
 
 ### Changed
 
 - 🔲 Support for "Call before packet handle"
 - 🔲 Support for "Call after packet handle"
 
-## [0.5.0] - Next release
+## [0.6.0] - Future
 
 ### Added
 
 - 🔲 Split packet actions to: parse_packet, and react_to_packet
 
-## [0.4.1] - Next release
+## [0.5.0] - Next release
 
-- 🔲 Moooore logging
-- 🔲 Performance analyze system
+## Added
+
+- 🔲 Basic performance analyze system
+
+## Changed
+- 🔲 Optimized parsing packet using memoryview
+
 
 ## [0.4.0] - 2021-08-19
 
 ### Changed
 
 - ✅ Organize project files
-- 🔲 Architecture
-    - ✅ Create Architecture draft
-    - 🔲 Implement Architecture
+
+### ADDED
+
+- ✅ Create Architecture draft
 
 ## [0.3.0] - 2021-08-04
 
