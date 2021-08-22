@@ -15,9 +15,6 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html) after release of
 
 ### Added
 
-- 🔲 Performance analyze system
-- 🔲 Logging managing system
-- 🔲 Moooore logging
 - 🔲 Tests for packet parsers
 
 ## [1.0.0] - FUTURE - first release
@@ -45,13 +42,20 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html) after release of
 - 🔲 Support for "Call before packet handle"
 - 🔲 Support for "Call after packet handle"
 
-## [0.5.0] - Future
+## [0.5.0] - Next release
 
 ### Added
 
 - 🔲 Split packet actions to: parse_packet, and react_to_packet
 
-## [0.4.0] - Next release
+## [0.4.1] - Next release
+
+- 🔲 Performance analyze system
+- 🔲 Logging managing system
+- 🔲 Moooore logging
+
+
+## [0.4.0] - 2021-08-19
 
 ### Changed
 
