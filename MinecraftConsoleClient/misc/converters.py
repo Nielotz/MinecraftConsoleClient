@@ -3,7 +3,6 @@
 import json
 import struct
 import zlib
-from typing import Optional
 
 from data_structures.position import Position
 from misc.consts import MAX_INT, MAX_UINT
@@ -122,11 +121,11 @@ def pack_string(value: str) -> bytes:
     return b''.join((convert_to_varint(len(value)), value))
 
 
-def extract_boolean(data: bytes) -> (bool, Optional[bytes]):
+def extract_boolean(data: memoryview) -> (bool, memoryview):
     """
     Extract boolean from bytes.
 
-    :param data: at least 1 byte from which extract
+    :param data: memoryview of at least 1 byte from which extract
     :return True or False, leftover of data or None
     """
     if len(data) > 1:
@@ -134,11 +133,11 @@ def extract_boolean(data: bytes) -> (bool, Optional[bytes]):
     return data[0] and True, None
 
 
-def extract_byte(data: bytes) -> (int, Optional[bytes]):
+def extract_byte(data: memoryview) -> (int, memoryview):
     """
     Extract byte from bytes.
 
-    :param data: at least 1 byte from which extract
+    :param data: memoryview of at least 1 byte from which extract
     :return byte, leftover of data or None
     """
     # int.from_bytes(data[:1], byteorder="big", signed=True)
@@ -150,11 +149,11 @@ def extract_byte(data: bytes) -> (int, Optional[bytes]):
 
 
 # Not tested.
-def extract_unsigned_byte(data: bytes) -> (int, Optional[bytes]):
+def extract_unsigned_byte(data: memoryview) -> (int, memoryview):
     """
-    Extract unsigned byte from bytes.
+    Extract unsigned byte from memoryview of bytes.
 
-    :param data: at least 1 byte from which extract byte
+    :param data: memoryview of at least 1 byte from which extract byte
     :return extracted unsigned byte, leftover of data or None
     """
     if len(data) > 1:
@@ -163,11 +162,11 @@ def extract_unsigned_byte(data: bytes) -> (int, Optional[bytes]):
 
 
 # Not tested.
-def extract_short(data) -> (int, Optional[bytes]):
+def extract_short(data) -> (int, memoryview):
     """
-    Extract short from bytes.
+    Extract short from memoryview of bytes.
 
-    :param data: at least 2 bytes from which extract short
+    :param data: memoryview of memoryview of at least 2 bytes from which extract short
     :return extracted short, leftover of data or None
     """
     if len(data) > 2:
@@ -176,11 +175,11 @@ def extract_short(data) -> (int, Optional[bytes]):
 
 
 # Not tested.
-def extract_int(data: bytes) -> (int, Optional[bytes]):
+def extract_int(data: memoryview) -> (int, memoryview):
     """
-    Extract int from bytes.
+    Extract int from memoryview of bytes.
 
-    :param data: at least 4 bytes from which extract int
+    :param data: memoryview of at least 4 bytes from which extract int
     :return extracted int, leftover of data or None
     """
     value = int.from_bytes(data[:4:], byteorder="big", signed=True)
@@ -190,11 +189,11 @@ def extract_int(data: bytes) -> (int, Optional[bytes]):
     return value, None
 
 
-def extract_long(data: bytes) -> (int, Optional[bytes]):
+def extract_long(data: memoryview) -> (int, memoryview):
     """
-    Extract long from bytes.
+    Extract long from memoryview of bytes.
 
-    :param data: at least 8 bytes from which extract int
+    :param data: memoryview of at least 8 bytes from which extract int
     :return extracted int, leftover of data or None
     """
     value = int.from_bytes(data[:8:], byteorder="big", signed=True)
@@ -205,11 +204,11 @@ def extract_long(data: bytes) -> (int, Optional[bytes]):
 
 
 # Not tested.
-def extract_unsigned_long(data: bytes) -> (int, Optional[bytes]):
+def extract_unsigned_long(data: memoryview) -> (int, memoryview):
     """
-    Extract long from bytes.
+    Extract long from memoryview of bytes.
 
-    :param data: at least 8 bytes from which extract int
+    :param data: memoryview of at least 8 bytes from which extract int
     :return extracted long, leftover of data or None
     """
     value = int.from_bytes(data[:8:], byteorder="big", signed=False)
@@ -219,11 +218,11 @@ def extract_unsigned_long(data: bytes) -> (int, Optional[bytes]):
     return value, None
 
 
-def extract_float(data: bytes) -> (float, Optional[bytes]):
+def extract_float(data: memoryview) -> (float, memoryview):
     """
-    Extract float from bytes.
+    Extract float from memoryview of bytes.
 
-    :param data: at least 4 bytes from which extract float
+    :param data: memoryview of at least 4 bytes from which extract float
     :return extracted float, leftover of data or None
     """
     value: float = struct.unpack('>f', data[:4:])[0]
@@ -232,11 +231,11 @@ def extract_float(data: bytes) -> (float, Optional[bytes]):
     return value, None
 
 
-def extract_double(data: bytes) -> (float, Optional[bytes]):
+def extract_double(data: memoryview) -> (float, memoryview):
     """
-    Extract double from bytes.
+    Extract double from memoryview of bytes.
 
-    :param data: at least 8 bytes from which extract double
+    :param data: memoryview of at least 8 bytes from which extract double
     :return extracted double, leftover of data or None
     """
     value: float = struct.unpack('>d', data[:8:])[0]
@@ -246,7 +245,7 @@ def extract_double(data: bytes) -> (float, Optional[bytes]):
 
 
 # Not tested.
-def extract_string(data: bytes) -> (bytes, Optional[bytes]):
+def extract_string(data: memoryview) -> (bytes, memoryview):
     """
     Extract string from given bytes.
 
@@ -260,11 +259,11 @@ def extract_string(data: bytes) -> (bytes, Optional[bytes]):
 
 
 # Not tested.
-def extract_position(data: bytes) -> (Position, Optional[bytes]):
+def extract_position(data: memoryview) -> (Position, memoryview):
     """
     Extract Position(x, y, z) from data.
 
-    :param data: at least 8 bytes from which extract position
+    :param data: memoryview of at least 8 bytes from which extract position
     :returns extracted position, leftover or None when no data left
     """
     # TODO: replace from_bytes with struct.. or another way.
@@ -286,7 +285,7 @@ def extract_position(data: bytes) -> (Position, Optional[bytes]):
 
 
 # Not tested.
-def extract_json_from_chat(data: bytes) -> (dict, Optional[bytes]):
+def extract_json_from_chat(data: memoryview) -> (dict, memoryview):
     """
     Extract json from the chat.
 
@@ -299,7 +298,7 @@ def extract_json_from_chat(data: bytes) -> (dict, Optional[bytes]):
 
 
 # Not tested.
-def extract_varint_as_int(data: bytes) -> (int, bytes):
+def extract_varint_as_int(data: memoryview) -> (int, memoryview):
     """
     Extract varint from uncompressed data and returns it as int.
 
@@ -331,7 +330,7 @@ def extract_varint_as_int(data: bytes) -> (int, bytes):
 
 
 # Not tested.
-def extract_packet_data(data: bytes, compression=False) -> (int, bytes):
+def extract_packet_data(data: memoryview, compression=False) -> (int, memoryview):
     """
     Extract packet ID and payload from packet data.
 
@@ -344,4 +343,3 @@ def extract_packet_data(data: bytes, compression=False) -> (int, bytes):
     packet_id, data = extract_varint_as_int(data)
 
     return packet_id, data
-
