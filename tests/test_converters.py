@@ -71,7 +71,7 @@ class Test(TestCase):
 
         # bool
         edge = [True, False]
-        self._test(pack_bool, extract_boolean, edge, "Converters - bool")
+        self._test(pack_bool, extract_bool, edge, "Converters - bool")
 
         # byte
         numbers = [randint(MIN_BYTE, MAX_BYTE) for _ in range(n_of_numbers)]

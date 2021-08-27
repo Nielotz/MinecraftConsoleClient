@@ -28,7 +28,7 @@ class World:
         changing all of the blocks in the given section at once.
         Sections not specified in the primary bit mask are
         not changed and should be left as-is."""
-        create_new_aka_ground_up_continuous, data = converters.extract_boolean(data)
+        create_new_aka_ground_up_continuous, data = converters.extract_bool(data)
 
         """Bitmask with bits set to 1 for every 16×16×16 chunk section
         whose data is included in Data.

@@ -121,7 +121,7 @@ def pack_string(value: str) -> bytes:
     return b''.join((convert_to_varint(len(value)), value))
 
 
-def extract_boolean(data: memoryview) -> (bool, memoryview):
+def extract_bool(data: memoryview) -> (bool, memoryview):
     """
     Extract boolean from bytes.
 

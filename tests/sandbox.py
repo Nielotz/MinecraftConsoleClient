@@ -14,7 +14,7 @@ data = read_from_file()
 # Read top of the packet.
 chunk_x, data = converters.extract_int(data)
 chunk_z, data = converters.extract_int(data)
-create_new_aka_ground_up_continuous, data = converters.extract_boolean(data)
+create_new_aka_ground_up_continuous, data = converters.extract_bool(data)
 mask, data = converters.extract_varint_as_int(data)
 size, data = converters.extract_varint_as_int(data)
 data = data[:size]
