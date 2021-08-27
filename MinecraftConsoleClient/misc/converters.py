@@ -126,7 +126,7 @@ def extract_bool(data: memoryview) -> (bool, memoryview):
     Extract boolean from bytes.
 
     :param data: memoryview of at least 1 byte from which extract
-    :return True or False, leftover of data or None
+    :return True or False, memoryview of leftover of data
     """
     if len(data) > 1:
         return data[0] and True, data[1:]
@@ -138,7 +138,7 @@ def extract_byte(data: memoryview) -> (int, memoryview):
     Extract byte from bytes.
 
     :param data: memoryview of at least 1 byte from which extract
-    :return byte, leftover of data or None
+    :return byte, memoryview of leftover of data
     """
     # int.from_bytes(data[:1], byteorder="big", signed=True)
 
@@ -154,7 +154,7 @@ def extract_unsigned_byte(data: memoryview) -> (int, memoryview):
     Extract unsigned byte from memoryview of bytes.
 
     :param data: memoryview of at least 1 byte from which extract byte
-    :return extracted unsigned byte, leftover of data or None
+    :return extracted unsigned byte, memoryview of leftover of data
     """
     if len(data) > 1:
         return data[0], data[1:]
@@ -167,7 +167,7 @@ def extract_short(data) -> (int, memoryview):
     Extract short from memoryview of bytes.
 
     :param data: memoryview of memoryview of at least 2 bytes from which extract short
-    :return extracted short, leftover of data or None
+    :return extracted short, memoryview of leftover of data
     """
     if len(data) > 2:
         return int.from_bytes(data[:2], byteorder="big", signed=True), data[2:]
@@ -180,7 +180,7 @@ def extract_int(data: memoryview) -> (int, memoryview):
     Extract int from memoryview of bytes.
 
     :param data: memoryview of at least 4 bytes from which extract int
-    :return extracted int, leftover of data or None
+    :return extracted int, memoryview of leftover of data
     """
     value = int.from_bytes(data[:4:], byteorder="big", signed=True)
 
@@ -194,7 +194,7 @@ def extract_long(data: memoryview) -> (int, memoryview):
     Extract long from memoryview of bytes.
 
     :param data: memoryview of at least 8 bytes from which extract int
-    :return extracted int, leftover of data or None
+    :return extracted int, memoryview of leftover of data
     """
     value = int.from_bytes(data[:8:], byteorder="big", signed=True)
 
@@ -209,7 +209,7 @@ def extract_unsigned_long(data: memoryview) -> (int, memoryview):
     Extract long from memoryview of bytes.
 
     :param data: memoryview of at least 8 bytes from which extract int
-    :return extracted long, leftover of data or None
+    :return extracted long, memoryview of leftover of data
     """
     value = int.from_bytes(data[:8:], byteorder="big", signed=False)
 
@@ -223,7 +223,7 @@ def extract_float(data: memoryview) -> (float, memoryview):
     Extract float from memoryview of bytes.
 
     :param data: memoryview of at least 4 bytes from which extract float
-    :return extracted float, leftover of data or None
+    :return extracted float, memoryview of leftover of data
     """
     value: float = struct.unpack('>f', data[:4:])[0]
     if len(data) > 4:
@@ -236,7 +236,7 @@ def extract_double(data: memoryview) -> (float, memoryview):
     Extract double from memoryview of bytes.
 
     :param data: memoryview of at least 8 bytes from which extract double
-    :return extracted double, leftover of data or None
+    :return extracted double, memoryview of leftover of data
     """
     value: float = struct.unpack('>d', data[:8:])[0]
     if len(data) > 8:
@@ -250,7 +250,7 @@ def extract_string(data: memoryview) -> (bytes, memoryview):
     Extract string from given bytes.
 
     :param data: decompressed array of bytes
-    :return bytes of unicode string, leftover of data or None
+    :return bytes of unicode string, memoryview of leftover of data
     """
     string_len, data = extract_varint_as_int(data)
     if len(data) > string_len:
@@ -264,7 +264,7 @@ def extract_position(data: memoryview) -> (Position, memoryview):
     Extract Position(x, y, z) from data.
 
     :param data: memoryview of at least 8 bytes from which extract position
-    :returns extracted position, leftover or None when no data left
+    :returns extracted position, memoryview of leftover of data
     """
     # TODO: replace from_bytes with struct.. or another way.
     val = int.from_bytes(data[:8], byteorder="big", signed=True)
@@ -290,7 +290,7 @@ def extract_json_from_chat(data: memoryview) -> (dict, memoryview):
     Extract json from the chat.
 
     :param data: bytes from which to extract json
-    :return extracted json, leftover of data or None
+    :return extracted json, memoryview of leftover of data
     """
     # TODO: return python JSON
     string, leftover = extract_string(data)
@@ -308,7 +308,7 @@ def extract_varint_as_int(data: memoryview) -> (int, memoryview):
 
     :raise ValueError: when VarInt not fit into int32
     :param data: bytes of data containing VarInt
-    :returns value, leftover of data or None
+    :returns value, memoryview of leftover of data
     """
     number = 0
     for i in range(5):
@@ -334,7 +334,7 @@ def extract_packet_data(data: memoryview, compression=False) -> (int, memoryview
     """
     Extract packet ID and payload from packet data.
 
-    :returns packet_id, leftover of data or None
+    :returns packet_id, memoryview of leftover of data
     """
     if compression:
         data_length, data = extract_varint_as_int(data)
