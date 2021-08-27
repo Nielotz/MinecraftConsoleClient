@@ -5,7 +5,7 @@ from unittest import TestCase
 
 import pytest as pytest
 
-from MinecraftConsoleClient.data_structures.packet_data_reader import PacketDataReader
+from MinecraftConsoleClient.data_structures._packet_data_reader import PacketDataReader
 from MinecraftConsoleClient.misc.consts import *
 from MinecraftConsoleClient.misc.converters import pack_bool, pack_byte, pack_long, pack_float, pack_double
 
