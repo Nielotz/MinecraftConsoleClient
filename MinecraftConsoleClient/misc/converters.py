@@ -128,7 +128,7 @@ def extract_bool(data: Union[bytes, memoryview]) -> (bool, int):
     :param data: bytes or memoryview of at least 1 byte from which extract
     :return True or False, number of read bytes
     """
-    assert len(data) > 0
+    assert data
 
     return data[0] and True, 1
 
@@ -140,7 +140,7 @@ def extract_byte(data: Union[bytes, memoryview]) -> (int, int):
     :param data: bytes or memoryview of at least 1 byte from which extract
     :return byte, number of read bytes
     """
-    assert len(data) > 0
+    assert data
 
     return data[0] - ((data[0] & 0x80) << 1), 1
 
@@ -153,7 +153,7 @@ def extract_unsigned_byte(data: Union[bytes, memoryview]) -> (int, int):
     :param data: bytes or memoryview of at least 1 byte from which extract byte
     :return extracted unsigned byte, number of read bytes
     """
-    assert len(data) > 0
+    assert data
 
     return data[0], 1
 
@@ -241,7 +241,7 @@ def extract_string_bytes(data: Union[bytes, memoryview]) -> (bytes, int):
     :param data: decompressed array of bytes
     :return bytes of unicode string, number of read bytes
     """
-    assert len(data) > 0
+    assert data
 
     string_len, read_bytes = extract_varint_as_int(data)
 
@@ -285,7 +285,7 @@ def extract_json_from_chat(data: Union[bytes, memoryview]) -> (dict, int):
     :return extracted json, number of read bytes
     """
     # TODO: return python JSON
-    string, read_bytes = extract_string(data)
+    string, read_bytes = extract_string_bytes(data)
     return json.loads(string), read_bytes + len(string)
 
 
@@ -302,7 +302,7 @@ def extract_varint_as_int(data: Union[bytes, memoryview]) -> (int, int):
     :param data: bytes of data containing VarInt
     :returns value, number of read bytes
     """
-    assert len(data) > 0
+    assert data
 
     number = 0
     for i in range(5):
