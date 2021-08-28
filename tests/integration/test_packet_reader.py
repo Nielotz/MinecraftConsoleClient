@@ -1,110 +1,51 @@
+import random
 import struct
 from fractions import Fraction
-from random import uniform, randint
-from unittest import TestCase
+from random import randint, uniform
 
-import pytest as pytest
-
-from MinecraftConsoleClient.data_structures._packet_data_reader import PacketDataReader
+from MinecraftConsoleClient.data_structures.packet_data_reader import PacketDataReader, TypeToExtract
 from MinecraftConsoleClient.misc.consts import *
-from MinecraftConsoleClient.misc.converters import pack_bool, pack_byte, pack_long, pack_float, pack_double
+from MinecraftConsoleClient.misc.converters import pack_bool, pack_long, pack_byte, pack_float, pack_double
 
 
 def to_fraction(data):
     return Fraction(struct.unpack('f', struct.pack('f', data))[0])
 
 
-class TestPacketReader(TestCase):
-    def test_bool(self):
-        raw_test_data = (True, False, True, True, False, False)
-        test_data = b''.join([pack_bool(value=val) for val in raw_test_data])
+class TestPacketReader:
+    def test(self):
+        bool_ = TypeToExtract.BOOL
+        byte_ = TypeToExtract.BYTE
+        long_ = TypeToExtract.LONG
+        float_ = TypeToExtract.FLOAT
+        double_ = TypeToExtract.DOUBLE
+
+        raw_test_data_with_type = [
+            *[(i, pack_bool(i), bool_) for i in (True, False, True, True, False, False)],
+
+            *[(i, pack_byte(i), byte_) for i in range(MIN_BYTE, MAX_BYTE + 1)],
+
+            *[(i, pack_long(i), long_) for i in range(MIN_LONG, MIN_LONG + 500)],
+            *[(i, pack_long(i), long_) for i in range(MAX_LONG - 500, MAX_LONG)],
+            *[((val := randint(MIN_LONG, MAX_LONG)), pack_long(val), long_) for _ in range(5000)],
+            *[(i, pack_long(i), long_) for i in (-1, 0, 1)],
+
+            *[((val := uniform(MIN_FLOAT, MAX_FLOAT)), pack_float(val), float_) for _ in range(5000)],
+            *[(i, pack_float(i), float_) for i in (MIN_FLOAT, MIN_FLOAT + 1, 0., MAX_FLOAT - 1, MAX_FLOAT)],
+
+            *[((val := uniform(MIN_DOUBLE, MAX_DOUBLE)), pack_double(val), double_) for _ in range(5000)],
+            *[(i, pack_double(i), double_) for i in (MIN_DOUBLE, MIN_DOUBLE + 1, 0., MAX_DOUBLE - 1, MAX_DOUBLE)]
+        ]
+
+        random.shuffle(raw_test_data_with_type)
+
+        test_data = b''.join([val[1] for val in raw_test_data_with_type])
         data_reader = PacketDataReader(test_data)
+        data_reader_extract = data_reader.extract
 
-        for test_val in raw_test_data:
-            assert test_val == data_reader.extract_bool()
-
+        for test_val, _packed_val, extract_method in raw_test_data_with_type:
+            if extract_method is float_:
+                assert to_fraction(test_val) == to_fraction(data_reader_extract(extract_method))
+            else:
+                assert test_val == data_reader_extract(extract_method)
         assert len(data_reader._data) == data_reader._data_start_idx
-
-    def test_byte(self):
-        raw_test_data = [i for i in range(MIN_BYTE, MAX_BYTE + 1)]
-        test_data = b''.join([pack_byte(val) for val in raw_test_data])
-        data_reader = PacketDataReader(test_data)
-
-        for test_val in raw_test_data:
-            assert test_val == data_reader.extract_byte()
-
-        assert len(data_reader._data) == data_reader._data_start_idx
-
-    @pytest.mark.skip(reason="There is no method to pack unsigned_byte")
-    def test_unsigned_byte(self):
-        pass
-
-    @pytest.mark.skip(reason="There is no method to pack short")
-    def test_short(self):
-        pass
-
-    @pytest.mark.skip(reason="There is no method to pack int")
-    def test_int(self):
-        pass
-
-    def test_long(self):
-        raw_test_data = (*[i for i in range(MIN_LONG, MIN_LONG + 200000)],
-                         *[i for i in range(MAX_LONG - 200000, MAX_LONG)],
-                         *[randint(MIN_LONG, MAX_LONG) for i in range(100000)],
-                         *(-1, 0, 1))
-
-        test_data = b''.join([pack_long(val) for val in raw_test_data])
-        data_reader = PacketDataReader(test_data)
-
-        for test_val in raw_test_data:
-            assert test_val == data_reader.extract_long()
-
-        assert len(data_reader._data) == data_reader._data_start_idx
-
-    @pytest.mark.skip(reason="There is no method to pack unsigned_long")
-    def test_unsigned_long(self):
-        pass
-
-    def test_float(self):
-        raw_test_data = (*[uniform(MIN_FLOAT, MAX_FLOAT) for _ in range(100000)],
-                         *(MIN_FLOAT, MIN_FLOAT + 1, 0., MAX_FLOAT - 1, MAX_FLOAT))
-
-        test_data = b''.join([pack_float(val) for val in raw_test_data])
-        data_reader = PacketDataReader(test_data)
-
-        for test_val in raw_test_data:
-            assert to_fraction(test_val) == to_fraction(data_reader.extract_float())
-
-        assert len(data_reader._data) == data_reader._data_start_idx
-
-    def test_double(self):
-        raw_test_data = (*[uniform(MIN_DOUBLE, MAX_DOUBLE) for _ in range(50000)],
-                         *(MIN_DOUBLE, MIN_DOUBLE + 1, 0., MAX_DOUBLE - 1, MAX_DOUBLE))
-
-        test_data = b''.join([pack_double(val) for val in raw_test_data])
-        data_reader = PacketDataReader(test_data)
-
-        for idx, test_val in enumerate(raw_test_data):
-            assert test_val == data_reader.extract_double()
-
-        assert len(data_reader._data) == data_reader._data_start_idx
-
-    @pytest.mark.skip(reason="There is no method to pack string_bytes")
-    def test_string_bytes(self):
-        pass
-
-    @pytest.mark.skip(reason="There is no method to pack position")
-    def test_position(self):
-        pass
-
-    @pytest.mark.skip(reason="There is no method to pack json_from_chat")
-    def test_json_from_chat(self):
-        pass
-
-    @pytest.mark.skip(reason="There is no method to pack varint_as_int")
-    def test_varint_as_int(self):
-        pass
-
-    @pytest.mark.skip(reason="There is no method to pack packet_id")
-    def test_packet_id(self):
-        pass
