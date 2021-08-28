@@ -55,13 +55,17 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html) after release of
 
 ## Added
 
+- 🔲 Packet data extractor - reduces complexity of extractions, simplifies usages
+
 ## Changed
 
-- 🔲 Optimized parsing packet
+- 🔲 Converters now return extracted bytes instead of leftover bytes, see
+  [memoryviewvs_bytes_slicing.py](https://github.com/Nielotz/python_benchmarks/blob/master/memoryview_vs_bytes_slicing.py)
 
 ## [0.4.1] - 2021-08-22
 
 ## Added
+
 - Basic performance analyze system
 
 ## [0.4.0] - 2021-08-19
