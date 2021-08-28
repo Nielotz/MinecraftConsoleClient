@@ -1,127 +1,109 @@
-import random
-import string
-import time
 from fractions import Fraction
-from random import randint, uniform
-from unittest import TestCase
+from random import uniform, randint
+from typing import Any
+
+import pytest as pytest
 
 from MinecraftConsoleClient.misc.consts import *
 from MinecraftConsoleClient.misc.converters import *
 
 
 def to_fraction(data):
-    return Fraction(struct.unpack('f', struct.pack('f', data))[0])
+    return Fraction.from_float(struct.unpack('f', struct.pack('f', data))[0])
 
 
-class Test(TestCase):
-    def _test(self, converter,
-              deconverter,
-              dataset=(),
-              test_desc: str = "",
-              is_float: bool = False, is_double: bool = False,
-              is_string: bool = False):
-        # Config
-        n_of_repeats = 10  # How many times test to get best time.
+class TestPacketReader:
+    @staticmethod
+    def _test(pack_method: callable,
+              extract_method: callable,
+              test_data: [Any, ],
+              is_float: bool = False):
+        prepared_test_data = [pack_method(value=test_value) for test_value in test_data]
+        prepared_test_data_joined = b''.join(prepared_test_data)
 
-        time_ns = time.perf_counter_ns
-        times = {"pack": [], "extract": []}
-        for data in dataset:
-            with self.subTest(test_desc):
-                pack_time, unpack_time = 100000000, 1000000000
-                for _ in range(n_of_repeats):
-                    start = time_ns()
-                    converted = converter(data)
-                    if (_pack_time := (time_ns() - start)) < pack_time:
-                        pack_time = _pack_time
+        test_results = [extract_method(test_value)[0] for test_value in prepared_test_data]
 
-                    start = time_ns()
-                    deconverted, _ = deconverter(converted)
-                    if (_unpack_time := (time_ns() - start)) < unpack_time:
-                        unpack_time = _unpack_time
+        bytes_read = 0
+        if not is_float:
+            for test_data_, test_result in zip(test_data, test_results):
+                assert test_data_ == test_result
 
-                    if is_float:
-                        self.assertEqual(
-                            to_fraction(data),
-                            to_fraction(deconverted))
-                    elif is_double:
-                        self.assertEqual(data, deconverted)
-                    elif is_string:
-                        self.assertEqual(data.encode("utf-8"), deconverted)
-                    else:
-                        self.assertEqual(data, deconverted)
-                times["pack"].append(pack_time)
-                times["extract"].append(unpack_time)
+                joined_data_result, bytes_read_ = extract_method(prepared_test_data_joined[bytes_read:])
 
-        total_pack_time = sum(times["pack"])
-        total_extract_time = sum(times["extract"])
-        print(f"""TEST: {test_desc}
-    PACK:,
-        Total time: {total_pack_time}ns, 
-        average per test: {total_pack_time // len(dataset)}ns, best: {min(times["pack"])}ns
-    EXTRACT:
-        total extract time: {total_extract_time}ns, 
-        average per test: {total_extract_time // len(dataset)}ns, best: {min(times["extract"])}ns
-""")
+                bytes_read += bytes_read_
 
-    def test_converters(self):
-        # Config.
-        n_of_strings: int = 1000
-        n_of_letters: int = 100
-        n_of_numbers: int = 1000
+                assert test_data_ == joined_data_result
+        else:
+            for test_data_, test_result in zip(test_data, test_results):
+                assert to_fraction(test_data_) == to_fraction(test_result)
 
-        # bool
-        edge = [True, False]
-        self._test(pack_bool, extract_bool, edge, "Converters - bool")
+                joined_data_result, bytes_read_ = extract_method(prepared_test_data_joined[bytes_read:])
 
-        # byte
-        numbers = [randint(MIN_BYTE, MAX_BYTE) for _ in range(n_of_numbers)]
-        edge = [MIN_BYTE, MIN_BYTE + 1, 0, MAX_BYTE - 1, MAX_BYTE]
-        self._test(pack_byte, extract_byte, numbers + edge, "Converters - byte")
+                bytes_read += bytes_read_
 
-        # unsigned byte
+                assert to_fraction(test_data_) == to_fraction(joined_data_result)
 
-        # unsigned short
+    def test_bool(self):
+        raw_test_data = (True, False, True, True, False, False)
+        TestPacketReader._test(pack_method=pack_bool, extract_method=extract_bool, test_data=raw_test_data)
 
-        # int
+    def test_byte(self):
+        raw_test_data = [i for i in range(MIN_BYTE, MAX_BYTE + 1)]
+        TestPacketReader._test(pack_method=pack_byte, extract_method=extract_byte, test_data=raw_test_data)
 
-        # long
-        numbers = [randint(MIN_LONG, MAX_LONG) for _ in range(n_of_numbers)]
-        edge += [MAX_LONG, MAX_LONG - 1, MIN_LONG, MIN_LONG + 1]
-        self._test(pack_long, extract_long, numbers + edge,
-                   "Converters - long")
+    @pytest.mark.skip(reason="There is no method to pack unsigned_byte")
+    def test_unsigned_byte(self):
+        pass
 
-        # float
-        numbers = [uniform(MIN_FLOAT, MAX_FLOAT) for _ in range(n_of_numbers)]
-        edge = [MIN_FLOAT, MIN_FLOAT + 1, MAX_FLOAT - 1, MAX_FLOAT]
-        self._test(pack_float, extract_float, numbers + edge,
-                   "Converters - float", is_float=True)
+    @pytest.mark.skip(reason="There is no method to pack short")
+    def test_short(self):
+        pass
 
-        # double
-        numbers = [uniform(MIN_DOUBLE, MAX_DOUBLE) for _ in range(n_of_numbers)]
-        edge += [MIN_DOUBLE, MIN_DOUBLE + 1, MAX_DOUBLE - 1, MAX_DOUBLE]
-        self._test(pack_double, extract_double, numbers + edge,
-                   "Converters - double", is_double=True)
+    @pytest.mark.skip(reason="There is no method to pack int")
+    def test_int(self):
+        pass
 
-        # varint
-        numbers = [randint(MIN_INT, MAX_INT) for _ in range(n_of_numbers)]
-        edge = [0, 1, 254, 255, 265,
-                -1, -254, -255, -265,
-                2 ** 16 - 1, 2 ** 16, 2 ** 16 + 1,
-                -2 ** 16 + 1, -2 ** 16, -2 ** 16 - 1,
-                MAX_INT - 1, MAX_INT, MIN_INT + 1, MIN_INT,
-                ]
-        self._test(convert_to_varint, extract_varint_as_int, numbers + edge,
-                   "Converters - varint")
+    def test_long(self):
+        raw_test_data = (*[i for i in range(MIN_LONG, MIN_LONG + 10000)],
+                         *[i for i in range(MAX_LONG - 10000, MAX_LONG)],
+                         *[randint(MIN_LONG, MAX_LONG) for i in range(10000)],
+                         *(-1, 0, 1))
 
-        # string
-        letters = string.printable
-        strings = [''.join(random.choice(letters) for _ in range(n_of_letters))
-                   for _ in range(n_of_strings)]
-        edge = []
-        self._test(pack_string, extract_string, strings + edge,
-                   "Converters - string", is_string=True)
-        # extract position
+        TestPacketReader._test(pack_method=pack_long, extract_method=extract_long, test_data=raw_test_data)
 
-        # extract json from chat
+    @pytest.mark.skip(reason="There is no method to pack unsigned_long")
+    def test_unsigned_long(self):
+        pass
 
-        # extract packet data
+    def test_float(self):
+        raw_test_data = (*[uniform(MIN_FLOAT, MAX_FLOAT) for _ in range(100000)],
+                         *(MIN_FLOAT, MIN_FLOAT + 1, 0., MAX_FLOAT - 1, MAX_FLOAT))
+
+        TestPacketReader._test(pack_method=pack_float, extract_method=extract_float, test_data=raw_test_data,
+                               is_float=True)
+
+    def test_double(self):
+        raw_test_data = (*[uniform(MIN_DOUBLE, MAX_DOUBLE) for _ in range(50000)],
+                         *(MIN_DOUBLE, MIN_DOUBLE + 1, 0., MAX_DOUBLE - 1, MAX_DOUBLE))
+
+        TestPacketReader._test(pack_method=pack_double, extract_method=extract_double, test_data=raw_test_data)
+
+    @pytest.mark.skip(reason="There is no method to pack string_bytes")
+    def test_string_bytes(self):
+        pass
+
+    @pytest.mark.skip(reason="There is no method to pack position")
+    def test_position(self):
+        pass
+
+    @pytest.mark.skip(reason="There is no method to pack json_from_chat")
+    def test_json_from_chat(self):
+        pass
+
+    @pytest.mark.skip(reason="There is no method to pack varint_as_int")
+    def test_varint_as_int(self):
+        pass
+
+    @pytest.mark.skip(reason="There is no method to pack packet_id")
+    def test_packet_id(self):
+        pass
