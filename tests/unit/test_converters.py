@@ -12,7 +12,7 @@ def to_fraction(data):
     return Fraction.from_float(struct.unpack('f', struct.pack('f', data))[0])
 
 
-class TestPacketReader:
+class TestConverters:
     @staticmethod
     def _test(pack_method: callable,
               extract_method: callable,
@@ -45,11 +45,11 @@ class TestPacketReader:
 
     def test_bool(self):
         raw_test_data = (True, False, True, True, False, False)
-        TestPacketReader._test(pack_method=pack_bool, extract_method=extract_bool, test_data=raw_test_data)
+        TestConverters._test(pack_method=pack_bool, extract_method=extract_bool, test_data=raw_test_data)
 
     def test_byte(self):
         raw_test_data = [i for i in range(MIN_BYTE, MAX_BYTE + 1)]
-        TestPacketReader._test(pack_method=pack_byte, extract_method=extract_byte, test_data=raw_test_data)
+        TestConverters._test(pack_method=pack_byte, extract_method=extract_byte, test_data=raw_test_data)
 
     @pytest.mark.skip(reason="There is no method to pack unsigned_byte")
     def test_unsigned_byte(self):
@@ -69,7 +69,7 @@ class TestPacketReader:
                          *[randint(MIN_LONG, MAX_LONG) for i in range(10000)],
                          *(-1, 0, 1))
 
-        TestPacketReader._test(pack_method=pack_long, extract_method=extract_long, test_data=raw_test_data)
+        TestConverters._test(pack_method=pack_long, extract_method=extract_long, test_data=raw_test_data)
 
     @pytest.mark.skip(reason="There is no method to pack unsigned_long")
     def test_unsigned_long(self):
@@ -79,14 +79,14 @@ class TestPacketReader:
         raw_test_data = (*[uniform(MIN_FLOAT, MAX_FLOAT) for _ in range(100000)],
                          *(MIN_FLOAT, MIN_FLOAT + 1, 0., MAX_FLOAT - 1, MAX_FLOAT))
 
-        TestPacketReader._test(pack_method=pack_float, extract_method=extract_float, test_data=raw_test_data,
+        TestConverters._test(pack_method=pack_float, extract_method=extract_float, test_data=raw_test_data,
                                is_float=True)
 
     def test_double(self):
         raw_test_data = (*[uniform(MIN_DOUBLE, MAX_DOUBLE) for _ in range(50000)],
                          *(MIN_DOUBLE, MIN_DOUBLE + 1, 0., MAX_DOUBLE - 1, MAX_DOUBLE))
 
-        TestPacketReader._test(pack_method=pack_double, extract_method=extract_double, test_data=raw_test_data)
+        TestConverters._test(pack_method=pack_double, extract_method=extract_double, test_data=raw_test_data)
 
     @pytest.mark.skip(reason="There is no method to pack string_bytes")
     def test_string_bytes(self):
