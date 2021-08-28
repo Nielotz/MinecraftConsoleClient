@@ -8,21 +8,20 @@ from misc.converters import extract_bool, \
 
 
 class TypeToExtract(Enum):
-    BOOL: extract_bool
-    BYTE: extract_byte
-    UNSIGNED_BYTE: extract_unsigned_byte
-    SHORT: extract_short
-    INT: extract_int
-    LONG: extract_long
-    UNSIGNED_LONG: extract_unsigned_long
-    FLOAT: extract_float
-    DOUBLE: extract_double
-    STRING_BYTES: extract_string_bytes
-    VARINT_AS_INT: extract_varint_as_int
-    POSITION: extract_position
-    JSON_FROM_CHAT: extract_json_from_chat
-    STRING_BYTES: extract_string_bytes
-    PACKET_ID: extract_packet_id
+    BOOL: callable = extract_bool
+    BYTE: callable = extract_byte
+    UNSIGNED_BYTE: callable = extract_unsigned_byte
+    SHORT: callable = extract_short
+    INT: callable = extract_int
+    LONG: callable = extract_long
+    UNSIGNED_LONG: callable = extract_unsigned_long
+    FLOAT: callable = extract_float
+    DOUBLE: callable = extract_double
+    STRING_BYTES: callable = extract_string_bytes
+    VARINT_AS_INT: callable = extract_varint_as_int
+    POSITION: callable = extract_position
+    JSON_FROM_CHAT: callable = extract_json_from_chat
+    PACKET_ID: callable = extract_packet_id
 
 
 class PacketDataReader:
@@ -39,6 +38,6 @@ class PacketDataReader:
             self._data_start_idx = 0
 
     def extract(self, type_to_extract: TypeToExtract):
-        value, bytes_read = type_to_extract.value(self._data)
+        value, bytes_read = type_to_extract(self._data[self._data_start_idx:])
         self._data_start_idx += bytes_read
         return value
