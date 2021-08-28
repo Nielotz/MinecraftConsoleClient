@@ -130,7 +130,7 @@ def extract_bool(data: Union[bytes, memoryview]) -> (bool, int):
     """
     assert data
 
-    return data[0] and True, 1
+    return bool(data[0]), 1
 
 
 def extract_byte(data: Union[bytes, memoryview]) -> (int, int):
