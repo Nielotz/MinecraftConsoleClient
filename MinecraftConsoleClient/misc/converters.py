@@ -234,7 +234,7 @@ def extract_double(data: Union[bytes, memoryview]) -> (float, int):
 
 
 # Not tested.
-def extract_string(data: Union[bytes, memoryview]) -> (bytes, int):
+def extract_string_bytes(data: Union[bytes, memoryview]) -> (bytes, int):
     """
     Extract string from given bytes.
 
