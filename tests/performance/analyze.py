@@ -1,23 +1,15 @@
 from pyinstrument import Profiler
-profiler = Profiler()
-profiler.start()
-import logging
 
-# TODO: improve logger.
-logger = logging.getLogger("mainLogger")
-logger.setLevel(logging.DEBUG)
-formatter = logging.Formatter('%(name)-12s: %(levelname)-8s %(message)s')
-# fh = logging.FileHandler()
-# fh.setLevel(logging.DEBUG)
-ch = logging.StreamHandler()
-ch.setLevel(logging.DEBUG)
-ch.setFormatter(formatter)
-logger.addHandler(ch)
-
-from game import Game
 from data_structures.host import Host
 from data_structures.player import Player
+from game import Game
+from misc.logger import get_logger
 from versions.version import Version
+
+profiler = Profiler()
+profiler.start()
+
+logger = get_logger("mainLogger")
 
 if __name__ == "__main__":
 
