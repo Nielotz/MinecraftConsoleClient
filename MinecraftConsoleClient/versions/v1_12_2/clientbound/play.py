@@ -148,7 +148,7 @@ def respawn(game_: "game.Game", data: bytes):
     world_data.dimension, data = converters.extract_int(data)
     world_data.difficulty = data[0]
     game_.data.player.gamemode = data[1]
-    world_data.level_type = converters.extract_string(data[2:])[0]
+    world_data.level_type = converters.extract_string_bytes(data[2:])[0]
 
     difficulty_name = GAME_DIFFICULTY[world_data.difficulty]
 
@@ -525,7 +525,7 @@ def join_game(game_: "game.Game", data: bytes):
     data = data[1:]
 
     # default, flat, largeBiomes, amplified, default_1_1
-    world_data.level_type = converters.extract_string(data)[0]
+    world_data.level_type = converters.extract_string_bytes(data)[0]
 
     # Reduced Debug Info
     # player.player._server_data["RDI"], data = utils.extract_boolean(data)
