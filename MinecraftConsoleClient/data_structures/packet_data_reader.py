@@ -1,5 +1,6 @@
 import zlib
 from enum import Enum
+from typing import Union
 
 from misc.converters import extract_bool, \
     extract_byte, extract_unsigned_byte, extract_short, extract_long, extract_int, extract_unsigned_long, \
@@ -25,7 +26,7 @@ class TypeToExtract(Enum):
 
 
 class PacketDataReader:
-    def __init__(self, packet_data: bytes, compressed=False):
+    def __init__(self, packet_data: Union[memoryview, bytes], compressed=False):
         self._data = packet_data
         self._data_start_idx = 0
 
@@ -37,7 +38,7 @@ class PacketDataReader:
             self._data = zlib.decompress(self._data[self._data_start_idx:])
             self._data_start_idx = 0
 
-    def extract(self, type_to_extract: TypeToExtract):
+    def extract(self, type_to_extract: TypeToExtract.BOOL):
         value, bytes_read = type_to_extract(self._data[self._data_start_idx:])
         self._data_start_idx += bytes_read
         return value
