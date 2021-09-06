@@ -1,10 +1,10 @@
 from pyinstrument import Profiler
 
 from data_structures.host import Host
-from data_structures.player import Player
+from data_structures.player import Player_
 from game import Game
 from misc.logger import get_logger
-from versions.version import Version
+from versions.version import VersionVersion
 
 profiler = Profiler()
 profiler.start()
@@ -19,9 +19,9 @@ if __name__ == "__main__":
     # host: Host = Host("185.243.53.224", 25577)
     # host: Host = Host("nssv.pl", 25565)
 
-    player: Player = Player(username="Bob")
+    player: Player_ = Player_(username="Bob")
 
-    game_version: Version = Version.v1_12_2
+    game_version: VersionVersion = VersionVersion.V1_12_2
 
     game = Game(host, player, game_version)
     try:

@@ -1,4 +1,5 @@
 """Data container for in game blocks and items."""
+
 # Probably 1.8 version.
 BLOCK = {
     0: {0: {'name': 'Air', 'properties': {}}},

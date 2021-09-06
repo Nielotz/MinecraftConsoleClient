@@ -1,7 +1,7 @@
 from typing import Union
 
 from misc import converters
-from versions.defaults.data_structures.world.palette import IndirectPalette, DirectPalette, extract_palette
+from versions.base.data_structures.world.palette import IndirectPalette, DirectPalette, extract_palette
 
 
 class ChunkSection:

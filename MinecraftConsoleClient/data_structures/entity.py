@@ -32,3 +32,6 @@ class Entity:
         self.health: float = health
         self.on_ground: bool = on_ground
         self.velocity: Velocity = velocity
+        self.flying_speed: float
+        self.is_invulnerable: bool
+

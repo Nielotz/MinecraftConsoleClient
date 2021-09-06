@@ -33,7 +33,7 @@ def combat_event(game_: "game.Game", data: bytes):
 
         # 'Entity ID of the player that died
         # (should match the client's entity ID).'
-        if entity_id == game_.data.player.data.entity_id:
+        if entity_id == game_.data.hero.data.entity_id:
 
             message = f"Player has been killed by: {entity_id}, " \
                       f"death message: '{message}' "
@@ -64,7 +64,7 @@ def player_position_and_look(game_: "game.Game", data: bytes):
     flags, teleport_id = converters.extract_byte(data)
 
     world_data = game_.data.world_data
-    player_data = game_.data.player.data
+    player_data = game_.data.hero.data
 
     if player_data.position is None:
         player_data.position = Position(x, y, z)
@@ -147,14 +147,14 @@ def respawn(game_: "game.Game", data: bytes):
 
     world_data.dimension, data = converters.extract_int(data)
     world_data.difficulty = data[0]
-    game_.data.player.gamemode = data[1]
+    game_.data.hero.gamemode = data[1]
     world_data.level_type = converters.extract_string_bytes(data[2:])[0]
 
     difficulty_name = GAME_DIFFICULTY[world_data.difficulty]
 
     logger.info("Player respawn: gamemode: %i, dimension: %i, "
                 "game difficulty: %i(%s), game level_type: %s, ",
-                game_.data.player.gamemode,
+                game_.data.hero.gamemode,
                 world_data.dimension,
                 world_data.difficulty, str(difficulty_name),
                 world_data.level_type
@@ -163,7 +163,7 @@ def respawn(game_: "game.Game", data: bytes):
     gui.set_labels(
         ("dimension", world_data.dimension),
         ("game difficulty", difficulty_name),
-        ("gamemode", game_.data.player.gamemode),
+        ("gamemode", game_.data.hero.gamemode),
         ("game level_type", world_data.level_type)
     )
 
@@ -185,7 +185,7 @@ def camera(game_: "game.Game", data: bytes):
 
 
 def held_item_change(game_: "game.Game", data: bytes):
-    player = game_.data.player.data
+    player = game_.data.hero.data
 
     player.active_slot = converters.extract_byte(data)[0]
     logger.debug("Held slot changed to %i", player.active_slot)
@@ -219,7 +219,7 @@ def set_experience(game_: "game.Game", data: bytes):
 
 def update_health(game_: "game.Game", data: bytes):
     """Auto-respawn player."""
-    player = game_.data.player.data
+    player = game_.data.hero.data
 
     player.health, data = converters.extract_float(data)
     player.food, data = converters.extract_varint_as_int(data)
@@ -428,7 +428,7 @@ def block_change(game_: "game.Game", data: bytes):
     block_id, _ = converters.extract_varint_as_int(data)
 
     # For debug purposes.
-    from versions.defaults.consts import BLOCK as ID_
+    from versions.base.consts import BLOCK as ID_
     block_type, metadata = block_id >> 4, block_id & 15
     try:
         print(f"{position} is now "
@@ -501,7 +501,7 @@ def particle(game_: "game.Game", data: bytes):
 
 def join_game(game_: "game.Game", data: bytes):
     world_data = game_.data.world_data
-    player = game_.data.player
+    player = game_.data.hero
 
     player.entity_id, data = converters.extract_int(data)
 
@@ -609,7 +609,7 @@ def player_abilities(game_: "game.Game", data: bytes):
 
 
 def disconnect(game_: "game.Game", data: bytes) -> NoReturn:
-    player = game_.data.player.data
+    player = game_.data.hero.data
 
     reason = converters.extract_json_from_chat(data)[0]
     # reason should be dict Chat type.

@@ -1,7 +1,7 @@
 import misc.converters as converters
-from versions.defaults.data_structures.world.chunk import Chunk
-from versions.defaults.data_structures.world.chunk_section import ChunkSection
-from versions.defaults.data_structures.entities import Entity
+from versions.base.data_structures.world.chunk import Chunk
+from versions.base.data_structures.world.chunk_section import ChunkSection
+from versions.base.data_structures.entities import Entity
 
 
 class World:

@@ -1,4 +1,4 @@
-from versions.defaults.data_structures.world.world import World as BaseWorld
+from versions.base.data_structures.world.world import World as BaseWorld
 
 
 class World(BaseWorld):

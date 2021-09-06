@@ -1,14 +1,13 @@
 import logging
-
-logger = logging.getLogger("mainLogger")
-
-import threading
 import queue
+import threading
 import time
 from contextlib import contextmanager
 
-from data_structures.player_data import PlayerData
-from data_structures.target import Target
+from data_structures.hero import Hero
+from data_structures.position import Position
+
+logger = logging.getLogger("mainLogger")
 
 
 class MoveManager:
@@ -30,7 +29,7 @@ class MoveManager:
     def __init__(self,
                  send_queue: queue.Queue,
                  play_packet_creator,
-                 player_data_holder: PlayerData):
+                 player_data_holder: Hero):
         """
         :param send_queue: queue from where packet will be taken and send
         :param play_packet_creator: module containing actions for moving
@@ -99,10 +98,10 @@ class MoveManager:
 
     def add_target(self,
                    x: float = None, y: float = None, z: float = None,
-                   target: Target = None):
+                   target: Position = None):
         """Adds target position to the goto queue."""
         if target is None:
-            target = Target(x, y, z)
+            target = Position(x, y, z)
 
         self._target_queue.put(target)
 
@@ -144,7 +143,7 @@ class MoveManager:
     def _handle_moving(self,
                        send_queue: queue.Queue,
                        target_queue: queue.Queue,
-                       player: PlayerData):
+                       player: Hero):
         """
         Handles moving to targets given in a target_queue.
         Thread shuts down when:

@@ -1,46 +1,29 @@
 """Holder for Player."""
 
-from data_structures.entity import Entity
-from data_structures.position import Position
-
 
 class Hero:
     """Contain data related to the player."""
 
-    def __init__(self,
-                 username: str = None,
-                 fov_modifier: float = None,
-                 flying_speed: float = None,
-                 active_slot: int = None,
-                 uuid: str = None,
-                 gamemode: int = None,
-                 is_hardcore: bool = None,
-                 dimension: int = None,
-                 is_invulnerable: bool = None,
-                 is_flying: bool = None,
-                 is_allow_flying: bool = None,
-                 is_creative_mode: bool = None,
-                 spawn_position: Position = None,
-                 food: int = None,
-                 food_saturation: float = None,
-                 entity: Entity = Entity()):
-
-        self.entity: Entity = entity
+    def __init__(self, username: str):
+        from data_structures.entity import Entity
+        self.entity: Entity = Entity()
 
         self.username: str = username
 
-        self.fov_modifier: float = fov_modifier
-        self.flying_speed: float = flying_speed
-        self.active_slot: int = active_slot
+        self.fov_modifier: float = -1
+        self.flying_speed: float = -1
+        self.active_slot: int = -1
 
-        self.uuid: str = uuid
-        self.gamemode: int = gamemode
-        self.is_hardcore: bool = is_hardcore
-        self.dimension: int = dimension
-        self.is_invulnerable: bool = is_invulnerable
-        self.is_flying: bool = is_flying
-        self.is_allow_flying: bool = is_allow_flying
-        self.is_creative_mode: bool = is_creative_mode
-        self.spawn_position: Position = spawn_position
-        self.food: int = food
-        self.food_saturation: float = food_saturation
+        from data_structures.position import Position
+        self.spawn_position: Position = Position(0, 0, 0)
+
+        self.uuid: str = ""
+        self.gamemode: int = -1
+        self.is_hardcore: bool = False
+        self.dimension: int = 0
+        self.is_invulnerable: bool = False
+        self.is_flying: bool = False
+        self.is_allow_flying: bool = False
+        self.is_creative_mode: bool = False
+        self.food: int = -1
+        self.food_saturation: float = -1
