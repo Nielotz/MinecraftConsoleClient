@@ -67,10 +67,7 @@ def player_position_and_look(game_: "game.Game", data: memoryview):
     player_pos = player_data.entity.position
 
     if player_pos is None:
-        player_pos = Position(x, y, z)
-
-        # Heh not sure is it reference or copy.
-        assert player_pos == player_data.entity.position
+        player_pos = player_data.entity.position = Position(x, y, z)
 
         player_data.entity.look.yaw = yaw
         player_data.entity.look.pitch = pitch
