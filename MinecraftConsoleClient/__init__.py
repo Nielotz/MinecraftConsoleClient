@@ -3,11 +3,6 @@ if __name__ == "__main__":
     from data_structures.host import Host
 
     host: Host = Host("127.0.0.1", 25565)
-    # host: Host = Host("192.168.56.1", 25565)
-    # host: Host = Host("188.68.236.16", 25565)
-    # host: Host = Host("89.22.210.172", 25565) konrad
-    # host: Host = Host("185.243.53.224", 25577)
-    # host: Host = Host("nssv.pl", 25565)
 
     from versions.version import VersionVersion, CurrentVersion
 
