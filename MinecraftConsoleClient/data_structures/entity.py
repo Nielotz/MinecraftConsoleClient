@@ -21,7 +21,7 @@ class Velocity:
 
 class Entity:
     def __init__(self, id_: int = None,
-                 position: Position = None,
+                 position: Position = None,  # Has to be None, see player_position_and_look packet.
                  look: Look = Look(),
                  health: float = None,
                  on_ground: bool = None,
