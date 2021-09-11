@@ -15,11 +15,11 @@ class ChunkSection:
         self.blocks: [(int, int), ] = []  # [(id, metadata),]
 
     @classmethod
-    def parse_data(cls, data: bytes) -> ("ChunkSection", bytes):
+    def parse_data(cls, data: memoryview) -> ("ChunkSection", bytes):
         """
         Parse chunk section (16x16x16).
 
-        :param data: bytes of chunk section (from chunk packet)
+        :param data: memoryview of chunk section (from chunk packet)
         :return ChunkSection object, data leftover
         """
 
@@ -40,7 +40,7 @@ class ChunkSection:
 
         return chunk_section, data
 
-    def _parse_block_data(self, bits_per_block: int, data: bytes) -> bytes:
+    def _parse_block_data(self, bits_per_block: int, data: memoryview) -> bytes:
         """
         Parse: Data Array Length, Data Array, Block Light, Sky Light
 

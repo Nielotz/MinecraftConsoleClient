@@ -6,7 +6,7 @@ from misc.converters import extract_varint_as_int
 
 
 class PaletteBase:
-    def load(self, data: bytes):
+    def load(self, data: memoryview):
         raise NotImplementedError
 
     def parse_block_data(self, compacted_data_array: (int,)):
@@ -14,7 +14,7 @@ class PaletteBase:
 
 
 def extract_palette(bits_per_block: int,
-                    data: bytes) -> (Union["DirectPalette", "IndirectPalette"], bytes):
+                    data: memoryview) -> (Union["DirectPalette", "IndirectPalette"], bytes):
     """Parse chunk section palette."""
 
     if bits_per_block < 9:
@@ -106,7 +106,7 @@ class DirectPalette(PaletteBase):
     For the V1.12.2 release, this is 13 bits per block.
     """
 
-    def load(self, data: bytes) -> bytes:
+    def load(self, data: memoryview) -> bytes:
         # dummy_palette_length should always be 0. Only exists to mirror the format used elsewhere.
         _, data = extract_varint_as_int(data)
         return data
@@ -126,7 +126,7 @@ class IndirectPalette(PaletteBase):
         self.bits_per_block = bits_per_block
         self.palette = [bytes, ]
 
-    def load(self, data: bytes):
+    def load(self, data: memoryview):
         palette_length, data = extract_varint_as_int(data)
 
         self.palette = [None] * palette_length
@@ -136,7 +136,7 @@ class IndirectPalette(PaletteBase):
         return data
 
     # TODO: Optimize A.F.F.
-    def parse_block_data(self, array_of_longs: (int,)) -> (int, ) * 4096:
+    def parse_block_data(self, array_of_longs: (int,)) -> (int,) * 4096:
         """
         Parse WHOLE array containing compacted data.
 

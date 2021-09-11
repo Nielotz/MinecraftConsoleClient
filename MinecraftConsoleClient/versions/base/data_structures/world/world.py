@@ -1,7 +1,6 @@
 import misc.converters as converters
-from versions.base.data_structures.world.chunk import Chunk
-from versions.base.data_structures.world.chunk_section import ChunkSection
 from versions.base.data_structures.entities import Entity
+from versions.base.data_structures.world.chunk import Chunk
 
 
 class World:
@@ -12,7 +11,7 @@ class World:
         self.chunks: {str: Chunk, } = {}
         self.entities: {str: Entity, } = {}
 
-    def parse_chunk_packet(self, data: bytes):
+    def parse_chunk_packet(self, data: memoryview):
         """Parse data as chunk data."""
 
         # Chunk coordinates (block coordinate divided by 16, rounded down)
@@ -50,6 +49,6 @@ class World:
 
         # self._load_entities(section_data=data[size:])
 
-    def _load_entities(self, section_data: bytes):
+    def _load_entities(self, section_data: memoryview):
         # TODO: Entities.
         return
