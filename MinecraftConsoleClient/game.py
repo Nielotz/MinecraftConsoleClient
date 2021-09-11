@@ -163,10 +163,10 @@ class Game:
                 logger.error("Received 0 bytes")
                 return False
 
-            try:
+            if not self._connection.compression_threshold < 0:
                 data = converters.decompress(data)
-            except InvalidUncompressedPacketError:
-                return False
+
+            result = self.interpret_packet(data=data, action_list=action_list_login)
 
             try:
                 result = self.interpret_packet(data=data, action_list=action_list_login)
@@ -174,8 +174,7 @@ class Game:
                 self.to_send_packets.put(b'')
                 return False
             except Exception as err:
-                logger.critical("<bot#1>Uncaught exception [%s] occurred: %s ",
-                                err.__class__.__name__, err)
+                logger.critical("<bot#1>Uncaught exception [%s] occurred: %s ", err.__class__.__name__, err)
                 # print("FOUND UNEXPECTED EXCEPTION\n" * 20)
                 self.to_send_packets.put(b'')
                 return False
