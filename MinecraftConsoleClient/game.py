@@ -11,12 +11,12 @@ from typing import Any, Union, TYPE_CHECKING
 
 import action.move_manager
 import connection
-import data_structures.host
 import data_structures.hero
+import data_structures.host
 import versions.base
 import versions.version
 from data_structures.game_data import GameData
-from data_structures.packet_data_reader import PacketDataReader, TypeToExtract
+from misc import converters
 from misc.exceptions import DisconnectedByServerException, InvalidUncompressedPacketError
 
 if TYPE_CHECKING:
@@ -89,15 +89,14 @@ class Game:
             if not data:
                 return self.stop("Received 0 bytes")
 
-            packet_data_reader = PacketDataReader(data)
-
             if not self._connection.compression_threshold < 0:
                 try:
-                    packet_data_reader.decompress()
+                    data = converters.decompress(data)
                 except InvalidUncompressedPacketError:
                     return self.stop("Received packet with invalid compression.")
 
-            if self.interpret_packet(packet_data_reader=packet_data_reader, action_list=action_list_play) == 5555:
+            if self.interpret_packet(data=data, action_list=action_list_play) == 5555:
+                # TODO: Add logs, comment.
                 break
 
         return None
@@ -164,15 +163,13 @@ class Game:
                 logger.error("Received 0 bytes")
                 return False
 
-            packet_data_reader = PacketDataReader(data)
-
             try:
-                packet_data_reader.decompress()
+                data = converters.decompress(data)
             except InvalidUncompressedPacketError:
                 return False
 
             try:
-                result = self.interpret_packet(packet_data_reader=packet_data_reader, action_list=action_list_login)
+                result = self.interpret_packet(data=data, action_list=action_list_login)
             except DisconnectedByServerException:
                 self.to_send_packets.put(b'')
                 return False
@@ -210,16 +207,17 @@ class Game:
         logger.debug("Established connection with: %s", self.data.host.socket_data)
         return True
 
-    def interpret_packet(self, packet_data_reader: PacketDataReader, action_list: dict) -> Any:
+    def interpret_packet(self, data: bytes, action_list: dict) -> Any:
         """
         Interpret packet data using list of actions.
 
-        :param packet_data_reader: blob of uncompressed bytes
+        :param data: blob of uncompressed bytes
         :param action_list: list of actions used to parse given packet
         """
-        packet_id = packet_data_reader.extract(TypeToExtract.PACKET_ID)
+        packet_id, data = converters.extract_varint_as_int(memoryview(data))
+
         if packet_id in action_list:
-            return action_list[packet_id](self, packet_data_reader)
+            return action_list[packet_id](self, data)
         return None
 
     # TODO: Move into reaction_list. Now only for testing.
