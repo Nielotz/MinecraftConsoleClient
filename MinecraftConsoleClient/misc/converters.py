@@ -247,7 +247,7 @@ def extract_string_bytes(data: memoryview) -> (bytes, memoryview):
 
     assert data
 
-    string = data[:string_len]
+    string = bytes(data[:string_len])
 
     return string, data[string_len:]
 
@@ -317,11 +317,12 @@ def extract_varint_as_int(data: memoryview) -> (int, memoryview):
     if number > MAX_INT:
         number -= MAX_UINT
 
-    return number, i + 1
+    return number, data[i + 1:]
 
 
-def decompress(data: memoryview):
+def decompress(data: memoryview) -> memoryview:
     # TODO: Add check, reintroduce InvalidUncompressedPacketError.
     data_length, data = extract_varint_as_int(data)
     if data_length != 0:  # If data length is not zero.
-        return zlib.decompress(bytes(data))
+        return memoryview(zlib.decompress(bytes(data)))
+    return data
