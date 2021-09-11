@@ -1,14 +1,13 @@
 import logging
-
-logger = logging.getLogger("mainLogger")
-
-import threading
 import queue
+import threading
 import time
 from contextlib import contextmanager
 
-from data_structures.player_data import PlayerData
-from data_structures.target import Target
+from data_structures.hero import Hero
+from data_structures.position import Position
+
+logger = logging.getLogger("mainLogger")
 
 
 class MoveManager:
@@ -30,11 +29,11 @@ class MoveManager:
     def __init__(self,
                  send_queue: queue.Queue,
                  play_packet_creator,
-                 player_data_holder: PlayerData):
+                 hero: Hero):
         """
         :param send_queue: queue from where packet will be taken and send
         :param play_packet_creator: module containing actions for moving
-        :type player_data_holder: Player object which will be moved
+        :type hero: Hero object which will be moved
         """
         logger.debug("Starting mover.")
 
@@ -54,7 +53,7 @@ class MoveManager:
         self._mover = threading.Thread(target=self._handle_moving,
                                        args=(send_queue,
                                              self._target_queue,
-                                             player_data_holder),
+                                             hero),
                                        daemon=True
                                        )
 
@@ -99,10 +98,10 @@ class MoveManager:
 
     def add_target(self,
                    x: float = None, y: float = None, z: float = None,
-                   target: Target = None):
+                   target: Position = None):
         """Adds target position to the goto queue."""
         if target is None:
-            target = Target(x, y, z)
+            target = Position(x, y, z)
 
         self._target_queue.put(target)
 
@@ -115,7 +114,7 @@ class MoveManager:
 
     def clear_targets(self):
         """
-        Pauses the player. Clears targets. Resumes mover.
+        Pauses the hero. Clears targets. Resumes mover.
         Does not remove 'stop' target - eg. when 'stop' target in queue lefts it.
         """
 
@@ -144,7 +143,7 @@ class MoveManager:
     def _handle_moving(self,
                        send_queue: queue.Queue,
                        target_queue: queue.Queue,
-                       player: PlayerData):
+                       hero: Hero):
         """
         Handles moving to targets given in a target_queue.
         Thread shuts down when:
@@ -184,15 +183,15 @@ class MoveManager:
             if target is None:
                 break  # Exit thread loop
             target_x, target_y, target_z = target
-            while player.position is None:
-                logger.info(f"Waiting for player position.")
-                time.sleep(0.2)  # Wait until server sends player position.
+            while hero.entity.position is None:
+                logger.info(f"Waiting for hero position.")
+                time.sleep(0.2)  # Wait until server sends hero position.
 
-            logger.info(f"Actual position: {player.position}")
+            logger.info(f"Actual position: {hero.entity.position}")
             logger.info(f"Going to: {target}")
 
             # Speed is critical.
-            create_step_packet = self._play_packet_creator.player_position
+            create_step_packet = self._play_packet_creator.hero_position
             send_packet = send_queue.put
             get_perf_time = time.perf_counter
             is_paused = self._paused.locked
@@ -202,14 +201,17 @@ class MoveManager:
             # TODO: optimize delay_between_packets.
             while True:  # For pause / resume.
                 while not is_paused():
-                    player_pos = player.position.pos
-                    player_pos_x = player_pos['x']
-                    player_pos_y = player_pos['y']
-                    player_pos_z = player_pos['z']
+                    hero_pos = hero.entity.position
 
-                    step_x: float = target_x - player_pos_x
-                    step_y: float = target_y - player_pos_y
-                    step_z: float = target_z - player_pos_z
+                    assert hero_pos is not None  # Mover will be rewritten.
+
+                    hero_pos_x = hero_pos.x
+                    hero_pos_y = hero_pos.y
+                    hero_pos_z = hero_pos.z
+
+                    step_x: float = target_x - hero_pos_x
+                    step_y: float = target_y - hero_pos_y
+                    step_z: float = target_z - hero_pos_z
 
                     if step_x < -max_step_x:
                         step_x = -max_step_x
@@ -234,26 +236,27 @@ class MoveManager:
                         break
 
                     # print(f"step: {step_x, step_y, step_z}")
-                    # print(f"player_pos: {player_pos}")
+                    # print(f"hero_pos: {hero_pos}")
 
-                    next_player_pos_x = player_pos_x + step_x
-                    next_player_pos_y = player_pos_y + step_y
-                    next_player_pos_z = player_pos_z + step_z
+                    next_hero_pos_x = hero_pos_x + step_x
+                    next_hero_pos_y = hero_pos_y + step_y
+                    next_hero_pos_z = hero_pos_z + step_z
 
                     """Packet may be delayed due to full send queue, 
                     and extremely slow connection. """
                     # TODO: Add to the connection priority queue.
                     send_packet(
-                        create_step_packet((next_player_pos_x,
-                                            next_player_pos_y,
-                                            next_player_pos_z),
+                        create_step_packet((next_hero_pos_x,
+                                            next_hero_pos_y,
+                                            next_hero_pos_z),
                                            on_ground=False))
 
-                    player.position.pos = {'x': next_player_pos_x,
-                                           'y': next_player_pos_y,
-                                           'z': next_player_pos_z}
+                    # Needs to be rewritten: update pos basing on server response.
+                    hero.position.pos = {'x': next_hero_pos_x,
+                                           'y': next_hero_pos_y,
+                                           'z': next_hero_pos_z}
 
-                    # print(f"player_pos: {player.position.pos}")
+                    # print(f"hero_pos: {hero.position.pos}")
 
                     time.sleep(step_delay -
                                (

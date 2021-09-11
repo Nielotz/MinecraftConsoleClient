@@ -1,5 +1,5 @@
 """Holder for GameData."""
-from versions.defaults.data_structures.world.world import World
+from versions.base.data_structures.world.world import World
 
 
 class WorldData:

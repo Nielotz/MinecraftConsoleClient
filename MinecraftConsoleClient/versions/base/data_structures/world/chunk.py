@@ -1,6 +1,6 @@
 import logging
 
-from versions.defaults.data_structures.world.chunk_section import ChunkSection
+from versions.base.data_structures.world.chunk_section import ChunkSection
 
 logger = logging.getLogger('chunkParser')
 

@@ -1,7 +1,6 @@
 import misc.converters as converters
-from versions.defaults.data_structures.world.chunk import Chunk
-from versions.defaults.data_structures.world.chunk_section import ChunkSection
-from versions.defaults.data_structures.entities import Entity
+from versions.base.data_structures.entities import Entity
+from versions.base.data_structures.world.chunk import Chunk
 
 
 class World:
@@ -12,7 +11,7 @@ class World:
         self.chunks: {str: Chunk, } = {}
         self.entities: {str: Entity, } = {}
 
-    def parse_chunk_packet(self, data: bytes):
+    def parse_chunk_packet(self, data: memoryview):
         """Parse data as chunk data."""
 
         # Chunk coordinates (block coordinate divided by 16, rounded down)
@@ -28,7 +27,7 @@ class World:
         changing all of the blocks in the given section at once.
         Sections not specified in the primary bit mask are
         not changed and should be left as-is."""
-        create_new_aka_ground_up_continuous, data = converters.extract_boolean(data)
+        create_new_aka_ground_up_continuous, data = converters.extract_bool(data)
 
         """Bitmask with bits set to 1 for every 16×16×16 chunk section
         whose data is included in Data.
@@ -40,8 +39,6 @@ class World:
         size, data = converters.extract_varint_as_int(data)
 
         # Extract and parse data structure array.
-        print("╔" + f" chunk_x: {chunk_x}, chunk_z: {chunk_z}, "
-                    f"ground_up_continuous: {create_new_aka_ground_up_continuous} ".center(150, "═") + "╗")
         chunk_key = " ".join((str(chunk_x), str(chunk_z)))
         if create_new_aka_ground_up_continuous:
             self.chunks[chunk_key] = Chunk.new(data[:size], mask)
@@ -50,6 +47,6 @@ class World:
 
         # self._load_entities(section_data=data[size:])
 
-    def _load_entities(self, section_data: bytes):
+    def _load_entities(self, section_data: memoryview):
         # TODO: Entities.
         return
