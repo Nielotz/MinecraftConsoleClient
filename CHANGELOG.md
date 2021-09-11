@@ -45,20 +45,21 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html) after release of
 - 🔲 Support for "Call before packet handle"
 - 🔲 Support for "Call after packet handle"
 
-## [0.6.0] - Future
+## [0.6.0] - Next
 
-### Added
+### Changed
 
 - 🔲 Split packet actions to: parse_packet, and react_to_packet
 
-## [0.5.0] - Next release
+## [0.5.0] - 2021-09-11
 
 ## Added
 
-- ❌ ~~Packet data extractor - reduces complexity of extractions, simplifies 
+- ❌ ~~Packet data extractor - reduces complexity of extractions, simplifies
   usages~~ too complicated to use, marginal difference in performance (if any)
 
 ## Changed
+
 - ✅ Refinement of files
 - ✅ Converters now return memoryview of leftover of bytes, see
   [memoryviewvs_bytes_slicing.py](https://github.com/Nielotz/python_benchmarks/blob/master/memoryview_vs_bytes_slicing.py)
