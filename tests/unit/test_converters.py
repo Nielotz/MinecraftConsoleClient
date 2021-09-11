@@ -23,23 +23,18 @@ class TestConverters:
 
         test_results = [extract_method(test_value)[0] for test_value in prepared_test_data]
 
-        bytes_read = 0
         if not is_float:
             for test_data_, test_result in zip(test_data, test_results):
                 assert test_data_ == test_result
 
-                joined_data_result, bytes_read_ = extract_method(prepared_test_data_joined[bytes_read:])
-
-                bytes_read += bytes_read_
+                joined_data_result, prepared_test_data_joined = extract_method(prepared_test_data_joined)
 
                 assert test_data_ == joined_data_result
         else:
             for test_data_, test_result in zip(test_data, test_results):
                 assert to_fraction(test_data_) == to_fraction(test_result)
 
-                joined_data_result, bytes_read_ = extract_method(prepared_test_data_joined[bytes_read:])
-
-                bytes_read += bytes_read_
+                joined_data_result, prepared_test_data_joined = extract_method(prepared_test_data_joined)
 
                 assert to_fraction(test_data_) == to_fraction(joined_data_result)
 
@@ -66,7 +61,7 @@ class TestConverters:
     def test_long(self):
         raw_test_data = (*[i for i in range(MIN_LONG, MIN_LONG + 10000)],
                          *[i for i in range(MAX_LONG - 10000, MAX_LONG)],
-                         *[randint(MIN_LONG, MAX_LONG) for i in range(10000)],
+                         *[randint(MIN_LONG, MAX_LONG) for _ in range(10000)],
                          *(-1, 0, 1))
 
         TestConverters._test(pack_method=pack_long, extract_method=extract_long, test_data=raw_test_data)
@@ -80,7 +75,7 @@ class TestConverters:
                          *(MIN_FLOAT, MIN_FLOAT + 1, 0., MAX_FLOAT - 1, MAX_FLOAT))
 
         TestConverters._test(pack_method=pack_float, extract_method=extract_float, test_data=raw_test_data,
-                               is_float=True)
+                             is_float=True)
 
     def test_double(self):
         raw_test_data = (*[uniform(MIN_DOUBLE, MAX_DOUBLE) for _ in range(50000)],
