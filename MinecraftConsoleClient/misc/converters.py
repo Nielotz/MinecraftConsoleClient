@@ -2,6 +2,7 @@
 
 import json
 import struct
+import zlib
 
 from data_structures.position import Position
 from misc.consts import MAX_INT, MAX_UINT
@@ -317,3 +318,10 @@ def extract_varint_as_int(data: memoryview) -> (int, memoryview):
         number -= MAX_UINT
 
     return number, i + 1
+
+
+def decompress(data: memoryview):
+    # TODO: Add check, reintroduce InvalidUncompressedPacketError.
+    data_length, data = extract_varint_as_int(data)
+    if data_length != 0:  # If data length is not zero.
+        return zlib.decompress(bytes(data))
