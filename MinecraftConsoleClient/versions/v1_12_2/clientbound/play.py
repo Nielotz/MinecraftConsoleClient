@@ -1,15 +1,13 @@
 """Module with functions related to given packet."""
 
 import logging
-from typing import NoReturn
-from typing import TYPE_CHECKING
+from typing import NoReturn, TYPE_CHECKING
 
 from commands import chat_commands
 from data_structures.position import Position
 from misc import converters
 from misc.exceptions import DisconnectedByServerException
-from misc.hashtables import GAMEMODE
-from misc.hashtables import GAME_DIFFICULTY
+from misc.hashtables import GAMEMODE, GAME_DIFFICULTY
 from versions.v1_12_2.serverbound import packet_creator
 from versions.v1_12_2.view.view import gui
 
@@ -19,7 +17,7 @@ if TYPE_CHECKING:
     import game
 
 
-def combat_event(game_: "game.Game", data: bytes):
+def combat_event(game_: "game.Game", data: memoryview):
     """
     'Now only used to display the game over screen (with enter combat
     and end combat completely ignored by the Notchain client)'
@@ -33,7 +31,7 @@ def combat_event(game_: "game.Game", data: bytes):
 
         # 'Entity ID of the player that died
         # (should match the client's entity ID).'
-        if entity_id == game_.data.hero.data.entity_id:
+        if entity_id == game_.data.hero.entity.id_:
 
             message = f"Player has been killed by: {entity_id}, " \
                       f"death message: '{message}' "
@@ -47,14 +45,14 @@ def combat_event(game_: "game.Game", data: bytes):
         gui.add_to_hotbar(message)
 
 
-def player_list_item(game_: "game.Game", data: bytes):
+def player_list_item(game_: "game.Game", data: memoryview):
     pass
 
 
-def player_position_and_look(game_: "game.Game", data: bytes):
-    """Auto-send teleport confirm, \
-    and game_position_and_look (serverbound)."""
-    _data = data[::]
+def player_position_and_look(game_: "game.Game", data: memoryview):
+    """Auto-send teleport confirm, and game_position_and_look (serverbound)."""
+
+    _data = data[:]
 
     x, data = converters.extract_double(data)
     y, data = converters.extract_double(data)
@@ -64,53 +62,54 @@ def player_position_and_look(game_: "game.Game", data: bytes):
     flags, teleport_id = converters.extract_byte(data)
 
     world_data = game_.data.world_data
-    player_data = game_.data.hero.data
+    player_data = game_.data.hero
 
-    if player_data.position is None:
-        player_data.position = Position(x, y, z)
+    player_pos = player_data.entity.position
 
-        player_data.look_yaw = yaw
-        player_data.look_pitch = pitch
+    if player_pos is None:
+        player_pos = Position(x, y, z)
 
-        player_pos = player_data.position.pos
+        # Heh not sure is it reference or copy.
+        assert player_pos == player_data.entity.position
+
+        player_data.entity.look.yaw = yaw
+        player_data.entity.look.pitch = pitch
 
     else:
-        player_pos = player_data.position.pos
-
         if flags & 0x01:
-            player_pos["x"] += x
+            player_pos.x += x
         else:
-            player_pos["x"] = x
+            player_pos.x = x
 
         if flags & 0x02:
-            player_pos["y"] += y
+            player_pos.y += y
         else:
-            player_pos["y"] = y
+            player_pos.y = y
 
         if flags & 0x04:
-            player_pos["z"] += z
+            player_pos.z += z
         else:
-            player_pos["z"] = z
+            player_pos.z = z
 
         if flags & 0x08:
-            player_data.look_yaw += yaw
+            player_data.entity.look.yaw += yaw
         else:
-            player_data.look_yaw = yaw
+            player_data.entity.look.yaw = yaw
 
         if flags & 0x10:
-            player_data.look_pitch += pitch
+            player_data.entity.look.pitch += pitch
         else:
-            player_data.look_pitch = pitch
+            player_data.entity.look.pitch = pitch
 
     logger.info("Player pos: %s Look: (yaw: %f, pitch: %f)",
-                player_pos, player_data.look_yaw, player_data.look_pitch)
+                player_pos, player_data.entity.look.yaw, player_data.entity.look.pitch)
 
     gui.set_labels(("Player position", '------------------'),
-                   ("x", player_pos["x"]),
-                   ("y", player_pos["y"]),
-                   ("z", player_pos["z"]),
-                   ("yaw", player_data.look_yaw),
-                   ("pitch", player_data.look_pitch),
+                   ("x", player_pos.x),
+                   ("y", player_pos.y),
+                   ("z", player_pos.z),
+                   ("yaw", player_data.entity.look.yaw),
+                   ("pitch", player_data.entity.look.pitch),
                    ("------------------", '------------------'))
 
     add_packet = game_.to_send_packets.put
@@ -118,31 +117,32 @@ def player_position_and_look(game_: "game.Game", data: bytes):
     # Teleport confirm.
     add_packet(packet_creator.play.teleport_confirm(teleport_id))
 
+    # TODO: Check can move to the top, and do not copy.
     # Answer player position and look.
-    add_packet(packet_creator.play.player_position_and_look_confirm(_data))
+    add_packet(packet_creator.play.player_position_and_look_confirm(bytes(_data)))
 
 
-def use_bed(game_: "game.Game", data: bytes):
+def use_bed(game_: "game.Game", data: memoryview):
     pass
 
 
-def unlock_recipes(game_: "game.Game", data: bytes):
+def unlock_recipes(game_: "game.Game", data: memoryview):
     pass
 
 
-def destroy_entities(game_: "game.Game", data: bytes):
+def destroy_entities(game_: "game.Game", data: memoryview):
     pass
 
 
-def remove_entity_effect(game_: "game.Game", data: bytes):
+def remove_entity_effect(game_: "game.Game", data: memoryview):
     pass
 
 
-def resource_pack_send(game_: "game.Game", data: bytes):
+def resource_pack_send(game_: "game.Game", data: memoryview):
     pass
 
 
-def respawn(game_: "game.Game", data: bytes):
+def respawn(game_: "game.Game", data: memoryview):
     world_data = game_.data.world_data
 
     world_data.dimension, data = converters.extract_int(data)
@@ -168,24 +168,24 @@ def respawn(game_: "game.Game", data: bytes):
     )
 
 
-def entity_head_look(game_: "game.Game", data: bytes):
+def entity_head_look(game_: "game.Game", data: memoryview):
     pass
 
 
-def select_advancement_tab(game_: "game.Game", data: bytes):
+def select_advancement_tab(game_: "game.Game", data: memoryview):
     pass
 
 
-def world_border(game_: "game.Game", data: bytes):
+def world_border(game_: "game.Game", data: memoryview):
     pass
 
 
-def camera(game_: "game.Game", data: bytes):
+def camera(game_: "game.Game", data: memoryview):
     pass
 
 
-def held_item_change(game_: "game.Game", data: bytes):
-    player = game_.data.hero.data
+def held_item_change(game_: "game.Game", data: memoryview):
+    player = game_.data.hero
 
     player.active_slot = converters.extract_byte(data)[0]
     logger.debug("Held slot changed to %i", player.active_slot)
@@ -193,33 +193,33 @@ def held_item_change(game_: "game.Game", data: bytes):
     gui.set_labels(("Held slot", player.active_slot))
 
 
-def display_scoreboard(game_: "game.Game", data: bytes):
+def display_scoreboard(game_: "game.Game", data: memoryview):
     pass
 
 
-def entity_metadata(game_: "game.Game", data: bytes):
+def entity_metadata(game_: "game.Game", data: memoryview):
     pass
 
 
-def attach_entity(game_: "game.Game", data: bytes):
+def attach_entity(game_: "game.Game", data: memoryview):
     pass
 
 
-def entity_velocity(game_: "game.Game", data: bytes):
+def entity_velocity(game_: "game.Game", data: memoryview):
     pass
 
 
-def entity_equipment(game_: "game.Game", data: bytes):
+def entity_equipment(game_: "game.Game", data: memoryview):
     pass
 
 
-def set_experience(game_: "game.Game", data: bytes):
+def set_experience(game_: "game.Game", data: memoryview):
     pass
 
 
-def update_health(game_: "game.Game", data: bytes):
+def update_health(game_: "game.Game", data: memoryview):
     """Auto-respawn player."""
-    player = game_.data.hero.data
+    player = game_.data.hero
 
     player.health, data = converters.extract_float(data)
     player.food, data = converters.extract_varint_as_int(data)
@@ -236,23 +236,23 @@ def update_health(game_: "game.Game", data: bytes):
         game_.on_death()
 
 
-def scoreboard_objective(game_: "game.Game", data: bytes):
+def scoreboard_objective(game_: "game.Game", data: memoryview):
     pass
 
 
-def set_passengers(game_: "game.Game", data: bytes):
+def set_passengers(game_: "game.Game", data: memoryview):
     pass
 
 
-def teams(game_: "game.Game", data: bytes):
+def teams(game_: "game.Game", data: memoryview):
     pass
 
 
-def update_score(game_: "game.Game", data: bytes):
+def update_score(game_: "game.Game", data: memoryview):
     pass
 
 
-def spawn_position(game_: "game.Game", data: bytes):
+def spawn_position(game_: "game.Game", data: memoryview):
     position = converters.extract_position(data)[0]
 
     logger.info("Changed player spawn position to %s", position)
@@ -260,134 +260,134 @@ def spawn_position(game_: "game.Game", data: bytes):
     gui.set_labels(("Spawn position", position))
 
 
-def time_update(game_: "game.Game", data: bytes):
+def time_update(game_: "game.Game", data: memoryview):
     pass
 
 
-def title(game_: "game.Game", data: bytes):
+def title(game_: "game.Game", data: memoryview):
     pass
 
 
-def sound_effect(game_: "game.Game", data: bytes):
+def sound_effect(game_: "game.Game", data: memoryview):
     pass
 
 
-def player_list_header_and_footer(game_: "game.Game", data: bytes):
+def player_list_header_and_footer(game_: "game.Game", data: memoryview):
     pass
 
 
-def collect_item(game_: "game.Game", data: bytes):
+def collect_item(game_: "game.Game", data: memoryview):
     pass
 
 
-def entity_teleport(game_: "game.Game", data: bytes):
+def entity_teleport(game_: "game.Game", data: memoryview):
     pass
 
 
-def advancements(game_: "game.Game", data: bytes):
+def advancements(game_: "game.Game", data: memoryview):
     pass
 
 
-def entity_properties(game_: "game.Game", data: bytes):
+def entity_properties(game_: "game.Game", data: memoryview):
     pass
 
 
-def entity_effect(game_: "game.Game", data: bytes):
+def entity_effect(game_: "game.Game", data: memoryview):
     pass
 
 
-def block_break_animation(game_: "game.Game", data: bytes):
+def block_break_animation(game_: "game.Game", data: memoryview):
     pass
 
 
-def statistics(game_: "game.Game", data: bytes):
+def statistics(game_: "game.Game", data: memoryview):
     pass
 
 
-def animation(game_: "game.Game", data: bytes):
+def animation(game_: "game.Game", data: memoryview):
     pass
 
 
-def spawn_player(game_: "game.Game", data: bytes):
+def spawn_player(game_: "game.Game", data: memoryview):
     pass
 
 
-def spawn_painting(game_: "game.Game", data: bytes):
+def spawn_painting(game_: "game.Game", data: memoryview):
     pass
 
 
-def spawn_mob(game_: "game.Game", data: bytes):
+def spawn_mob(game_: "game.Game", data: memoryview):
     pass
 
 
-def spawn_global_entity(game_: "game.Game", data: bytes):
+def spawn_global_entity(game_: "game.Game", data: memoryview):
     pass
 
 
-def spawn_experience_orb(game_: "game.Game", data: bytes):
+def spawn_experience_orb(game_: "game.Game", data: memoryview):
     pass
 
 
-def spawn_object(game_: "game.Game", data: bytes):
+def spawn_object(game_: "game.Game", data: memoryview):
     pass
 
 
-def unload_chunk(game_: "game.Game", data: bytes):
+def unload_chunk(game_: "game.Game", data: memoryview):
     pass
 
 
-def explosion(game_: "game.Game", data: bytes):
+def explosion(game_: "game.Game", data: memoryview):
     pass
 
 
-def entity_status(game_: "game.Game", data: bytes):
+def entity_status(game_: "game.Game", data: memoryview):
     entity_id, byte = converters.extract_int(data)
     status = converters.extract_byte(data)[0]
     logger.debug("Entity with id: %i status changed to: %i",
                  entity_id, status)
 
 
-def named_sound_effect(game_: "game.Game", data: bytes):
+def named_sound_effect(game_: "game.Game", data: memoryview):
     pass
 
 
-def plugin_message(game_: "game.Game", data: bytes):
+def plugin_message(game_: "game.Game", data: memoryview):
     pass
 
 
-def set_cooldown(game_: "game.Game", data: bytes):
+def set_cooldown(game_: "game.Game", data: memoryview):
     pass
 
 
-def set_slot(game_: "game.Game", data: bytes):
+def set_slot(game_: "game.Game", data: memoryview):
     pass
 
 
-def window_property(game_: "game.Game", data: bytes):
+def window_property(game_: "game.Game", data: memoryview):
     pass
 
 
-def window_items(game_: "game.Game", data: bytes):
+def window_items(game_: "game.Game", data: memoryview):
     pass
 
 
-def open_window(game_: "game.Game", data: bytes):
+def open_window(game_: "game.Game", data: memoryview):
     pass
 
 
-def close_window(game_: "game.Game", data: bytes):
+def close_window(game_: "game.Game", data: memoryview):
     pass
 
 
-def confirm_transaction(game_: "game.Game", data: bytes):
+def confirm_transaction(game_: "game.Game", data: memoryview):
     pass
 
 
-def multi_block_change(game_: "game.Game", data: bytes):
+def multi_block_change(game_: "game.Game", data: memoryview):
     pass
 
 
-def chat_message(game_: "game.Game", data: bytes):
+def chat_message(game_: "game.Game", data: memoryview):
     json_data, position = converters.extract_json_from_chat(data)
 
     chat_commands.interpret(game_, str(json_data))
@@ -395,15 +395,15 @@ def chat_message(game_: "game.Game", data: bytes):
     gui.add_to_chat(f"{position}: {json_data}")
 
 
-def tab_complete(game_: "game.Game", data: bytes):
+def tab_complete(game_: "game.Game", data: memoryview):
     pass
 
 
-def update_block_entity(game_: "game.Game", data: bytes):
+def update_block_entity(game_: "game.Game", data: memoryview):
     pass
 
 
-def server_difficulty(game_: "game.Game", data: bytes):
+def server_difficulty(game_: "game.Game", data: memoryview):
     difficulty = converters.extract_unsigned_byte(data)[0]
     difficulty_name = GAME_DIFFICULTY[difficulty]
 
@@ -415,15 +415,15 @@ def server_difficulty(game_: "game.Game", data: bytes):
     gui.set_labels(("game difficulty", difficulty_name))
 
 
-def boss_bar(game_: "game.Game", data: bytes):
+def boss_bar(game_: "game.Game", data: memoryview):
     pass
 
 
-def block_action(game_: "game.Game", data: bytes):
+def block_action(game_: "game.Game", data: memoryview):
     pass
 
 
-def block_change(game_: "game.Game", data: bytes):
+def block_change(game_: "game.Game", data: memoryview):
     position, data = converters.extract_position(data)
     block_id, _ = converters.extract_varint_as_int(data)
 
@@ -437,7 +437,7 @@ def block_change(game_: "game.Game", data: bytes):
         print(f"{position} is unsupported({block_type}:{metadata})")
 
 
-def change_game_state(game_: "game.Game", data: bytes):
+def change_game_state(game_: "game.Game", data: memoryview):
     value = converters.extract_float(data[1:])[0]
     # reason = data[0]  # reason = utils.extract_unsigned_byte()[0]
     world_data = game_.data.world_data
@@ -482,24 +482,24 @@ def change_game_state(game_: "game.Game", data: bytes):
         pass
 
 
-def keep_alive(game_: "game.Game", data: bytes):
+def keep_alive(game_: "game.Game", data: memoryview):
     """Auto-sends keep alive packet."""
-    game_.to_send_packets.put(packet_creator.play.keep_alive(data))
+    game_.to_send_packets.put(packet_creator.play.keep_alive(bytes(data)))
 
 
-def chunk_data(game_: "game.Game", data: bytes):
+def chunk_data(game_: "game.Game", data: memoryview):
     game_.data.world_data.world.parse_chunk_packet(data)
 
 
-def effect(game_: "game.Game", data: bytes):
+def effect(game_: "game.Game", data: memoryview):
     pass
 
 
-def particle(game_: "game.Game", data: bytes):
+def particle(game_: "game.Game", data: memoryview):
     pass
 
 
-def join_game(game_: "game.Game", data: bytes):
+def join_game(game_: "game.Game", data: memoryview):
     world_data = game_.data.world_data
     player = game_.data.hero
 
@@ -549,39 +549,39 @@ def join_game(game_: "game.Game", data: bytes):
     )
 
 
-def map_(game_: "game.Game", data: bytes):
+def map_(game_: "game.Game", data: memoryview):
     pass
 
 
-def entity(game_: "game.Game", data: bytes):
+def entity(game_: "game.Game", data: memoryview):
     pass
 
 
-def entity_relative_move(game_: "game.Game", data: bytes):
+def entity_relative_move(game_: "game.Game", data: memoryview):
     pass
 
 
-def entity_look_and_relative_move(game_: "game.Game", data: bytes):
+def entity_look_and_relative_move(game_: "game.Game", data: memoryview):
     pass
 
 
-def entity_look(game_: "game.Game", data: bytes):
+def entity_look(game_: "game.Game", data: memoryview):
     pass
 
 
-def vehicle_move(game_: "game.Game", data: bytes):
+def vehicle_move(game_: "game.Game", data: memoryview):
     pass
 
 
-def open_sign_editor(game_: "game.Game", data: bytes):
+def open_sign_editor(game_: "game.Game", data: memoryview):
     pass
 
 
-def craft_recipe_response(game_: "game.Game", data: bytes):
+def craft_recipe_response(game_: "game.Game", data: memoryview):
     pass
 
 
-def player_abilities(game_: "game.Game", data: bytes):
+def player_abilities(game_: "game.Game", data: memoryview):
     player = game_.data.world_data
 
     flags, data = converters.extract_byte(data)
@@ -608,8 +608,8 @@ def player_abilities(game_: "game.Game", data: bytes):
                    ("creative_mode", player.is_creative_mode))
 
 
-def disconnect(game_: "game.Game", data: bytes) -> NoReturn:
-    player = game_.data.hero.data
+def disconnect(game_: "game.Game", data: memoryview) -> NoReturn:
+    player = game_.data.hero
 
     reason = converters.extract_json_from_chat(data)[0]
     # reason should be dict Chat type.
