@@ -39,8 +39,6 @@ class World:
         size, data = converters.extract_varint_as_int(data)
 
         # Extract and parse data structure array.
-        print("╔" + f" chunk_x: {chunk_x}, chunk_z: {chunk_z}, "
-                    f"ground_up_continuous: {create_new_aka_ground_up_continuous} ".center(150, "═") + "╗")
         chunk_key = " ".join((str(chunk_x), str(chunk_z)))
         if create_new_aka_ground_up_continuous:
             self.chunks[chunk_key] = Chunk.new(data[:size], mask)
