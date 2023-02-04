@@ -48,8 +48,14 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html) after release of
 ## [0.6.0] - Next
 
 ### Changed
-
 - 🔲 Split packet actions to: parse_packet, and react_to_packet
+- 🔲 Implemented new version.packet
+- 🔲 TODO PARSER_ADD_THRESHOLD
+
+- 🔲 New handling packets system: 
+  - some_packet = SomePacket.parse(data)
+  - some_packet.react()
+- 🔲 Moved to every reaction to packet to some_packet.react()
 
 ## [0.5.0] - 2021-09-11
 
