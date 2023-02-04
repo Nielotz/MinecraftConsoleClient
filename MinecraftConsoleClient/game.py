@@ -166,8 +166,6 @@ class Game:
             if not self._connection.compression_threshold < 0:
                 data = converters.decompress(data)
 
-            result = self.interpret_packet(data=data, action_list=action_list_login)
-
             try:
                 result = self.interpret_packet(data=data, action_list=action_list_login)
             except DisconnectedByServerException:
