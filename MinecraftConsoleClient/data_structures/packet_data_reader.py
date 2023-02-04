@@ -5,7 +5,7 @@ from typing import Union
 from misc.converters import extract_bool, \
     extract_byte, extract_unsigned_byte, extract_short, extract_long, extract_int, extract_unsigned_long, \
     extract_float, extract_double, \
-    extract_string_bytes, extract_varint_as_int, extract_packet_id, extract_position, extract_json_from_chat
+    extract_string_bytes, extract_varint_as_int, extract_position, extract_json_from_chat
 
 
 class TypeToExtract(Enum):
@@ -22,7 +22,7 @@ class TypeToExtract(Enum):
     VARINT_AS_INT: callable = extract_varint_as_int
     POSITION: callable = extract_position
     JSON_FROM_CHAT: callable = extract_json_from_chat
-    PACKET_ID: callable = extract_packet_id
+    PACKET_ID: callable = extract_varint_as_int
 
 
 class PacketDataReader:
