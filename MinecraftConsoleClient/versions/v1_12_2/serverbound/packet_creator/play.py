@@ -63,7 +63,7 @@ def use_entity() -> bytes:
     return packed_packet
 
 
-def keep_alive(keep_alive_id: bytes) -> bytes:
+def keep_alive(keep_alive_id: memoryview) -> bytes:
     return b''.join((play.KEEP_ALIVE, keep_alive_id))
 
 

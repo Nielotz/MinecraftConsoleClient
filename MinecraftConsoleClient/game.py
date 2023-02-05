@@ -16,8 +16,9 @@ import data_structures.host
 import versions.base
 import versions.version
 from data_structures.game_data import GameData
-from data_structures.packet_data_reader import PacketDataReader, TypeToExtract
 from misc.exceptions import DisconnectedByServerException, InvalidUncompressedPacketError
+from packet.packet_data_reader import PacketDataReader
+from versions.v1_12_2.packet.clientbound.packet_specific import PacketSpecific
 
 if TYPE_CHECKING:
     import versions.base.data_structures.world_data
@@ -79,25 +80,28 @@ class Game:
         if not self.move_manager.start():
             return self.stop("Can't start move manager.")
 
-        action_list_play = self.data.version_data.action_list["play"]
+        play_packets_specifics = self.data.version_data.packets_specifics["play"]
+
+        packet_data_reader = PacketDataReader()
+        packet_data_reader.set_compression_threshold(self._connection.compression_threshold)
+
+        get_received_packet = self.received_packets.get
         while True:
             try:
-                data = self.received_packets.get(timeout=20)
+                data = get_received_packet(timeout=20)
             except TimeoutError:
                 return self.stop("Server timeout error.")
 
             if not data:
                 return self.stop("Received 0 bytes")
 
-            packet_data_reader = PacketDataReader(data)
+            try:
+                packet_data_reader.load(packet_data=memoryview(data))
+            except InvalidUncompressedPacketError:
+                return self.stop("Received packet with invalid compression.")
 
-            if not self._connection.compression_threshold < 0:
-                try:
-                    packet_data_reader.decompress()
-                except InvalidUncompressedPacketError:
-                    return self.stop("Received packet with invalid compression.")
-
-            if self.interpret_packet(packet_data_reader=packet_data_reader, action_list=action_list_play) == 5555:
+            if self.interpret_packet(packet_data_reader=packet_data_reader,
+                                     state_packets_specifics=play_packets_specifics) == 5555:
                 break
 
         return None
@@ -138,7 +142,6 @@ class Game:
     def __del__(self):
         if self._connection is not None:
             self.stop()
-
     def _login_non_premium(self) -> bool:
         """
         # TODO: when login_premium done, write what da fuk is dat.
@@ -150,31 +153,41 @@ class Game:
         logger.info("Trying to log in in offline mode (non-premium).")
 
         self.to_send_packets.put(
-            self.login_packet_creator.handshake(self.data.host.get_host_data()))
+            self.login_packet_creator.handshake(
+                self.data.host.get_host_data()))
 
         self.to_send_packets.put(
             self.login_packet_creator.login_start(
                 self.data.hero.username))
 
-        action_list_login = self.data.version_data.action_list["login"]
+        packet_data_reader = PacketDataReader()
+        packet_data_reader.set_compression_threshold(self._connection.compression_threshold)
+
+        login_packets_specifics = self.data.version_data.packets_specifics["login"]
         # Try to log in for 50 sec (10 sec x 5 packets)
         for _ in range(5):
-            data = self.received_packets.get(timeout=10)
+            try:
+                data = self.received_packets.get(timeout=20)
+            except TimeoutError:
+                logger.error("TimeoutError while waiting for nonpremium login responses.")
+                return False
+
             if not data:
                 logger.error("Received 0 bytes")
                 return False
 
-            packet_data_reader = PacketDataReader(data)
-
             try:
-                packet_data_reader.decompress()
+                packet_data_reader.load(packet_data=memoryview(data))
             except InvalidUncompressedPacketError:
+                logger.error("InvalidUncompressedPacketError while parsing nonpremium login responses.")
                 return False
 
             try:
-                result = self.interpret_packet(packet_data_reader=packet_data_reader, action_list=action_list_login)
+                result = self.interpret_packet(packet_data_reader=packet_data_reader,
+                                               state_packets_specifics=login_packets_specifics)
             except DisconnectedByServerException:
                 self.to_send_packets.put(b'')
+                logger.error("DisconnectedByServerException")
                 return False
             except Exception as err:
                 logger.critical("<bot#1>Uncaught exception [%s] occurred: %s ",
@@ -187,6 +200,7 @@ class Game:
                 return True
             if isinstance(result, int):
                 self.data.world_data.compression_threshold = self._connection.compression_threshold = result
+                packet_data_reader.set_compression_threshold(result)
 
         return False
 
@@ -210,16 +224,24 @@ class Game:
         logger.debug("Established connection with: %s", self.data.host.socket_data)
         return True
 
-    def interpret_packet(self, packet_data_reader: PacketDataReader, action_list: dict) -> Any:
+    def interpret_packet(self, packet_data_reader: PacketDataReader, state_packets_specifics: dict) -> Any:
         """
         Interpret packet data using list of actions.
 
         :param packet_data_reader: blob of uncompressed bytes
-        :param action_list: list of actions used to parse given packet
+        :param state_packets_specifics: actions specific to state (play, login, status) and to packets
         """
-        packet_id = packet_data_reader.extract(TypeToExtract.PACKET_ID)
-        if packet_id in action_list:
-            return action_list[packet_id](self, packet_data_reader)
+        packet_id = packet_data_reader.extract_packet_id()
+        if packet_id in state_packets_specifics:
+            packet_specific: PacketSpecific = state_packets_specifics[packet_id]
+
+            packet_specific.read_data(packet_data_reader.get_not_parsed_data())
+            packet_specific.pre_handler(game_=self)
+            default_handler_return = packet_specific.default_handler(game_=self)
+            packet_specific.post_handler(game_=self)
+
+            return default_handler_return
+
         return None
 
     # TODO: Move into reaction_list. Now only for testing.

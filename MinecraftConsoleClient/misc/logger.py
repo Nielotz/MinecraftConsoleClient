@@ -4,14 +4,19 @@ loggers = dict()
 
 
 def get_logger(name: str):
-    if name not in loggers:
-        loggers[name] = logging.getLogger(name)
+    if name in loggers:
+        return loggers[name]
 
-        formatter = logging.Formatter('%(name)-12s: %(levelname)-8s %(message)s')
+    logger = logging.getLogger(name)
+    logger.setLevel(logging.DEBUG)
 
-        ch = logging.StreamHandler()
-        ch.setLevel(logging.DEBUG)
-        ch.setFormatter(formatter)
-        loggers[name].addHandler(ch)
+    formatter = logging.Formatter('%(name)-12s: %(levelname)-8s %(message)s')
 
-    return loggers[name]
+    ch = logging.StreamHandler()
+    ch.setLevel(logging.DEBUG)
+    ch.setFormatter(formatter)
+    logger.addHandler(ch)
+
+    loggers[name] = logger
+
+    return logger

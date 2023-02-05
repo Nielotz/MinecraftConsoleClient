@@ -21,11 +21,10 @@ class Connection:
     Handles reading (sending) data from (to) the server.
 
     Auto-closes connection when instance being deleted.
-
     """
 
     # Positive threshold means number of bytes before start compressing otherwise compression is disabled.
-    compression_threshold = -1
+    compression_threshold: int = -1
     _connection: socket.socket = None
 
     _listener: threading.Thread = None
@@ -71,6 +70,7 @@ class Connection:
         read_bytes = 0
         fragments = []
 
+        # TODO: Check influence of sleep to the performance.
         # Broad try, because when sth went wrong here we are in danger.
         try:
             packet_length = self._read_packet_length()
@@ -107,10 +107,8 @@ class Connection:
 
         Similar to start_sending.
         Thread has to be started as daemon.
-        When received packet (if need) - decompresses,
-        then inserts it into received_queue.
-        Thread ends when length of a packet or
-        declared length equals zero.
+        Inserts received packet as bytes into received_queue.
+        Thread ends when length of a packet or declared length equals zero.
         When connection has been interrupted puts b'' into queue.
 
         :param received_queue: where to put received packets
@@ -166,6 +164,7 @@ class Connection:
 
         :returns VarInt: int
         """
+        # TODO: Merge with converter.
         packet_length = 0
         recv = self._connection.recv
         for i in range(5):
@@ -240,8 +239,7 @@ class Connection:
         :param received: queue.Queue (FIFO) where read packets append to
         """
         if not threading.current_thread().daemon:
-            raise RuntimeError(
-                "Thread running start_listening() has to start as daemon!")
+            raise RuntimeError("Thread running start_listening() has to start as daemon!")
 
         self._ready.set()
 
@@ -261,30 +259,27 @@ class Connection:
         Get packet from to_send and send to the server.
 
         Similar to _listen.
-        Starts waiting for bytes to appear in to_send queue
-        then sends it to server.
+        Starts waiting for bytes to appear in to_send queue then sends it to server.
         It is blocking function, so has to be run in as a daemon.
         Quits when get b'' from to_send queue.
 
         Job:
             Freezes until packet appear in buffer.
-            If compression is enabled and packet exceeds
-            compression_threshold - compresses.
+            If compression is enabled and packet exceeds compression_threshold - compresses.
             Sends it to the host.
             Repeat.
 
         :param to_send: queue.Queue from where to read bytes to send
         """
         if not threading.current_thread().daemon:
-            raise RuntimeError(
-                "Thread running start_sending() has to be a daemon!")
+            raise RuntimeError("Thread running start_sending() has to be a daemon!")
 
         self._ready.set()
 
         to_varint = converters.convert_to_varint
         while True:
             # packet: b'VarInt(Packet ID)' + b'VarInt(Data)'
-            payload = to_send.get(block=True)
+            payload = to_send.get()
 
             if not payload:
                 logger.critical("Packet is empty.")

@@ -3,10 +3,10 @@
 import json
 import struct
 import zlib
+from enum import Enum
 
 from data_structures.position import Position
 from misc.consts import MAX_INT, MAX_UINT
-
 
 def convert_to_varint(value: int) -> bytes:
     """
@@ -20,7 +20,7 @@ def convert_to_varint(value: int) -> bytes:
     if value == 0:
         return bytes(b'\x00')
     if value > 0:
-        # Modified version of stolen code from
+        # Modified version of
         # https://gist.github.com/MarshalX/40861e1d02cbbc6f23acd3eced9db1a0
 
         varint = bytearray()
@@ -294,7 +294,6 @@ def extract_varint_as_int(data: memoryview) -> (int, memoryview):
     """
     Extract varint from uncompressed data and returns it as int.
 
-
     VarInt can be made up to 5 bytes.
     If not found end of VarInt raises ValueError.
 
@@ -326,3 +325,20 @@ def decompress(data: memoryview) -> memoryview:
     if data_length != 0:  # If data length is not zero.
         return memoryview(zlib.decompress(bytes(data)))
     return data
+
+
+class TypeToExtractFunction(Enum):
+    BOOL: callable = extract_bool
+    BYTE: callable = extract_byte
+    UNSIGNED_BYTE: callable = extract_unsigned_byte
+    SHORT: callable = extract_short
+    INT: callable = extract_int
+    LONG: callable = extract_long
+    UNSIGNED_LONG: callable = extract_unsigned_long
+    FLOAT: callable = extract_float
+    DOUBLE: callable = extract_double
+    STRING_BYTES: callable = extract_string_bytes
+    VARINT_AS_INT: callable = extract_varint_as_int
+    POSITION: callable = extract_position
+    JSON_FROM_CHAT: callable = extract_json_from_chat
+    PACKET_ID: callable = extract_varint_as_int

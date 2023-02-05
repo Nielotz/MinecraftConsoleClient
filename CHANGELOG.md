@@ -15,6 +15,9 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html) after release of
 
 - 🔲 Logging managing system
 - 🔲 Tests for packet parsers
+- 🔲 Optimize:
+  - 🔲 Pass memoryview between threads (verify threadsafety)
+- 🔲 Move compression from Connection.recv
 
 ## [1.0.0] - FUTURE - first release
 
@@ -27,6 +30,7 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html) after release of
 - 🔲 Support for "Call after packet handle"
 - 🔲 Basic docs
 - 🔲 Fully adopted Architecture
+- 🔲 Move serverbound into packet
 
 ## [0.X.0] - Future before release of 1.0.0
 
@@ -35,39 +39,32 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html) after release of
 - 🔲 Moooore logging
 - 🔲 Refactor all code but packet handlers - they will be rewritten after
   implementing Packet
-
 - 🔲 Basic docs
 
-## [0.6.1] - Future
+## [0.7.0] - Future
+- 🔲 Implemented new version.packet
 
 ### Changed
+- 🔲 TODO PARSER_ADD_THRESHOLD ?
 
-- 🔲 Support for "Call before packet handle"
-- 🔲 Support for "Call after packet handle"
 
 ## [0.6.0] - Next
-
-### Changed
-- 🔲 Split packet actions to: parse_packet, and react_to_packet
-- 🔲 Implemented new version.packet
-- 🔲 TODO PARSER_ADD_THRESHOLD
-
-- 🔲 New handling packets system: 
+- ✅ Support for "Call before packet handle"
+- ✅ Support for "Call after packet handle"
+- ✅ Split packet actions to: parse_packet, and react_to_packet
+- ✅ Moved to every reaction to packet to some_packet.react()
+- ✅ New handling packets system: 
   - some_packet = SomePacket.parse(data)
   - some_packet.react()
-- 🔲 Moved to every reaction to packet to some_packet.react()
+
+### Changed
 
 ## [0.5.0] - 2021-09-11
 
-## Added
-
-- ❌ ~~Packet data extractor - reduces complexity of extractions, simplifies
-  usages~~ too complicated to use, marginal difference in performance (if any)
-
 ## Changed
 
-- ✅ Refinement of files
-- ✅ Converters now return memoryview of leftover of bytes, see
+-  Refinement of files
+-  Converters now return memoryview of leftover of bytes, see
   [memoryviewvs_bytes_slicing.py](https://github.com/Nielotz/python_benchmarks/blob/master/memoryview_vs_bytes_slicing.py)
 
 ## [0.4.1] - 2021-08-22
