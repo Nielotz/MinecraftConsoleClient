@@ -22,7 +22,7 @@ class CurrentVersion:
     version_data: VersionVersion.V1_12_2 = VersionVersion.V1_12_2
 
     @staticmethod
-    def select(version: VersionVersion.V1_12_2):
+    def select(version: VersionVersion.V1_12_2.value):
         CurrentVersion.version_data = version.value
         return version.value
 

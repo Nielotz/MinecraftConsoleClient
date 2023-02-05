@@ -19,8 +19,8 @@ class VersionData(versions.base.VersionData):
     packet_creator: ModuleType
     import versions.v1_12_2.serverbound.packet_creator as packet_creator
 
-    action_list: dict
-    from versions.v1_12_2.clientbound.action_list import action_list
+    packets_specifics: dict
+    from versions.v1_12_2.packet.clientbound import packets_specifics
 
     from versions.v1_12_2.defaults import Defaults
     defaults: Defaults = Defaults()
